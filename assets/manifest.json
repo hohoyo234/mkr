@@ -1,0 +1,19 @@
+{
+  "name": "My Kitchen Rules · Back-of-house manager",
+  "short_name": "My Kitchen",
+  "description": "Save hours every week — AI rostering, ingredient costs, stocktake, deliveries and staff training for small Australian restaurants.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6F2EC",
+  "theme_color": "#211E1B",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

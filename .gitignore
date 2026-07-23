@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Local-only editor / tool settings (contain machine-specific absolute paths)
+.claude/settings.local.json
+.vscode/
+.idea/
+
+# Dependencies & build output (this project has no build step, but just in case)
+node_modules/
+dist/
+build/
+
+# Environment / secrets — never commit these.
+# Supabase Edge Function secrets live in `supabase secrets set`, not in the repo.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs & scratch
+*.log
+tmp/
+scratch/
