@@ -57,6 +57,10 @@
     "No shift today":"วันนี้ไม่มีกะ", "Enjoy your day off.":"ขอให้มีวันหยุดที่ดี", "Just today this week.":"สัปดาห์นี้มีแค่วันนี้",
     "No shifts rostered this week":"สัปดาห์นี้ยังไม่มีกะ", "Clock in":"ลงเวลาเข้างาน", "Clocked in":"ลงเวลาแล้ว", "Drop":"ส่งต่อกะ",
     "rostered":"จัดกะแล้ว", "shifts":"กะ", "total":"รวม", "warnings":"คำเตือน", "all clear":"ปกติดี",
+    "stock value":"มูลค่าสต๊อก", "perishable":"ของสด", "non-perishable":"ของไม่เน่าเสีย", "needs attention":"ต้องดูแล",
+    "purchases":"การซื้อ", "spent · 30d":"ใช้จ่าย · 30 วัน", "suppliers":"ซัพพลายเออร์",
+    "waiting":"รอยืนยัน", "confirmed":"ยืนยันแล้ว", "problems":"มีปัญหา",
+    "SOPs":"SOP", "outstanding":"ค้างอยู่", "overdue":"เกินกำหนด",
   };
   MKR.i18n.register('th', { T: T, P: [] });
 })();

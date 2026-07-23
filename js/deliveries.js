@@ -77,10 +77,10 @@ window.MKR = window.MKR || {};
     c.innerHTML = `
       <div class="section-head"><div><h2>Deliveries</h2><p>Check it at the back door, not after the invoice arrives</p></div>
         <button class="btn btn-dark btn-sm" id="dlvNew">＋ New delivery</button></div>
-      <div class="grid g3" style="margin-bottom:4px">
-        <div class="card stat"><div class="k">🕒 Waiting to confirm</div><div class="v">${wait.length}</div></div>
-        <div class="card stat"><div class="k">✅ Confirmed</div><div class="v">${rows.filter(d=>d.status==='confirmed').length}</div></div>
-        <div class="card stat"><div class="k">⚠️ With problems</div><div class="v" style="color:${probs?'var(--red)':'inherit'}">${probs}</div><div class="delta flat">short, damaged or wrong</div></div>
+      <div class="statline">
+        <span class="statcell"><b>${wait.length}</b><i>waiting</i></span>
+        <span class="statcell"><b>${rows.filter(d=>d.status==='confirmed').length}</b><i>confirmed</i></span>
+        <span class="statcell"${probs?' style="color:var(--red)"':''}><b>${probs}</b><i>problems</i></span>
       </div>
       <div class="card pad20 mt16">
         <div class="section-title">Delivery log</div>

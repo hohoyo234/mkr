@@ -62,10 +62,10 @@ window.MKR = window.MKR || {};
         <div class="row gap8 wrap"><button class="btn btn-ghost btn-sm" id="trAssign">👥 Assign training</button>
           <button class="btn btn-dark btn-sm" id="trNew">＋ New SOP</button></div></div>
 
-      <div class="grid g3" style="margin-bottom:4px">
-        <div class="card stat"><div class="k">📘 SOPs</div><div class="v">${list.length}</div></div>
-        <div class="card stat"><div class="k">📝 Outstanding</div><div class="v">${outstanding.length}</div><div class="delta flat">assigned, not signed off</div></div>
-        <div class="card stat"><div class="k">⏰ Overdue</div><div class="v" style="color:${overdue.length?'var(--red)':'inherit'}">${overdue.length}</div></div>
+      <div class="statline">
+        <span class="statcell"><b>${list.length}</b><i>SOPs</i></span>
+        <span class="statcell"><b>${outstanding.length}</b><i>outstanding</i></span>
+        <span class="statcell"${overdue.length?' style="color:var(--red)"':''}><b>${overdue.length}</b><i>overdue</i></span>
       </div>
 
       <div class="grid g2 mt16" style="align-items:start">

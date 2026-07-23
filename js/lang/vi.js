@@ -57,6 +57,10 @@
     "No shift today":"Hôm nay không có ca", "Enjoy your day off.":"Chúc bạn ngày nghỉ vui vẻ.", "Just today this week.":"Tuần này chỉ có hôm nay.",
     "No shifts rostered this week":"Tuần này chưa xếp ca", "Clock in":"Chấm công", "Clocked in":"Đã chấm công", "Drop":"Nhường ca",
     "rostered":"đã xếp", "shifts":"ca", "total":"tổng", "warnings":"cảnh báo", "all clear":"đều ổn",
+    "stock value":"giá trị kho", "perishable":"dễ hư", "non-perishable":"không hư", "needs attention":"cần chú ý",
+    "purchases":"lần mua", "spent · 30d":"chi · 30 ngày", "suppliers":"nhà cung cấp",
+    "waiting":"chờ xác nhận", "confirmed":"đã xác nhận", "problems":"có vấn đề",
+    "SOPs":"SOP", "outstanding":"chưa xong", "overdue":"quá hạn",
   };
   MKR.i18n.register('vi', { T: T, P: [] });
 })();

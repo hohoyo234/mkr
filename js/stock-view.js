@@ -49,11 +49,11 @@ window.MKR = window.MKR || {};
       </div>`;
 
     c.innerHTML = `
-      <div class="grid g4" style="margin-bottom:4px">
-        <div class="card stat"><div class="k">📦 Total stock value</div><div class="v">${U.money(total)}</div><div class="delta flat">${rows.length} item${rows.length===1?'':'s'} on hand</div></div>
-        <div class="card stat"><div class="k">🥬 Perishable</div><div class="v">${U.money(perish.reduce((t,r)=>t+r.value,0))}</div><div class="delta flat">${perish.length} item${perish.length===1?'':'s'}</div></div>
-        <div class="card stat"><div class="k">🥢 Non-perishable</div><div class="v">${U.money(durable.reduce((t,r)=>t+r.value,0))}</div><div class="delta flat">${durable.length} item${durable.length===1?'':'s'}</div></div>
-        <div class="card stat"><div class="k">⚠️ Needs attention</div><div class="v" style="color:${flagged?'var(--amber-ink,#8a6410)':'inherit'}">${flagged}</div><div class="delta flat">low or near expiry</div></div>
+      <div class="statline">
+        <span class="statcell"><b>${U.money(total)}</b><i>stock value</i></span>
+        <span class="statcell"><b>${U.money(perish.reduce((t,r)=>t+r.value,0))}</b><i>perishable</i></span>
+        <span class="statcell"><b>${U.money(durable.reduce((t,r)=>t+r.value,0))}</b><i>non-perishable</i></span>
+        <span class="statcell"${flagged?' style="color:#8a6410"':''}><b>${flagged}</b><i>needs attention</i></span>
       </div>
       ${group('🥬 Perishable · goes off', 'shelf life tracked from the last delivery', perish)}
       ${group('🥢 Non-perishable · tools & consumables', 'chopsticks, containers, gloves — counted, never expires', durable)}
@@ -186,10 +186,10 @@ window.MKR = window.MKR || {};
     const nameOf = id=>{ const s=sups.find(x=>x.id===id); return s?s.name:'—'; };
 
     c.innerHTML = `
-      <div class="grid g3" style="margin-bottom:4px">
-        <div class="card stat"><div class="k">🧾 Purchases logged</div><div class="v">${purch.length}</div></div>
-        <div class="card stat"><div class="k">💵 Spent · last 30 days</div><div class="v">${U.money0(spend30)}</div></div>
-        <div class="card stat"><div class="k">🚚 Suppliers used</div><div class="v">${new Set(purch.map(p=>p.supplierId).filter(Boolean)).size}</div></div>
+      <div class="statline">
+        <span class="statcell"><b>${purch.length}</b><i>purchases</i></span>
+        <span class="statcell"><b>${U.money0(spend30)}</b><i>spent · 30d</i></span>
+        <span class="statcell"><b>${new Set(purch.map(p=>p.supplierId).filter(Boolean)).size}</b><i>suppliers</i></span>
       </div>
       <div class="card pad20 mt16">
         <div class="section-title">Purchase history</div>

@@ -57,6 +57,10 @@
     "No shift today":"오늘 근무 없음", "Enjoy your day off.":"즐거운 휴무 되세요.", "Just today this week.":"이번 주는 오늘 하루뿐입니다.",
     "No shifts rostered this week":"이번 주 배정된 근무 없음", "Clock in":"출근 체크", "Clocked in":"출근함", "Drop":"근무 넘기기",
     "rostered":"배정", "shifts":"근무", "total":"합계", "warnings":"경고", "all clear":"모두 정상",
+    "stock value":"재고 금액", "perishable":"신선품", "non-perishable":"비신선품", "needs attention":"확인 필요",
+    "purchases":"구매 건수", "spent · 30d":"지출 · 30일", "suppliers":"거래처",
+    "waiting":"확인 대기", "confirmed":"확인됨", "problems":"문제",
+    "SOPs":"SOP", "outstanding":"미완료", "overdue":"기한 초과",
   };
   MKR.i18n.register('ko', { T: T, P: [] });
 })();
