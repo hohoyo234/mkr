@@ -56,6 +56,7 @@
     "Everything else is running fine":"อย่างอื่นเรียบร้อยดี", "This week":"สัปดาห์นี้",
     "No shift today":"วันนี้ไม่มีกะ", "Enjoy your day off.":"ขอให้มีวันหยุดที่ดี", "Just today this week.":"สัปดาห์นี้มีแค่วันนี้",
     "No shifts rostered this week":"สัปดาห์นี้ยังไม่มีกะ", "Clock in":"ลงเวลาเข้างาน", "Clocked in":"ลงเวลาแล้ว", "Drop":"ส่งต่อกะ",
+    "rostered":"จัดกะแล้ว", "shifts":"กะ", "total":"รวม", "warnings":"คำเตือน", "all clear":"ปกติดี",
   };
   MKR.i18n.register('th', { T: T, P: [] });
 })();

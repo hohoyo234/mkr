@@ -57,11 +57,11 @@ window.MKR = window.MKR || {};
         ${weekOffset!==0?`<button class="btn btn-ghost btn-sm" id="wkToday">Today</button>`:''}
       </div>
 
-      <div class="grid g4 mt8" style="margin-bottom:18px">
-        <div class="card stat"><div class="k">👥 People rostered</div><div class="v">${new Set(shifts.map(s=>s.staffId)).size}<small class="faint"> / ${staff.length}</small></div></div>
-        <div class="card stat"><div class="k">📅 Shifts</div><div class="v">${shifts.length}</div></div>
-        <div class="card stat"><div class="k">⏱️ Total hours</div><div class="v">${totalHours.toFixed(1)}<small>h</small></div></div>
-        <div class="card stat clickable" id="warnCard"><div class="k">⚠️ Warnings</div><div class="v" style="color:${reds?'var(--red)':(warns.length?'#8a6410':'inherit')}">${warns.length}</div><div class="delta flat">${warns.length?'advisory only · view ›':'nothing flagged'}</div></div>
+      <div class="rs-summary">
+        <span class="rs-sum"><b>${new Set(shifts.map(s=>s.staffId)).size}/${staff.length}</b><i>rostered</i></span>
+        <span class="rs-sum"><b>${shifts.length}</b><i>shifts</i></span>
+        <span class="rs-sum"><b>${totalHours.toFixed(1)}h</b><i>total</i></span>
+        <span class="rs-sum rs-warn clickable" id="warnCard" style="${reds?'color:var(--red)':(warns.length?'color:#8a6410':'')}">${warns.length? `<b>${warns.length}</b><i>warnings</i>` : '<b>✓</b><i>all clear</i>'}</span>
       </div>
 
       ${warns.length? `<div class="card pad20" style="margin-bottom:16px">
