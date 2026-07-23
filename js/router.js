@@ -95,8 +95,11 @@ window.MKR = window.MKR || {};
           ${sess._impersonating?`<div class="offbar" style="background:var(--blue-soft);color:var(--blue);border-color:#c4d6f3">🛡️ Super Admin preview · ${MKR.auth.roleName(viewingRole)} &nbsp;<a href="#exit" id="exitImp" style="text-decoration:underline;font-weight:700">Back to Super Admin →</a></div>`:''}
           ${(preview && !sess._impersonating)?`<div class="offbar" style="background:var(--blue-soft);color:var(--blue);border-color:#c4d6f3">👁 Owner preview · ${MKR.auth.roleName(viewingRole)} &nbsp;<a href="#/owner/switch" style="text-decoration:underline;font-weight:700">Back to Owner →</a></div>`:''}
           <div class="topbar">
-            <div><h1>${cur.label}</h1><div class="sub">${MKR.util.esc(portal.subtitle||'')}</div></div>
-            <div id="netlight" class="netlight online"><span class="lamp"></span>Connected</div>
+            <div class="topbar-title"><h1>${cur.label}</h1><div class="sub">${MKR.util.esc(portal.subtitle||'')}</div></div>
+            <div class="topbar-right">
+              ${MKR.i18n?MKR.i18n.switcher():''}
+              <div id="netlight" class="netlight online"><span class="lamp"></span>Connected</div>
+            </div>
           </div>
           <div class="content" id="view"></div>
         </div>
@@ -117,6 +120,7 @@ window.MKR = window.MKR || {};
     const exitPrev=document.getElementById('exitPrev');
     if(exitPrev) exitPrev.onclick=(e)=>{ e.preventDefault(); MKR.auth.exitPreview(); };
     MKR.net.render();
+    if(MKR.i18n) MKR.i18n.bindSwitchers(root);
     const view = document.getElementById('view');
     try{ await portal.view(section, view, arg, viewingRole); }
     catch(e){ console.error(e); view.innerHTML = `<div class="empty"><div class="em">😵</div><p>Page error: ${MKR.util.esc(e.message)}</p></div>`; }
