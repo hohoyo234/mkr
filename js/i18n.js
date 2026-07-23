@@ -15,7 +15,23 @@
 window.MKR = window.MKR || {};
 (function(){
   const STORE='mkr_lang';
-  let lang = (function(){ try{ return localStorage.getItem(STORE)||'en'; }catch(e){ return 'en'; } })();
+  // Every language the app can switch to. English is the source of truth (no
+  // dictionary); each other code is filled in by a js/lang/<code>.js file that
+  // calls MKR.i18n.register(). Add a language = add a file + a row here.
+  const LANGS = [
+    {code:'en',      label:'English'},
+    {code:'zh-Hans', label:'简体中文'},
+    {code:'zh-Hant', label:'繁體中文'},
+    {code:'vi',      label:'Tiếng Việt'},
+    {code:'ko',      label:'한국어'},
+    {code:'th',      label:'ภาษาไทย'},
+  ];
+  const CODES = LANGS.map(l=>l.code);
+  // Maps our code to the value we put on <html lang>, which is what the CSS
+  // per-language font stacks key off (so Traditional never borrows a Simplified font).
+  const HTML_LANG = {'en':'en','zh-Hans':'zh-CN','zh-Hant':'zh-TW','vi':'vi','ko':'ko','th':'th'};
+  function normalize(l){ if(l==='zh') return 'zh-Hans'; return CODES.includes(l) ? l : 'en'; }
+  let lang = normalize((function(){ try{ return localStorage.getItem(STORE)||'en'; }catch(e){ return 'en'; } })());
 
   // ---- Dictionary: exact English source -> 简体中文 ----
   const T = {
@@ -958,9 +974,21 @@ window.MKR = window.MKR || {};
     [/^Owner · previewing (.+)$/, m => `老板 · 预览${tr(m[1])}`],
   ];
 
+  // ---- multi-language registry ----
+  // The built-in 简体中文 dictionary lives above (T + PATTERNS). Every other
+  // language registers its own dictionary from js/lang/<code>.js, which loads
+  // after this file.
+  const DICTS = { 'zh-Hans': { T: T, P: PATTERNS } };
+  let active = DICTS[lang] || null;          // null for English (source of truth)
+  function register(code, d){
+    DICTS[code] = { T: (d && d.T) || {}, P: (d && d.P) || [] };
+    if(code === lang){ active = DICTS[code]; if(lang !== 'en') schedule(); }
+  }
+
   function trKey(key){
-    if(T[key]) return T[key];
-    for(const [re, rep] of PATTERNS){
+    if(!active) return null;
+    if(active.T[key]) return active.T[key];
+    for(const [re, rep] of active.P){
       const m = key.match(re);
       if(m) return typeof rep === 'function' ? rep(m) : key.replace(re, rep);
     }
@@ -1001,7 +1029,7 @@ window.MKR = window.MKR || {};
   }
 
   function apply(root){
-    if(lang!=='zh' || !root) return;
+    if(lang==='en' || !active || !root) return;
     applying = true;
     try{
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
@@ -1032,38 +1060,39 @@ window.MKR = window.MKR || {};
   function startObserver(){
     if(!('MutationObserver' in window) || !document.body) return;
     const obs = new MutationObserver((muts)=>{
-      if(applying || lang!=='zh') return;
+      if(applying || lang==='en') return;
       schedule();
     });
     obs.observe(document.body, { subtree:true, childList:true, characterData:true });
   }
 
   async function set(l){
-    lang = (l==='zh') ? 'zh' : 'en';
+    lang = normalize(l);
+    active = DICTS[lang] || null;
     try{ localStorage.setItem(STORE, lang); }catch(e){}
-    document.documentElement.lang = lang==='zh' ? 'zh-CN' : 'en';
-    // Re-render the current route from the English source, then (if zh) translate.
+    document.documentElement.lang = HTML_LANG[lang] || 'en';
+    // Re-render the current route from the English source, then translate.
     try{ if(MKR.router && MKR.router.render) await MKR.router.render(); }catch(e){}
-    if(lang==='zh') apply(document.body);
+    if(lang!=='en') apply(document.body);
   }
 
-  // Small EN | 中 switch markup (used by login + settings)
+  // Language selector (used by login + settings). A <select> so it scales to
+  // every registered language, not just two.
   function switcher(){
-    return `<div class="lang-switch" role="group" aria-label="Language">
-      <button type="button" data-lang="en" class="${lang==='en'?'active':''}">EN</button>
-      <button type="button" data-lang="zh" class="${lang==='zh'?'active':''}">中</button>
-    </div>`;
+    const opts = LANGS.map(L=>`<option value="${L.code}"${L.code===lang?' selected':''}>${L.label}</option>`).join('');
+    return `<select class="lang-select" aria-label="Language">${opts}</select>`;
   }
-  // Wire up any rendered switchers within `root`
+  // Wire up any rendered selectors within `root`
   function bindSwitchers(root){
-    (root||document).querySelectorAll('.lang-switch [data-lang]').forEach(b=>{
-      b.onclick = ()=> set(b.dataset.lang);
+    (root||document).querySelectorAll('.lang-select').forEach(s=>{
+      s.value = lang;
+      s.onchange = ()=> set(s.value);
     });
   }
 
-  MKR.i18n = { get lang(){ return lang; }, set, t:tr, apply, switcher, bindSwitchers };
+  MKR.i18n = { get lang(){ return lang; }, LANGS, set, register, t:tr, apply, switcher, bindSwitchers };
 
-  document.documentElement.lang = lang==='zh' ? 'zh-CN' : 'en';
+  document.documentElement.lang = HTML_LANG[lang] || 'en';
   startObserver();
-  if(lang==='zh') apply(document.body);
+  if(lang!=='en') apply(document.body);
 })();
