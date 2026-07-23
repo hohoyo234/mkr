@@ -54,6 +54,8 @@
     "Roster is short today":"오늘 인원 부족", "Fewer people on than you planned":"계획보다 인원이 적음",
     "Unread alerts":"읽지 않은 알림", "Tap to review":"눌러서 확인",
     "Everything else is running fine":"나머지는 모두 정상", "This week":"이번 주",
+    "No shift today":"오늘 근무 없음", "Enjoy your day off.":"즐거운 휴무 되세요.", "Just today this week.":"이번 주는 오늘 하루뿐입니다.",
+    "No shifts rostered this week":"이번 주 배정된 근무 없음", "Clock in":"출근 체크", "Clocked in":"출근함", "Drop":"근무 넘기기",
   };
   MKR.i18n.register('ko', { T: T, P: [] });
 })();

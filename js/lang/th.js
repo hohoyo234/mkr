@@ -54,6 +54,8 @@
     "Roster is short today":"วันนี้คนไม่พอ", "Fewer people on than you planned":"คนน้อยกว่าที่วางแผน",
     "Unread alerts":"การแจ้งเตือนที่ยังไม่อ่าน", "Tap to review":"แตะเพื่อดู",
     "Everything else is running fine":"อย่างอื่นเรียบร้อยดี", "This week":"สัปดาห์นี้",
+    "No shift today":"วันนี้ไม่มีกะ", "Enjoy your day off.":"ขอให้มีวันหยุดที่ดี", "Just today this week.":"สัปดาห์นี้มีแค่วันนี้",
+    "No shifts rostered this week":"สัปดาห์นี้ยังไม่มีกะ", "Clock in":"ลงเวลาเข้างาน", "Clocked in":"ลงเวลาแล้ว", "Drop":"ส่งต่อกะ",
   };
   MKR.i18n.register('th', { T: T, P: [] });
 })();

@@ -47,6 +47,8 @@
       "Roster is short today":"今天排班人手不夠", "Fewer people on than you planned":"上班人數比計劃少",
       "Unread alerts":"未讀提醒", "Tap to review":"點開看看",
       "Everything else is running fine":"其他都正常，不用管", "This week":"本週",
+      "No shift today":"今天不用上班", "Enjoy your day off.":"好好休息。", "Just today this week.":"本週只有今天這一班。",
+      "No shifts rostered this week":"本週沒有排班", "Clock in":"打卡上班", "Clocked in":"已打卡", "Drop":"轉班",
       "Today's checklist":"今日清單", "This week's roster":"本週排班",
       "On now":"當前在崗", "Rostered today":"今天排班", "Clocked in":"已打卡", "Tasks done":"任務完成",
       "Stock value":"庫存價值", "Low or expiring":"偏低或臨期", "Deliveries waiting":"待確認送貨", "Training outstanding":"待完成培訓",

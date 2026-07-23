@@ -79,6 +79,8 @@ window.MKR = window.MKR || {};
     "Roster is short today":"今天排班人手不够", "Fewer people on than you planned":"上班人数比计划少",
     "Unread alerts":"未读提醒", "Tap to review":"点开看看",
     "Everything else is running fine":"其他都正常，不用管", "This week":"本周",
+    "No shift today":"今天不用上班", "Enjoy your day off.":"好好休息。", "Just today this week.":"本周只有今天这一班。",
+    "No shifts rostered this week":"本周没有排班", "Clock in":"打卡上班", "Clocked in":"已打卡", "Drop":"转班",
     "Today's checklist":"今日清单", "This week's roster":"本周排班",
     "On now":"当前在岗", "Rostered today":"今天排班", "Clocked in":"已打卡", "Tasks done":"任务完成",
     "Stock value":"库存价值", "Low or expiring":"偏低或临期", "Deliveries waiting":"待确认送货", "Training outstanding":"待完成培训",

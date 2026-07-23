@@ -75,27 +75,46 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     let clockins = (await MKR.db.getAll('clockins')).filter(k=>k.staffId===sess.id);
     const total = U.round2(shifts.reduce((t,s)=>t+MKR.util.shiftHours(s.start,s.end),0));
     function draw(){
+      // One focus: today's shift + the single action (clock in). The rest of the
+      // week sits quietly below.
+      const todayShift = shifts.find(s=>s.day===todayIdx);
+      const ck = todayShift ? clockins.find(k=>k.shiftId===todayShift.id) : null;
+      const rest = shifts.filter(s=>s.day!==todayIdx);
       c.innerHTML = `
         <div class="section-head"><div><h2>My shifts</h2><p>One-tap clock-in on the day · drop a shift if something comes up</p></div>
           <span class="pill ghost">${U.hrs(total)} this week</span></div>
-        ${shifts.length?`<div class="alert info" style="margin-bottom:16px"><span>⏰</span><div>Next shift <b>${DAYS[shifts[0].day]} ${shifts[0].start}</b> — you'll get a reminder 1 hour before.</div></div>`:''}
-        <div class="list card" style="padding:8px 18px" id="slist"></div>`;
-      const el=U.qs('#slist',c);
-      if(!shifts.length){ el.innerHTML=`<div class="empty"><div class="em">🌴</div><p>No shifts rostered this week</p></div>`; return; }
-      el.innerHTML = shifts.map(s=>{
-        const ck = clockins.find(k=>k.shiftId===s.id);
-        const isToday = s.day===todayIdx;
-        let right;
-        if(isToday){
-          right = ck ? (ck.late?`<span class="pill danger">Late ${ck.lateMins}′</span>`:`<span class="pill ok">Clocked in ${MKR.util.fmtTime(ck.clockTs)}</span>`)
-                     : `<button class="btn btn-green btn-sm" data-clock="${s.id}">Clock in</button>`;
-        } else right = `<button class="btn btn-ghost btn-sm" data-hang="${s.id}">Drop</button>`;
-        return `<div class="li"><div class="ava">${DAYS[s.day][0]}</div>
-          <div class="meta"><b>${DAYS[s.day]} · ${s.start} – ${s.end}${isToday?' · <span style="color:var(--accent)">Today</span>':''}</b><span>${MKR.util.fmtDate(MKR.roster.dayTs(week, s.day))} · ${U.hrs(MKR.util.shiftHours(s.start,s.end))}</span></div>
-          ${right}</div>`;
-      }).join('');
-      U.qsa('[data-hang]',el).forEach(b=>b.onclick=()=>hang(shifts.find(x=>x.id===b.dataset.hang)));
-      U.qsa('[data-clock]',el).forEach(b=>b.onclick=()=>clockIn(shifts.find(x=>x.id===b.dataset.clock)));
+
+        ${todayShift ? `
+          <div class="staff-today card">
+            <div class="staff-today-top"><span class="staff-today-label">Today</span><span class="staff-today-date">${MKR.util.fmtDate(MKR.roster.dayTs(week, todayShift.day))}</span></div>
+            <div class="staff-today-time">${todayShift.start} – ${todayShift.end}</div>
+            <div class="staff-today-hrs">${U.hrs(MKR.util.shiftHours(todayShift.start, todayShift.end))}</div>
+            ${ck
+              ? `<div class="staff-today-status ${ck.late?'late':'ok'}"><b>Clocked in</b> · ${ck.late?`${ck.lateMins} min late`:MKR.util.fmtTime(ck.clockTs)}</div>`
+              : `<button class="btn btn-green staff-clock-btn" data-clock="${todayShift.id}">Clock in</button>`}
+          </div>
+        ` : `
+          <div class="today-clear card">
+            <div class="today-clear-ic" aria-hidden="true">🌴</div>
+            <b>No shift today</b>
+            <span>Enjoy your day off.</span>
+          </div>
+        `}
+
+        ${shifts.length
+          ? `<div class="today-label" style="margin-top:24px">This week</div>
+             <div class="list card" style="padding:8px 18px" id="slist"></div>`
+          : `<div class="today-clear card" style="margin-top:16px"><div class="today-clear-ic" aria-hidden="true">🌴</div><b>No shifts rostered this week</b></div>`}`;
+
+      if(shifts.length){
+        const el=U.qs('#slist',c);
+        el.innerHTML = rest.length ? rest.map(s=>`<div class="li"><div class="ava">${DAYS[s.day][0]}</div>
+            <div class="meta"><b>${DAYS[s.day]} · ${s.start} – ${s.end}</b><span>${MKR.util.fmtDate(MKR.roster.dayTs(week, s.day))} · ${U.hrs(MKR.util.shiftHours(s.start,s.end))}</span></div>
+            <button class="btn btn-ghost btn-sm" data-hang="${s.id}">Drop</button></div>`).join('')
+          : `<div class="empty" style="padding:18px 0"><p class="faint">Just today this week.</p></div>`;
+        U.qsa('[data-hang]',el).forEach(b=>b.onclick=()=>hang(shifts.find(x=>x.id===b.dataset.hang)));
+      }
+      U.qsa('[data-clock]',c).forEach(b=>b.onclick=()=>clockIn(shifts.find(x=>x.id===b.dataset.clock)));
     }
     async function clockIn(shift){
       const startTs = MKR.alerts.shiftStartTs(shift);
