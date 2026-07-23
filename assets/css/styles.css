@@ -376,6 +376,29 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .lang-switch button.active{background:var(--accent);color:#fff}
 .lang-switch button:not(.active):hover{background:var(--paper-2)}
 .login-card .lang-switch{position:absolute;top:16px;right:16px}
+/* ---------- simplified owner home ("Today") — action-first, low-clutter ---------- */
+.today-label{font-size:12.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.05em;text-transform:uppercase;margin:2px 0 12px}
+.today-acts{display:flex;flex-direction:column;gap:12px}
+.today-act{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;transition:transform .16s var(--ease-out),box-shadow .2s}
+@media (hover:hover) and (pointer:fine){ .today-act:hover{transform:translateY(-2px);box-shadow:var(--shadow-soft)} }
+.today-act-ic{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.today-act-body{flex:1;min-width:0}
+.today-act-body b{display:block;font-size:16px;font-weight:700;color:var(--ink)}
+.today-act-body span{display:block;font-size:13.5px;color:var(--ink-soft);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.today-act-n{background:var(--ink);color:var(--paper);font-size:14px;font-weight:800;min-width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 8px;flex-shrink:0}
+.today-act-chev{color:var(--ink-faint);font-size:22px;flex-shrink:0}
+.today-clear{display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;gap:5px}
+.today-clear-ic{width:56px;height:56px;border-radius:50%;background:var(--green-soft);color:var(--green);font-size:28px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
+.today-clear b{font-size:18px;color:var(--ink)}
+.today-clear span{font-size:14px;color:var(--ink-soft)}
+.today-foot{margin-top:26px;padding-top:18px;border-top:1px solid var(--line)}
+.today-foot-head{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-soft);margin-bottom:14px}
+.today-foot-metrics{display:flex;flex-wrap:wrap;gap:10px}
+.today-foot-metrics a{display:flex;flex-direction:column;gap:2px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:14px;padding:10px 16px;min-width:92px}
+.today-foot-metrics a span{font-size:12px;color:var(--ink-faint)}
+.today-foot-metrics a b{font-size:17px;font-weight:800;color:var(--ink)}
+@media (hover:hover) and (pointer:fine){ .today-foot-metrics a:hover{background:var(--card);border-color:var(--line)} }
+
 /* Language <select> — replaces the old EN|中 toggle; scales to N languages */
 .lang-select{appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:999px;
   background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236F655B' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;

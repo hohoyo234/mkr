@@ -48,6 +48,12 @@
     "Language":"Ngôn ngữ", "System language":"Ngôn ngữ hệ thống",
     "This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.":
       "Ứng dụng này chỉ theo dõi hoạt động của riêng bạn. Nó không tính lương, không diễn giải award, và không kết nối với bất kỳ hệ thống chính phủ nào.",
+    // simplified "Today" home
+    "Needs you now":"Cần bạn ngay", "Deliveries to confirm":"Giao hàng cần xác nhận", "Check them at the back door":"Kiểm tại cửa sau",
+    "Stock running low":"Kho sắp hết", "Training overdue":"Đào tạo quá hạn", "Waiting to be signed off":"Chờ ký xác nhận",
+    "Roster is short today":"Hôm nay thiếu người", "Fewer people on than you planned":"Ít người hơn dự kiến",
+    "Unread alerts":"Cảnh báo chưa đọc", "Tap to review":"Chạm để xem",
+    "Everything else is running fine":"Mọi thứ khác đều ổn", "This week":"Tuần này",
   };
   MKR.i18n.register('vi', { T: T, P: [] });
 })();

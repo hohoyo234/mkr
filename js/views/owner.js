@@ -421,100 +421,54 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     await noShowScan();
     const m = await metrics();
     const staff = (await MKR.db.getAll('users')).filter(u=>(u.role==='staff'||u.role==='manager') && !u.offboarded);
-    const nameOf = id=>{ const u=staff.find(x=>x.id===id); return u?u.name:'Someone'; };
 
     // Warnings from this week's roster — advisory, same as the roster page.
     let rWarns=[]; try{ rWarns = await MKR.roster.warnings(m.week, staff); }catch(e){}
 
+    // The one job of this screen: surface only what actually needs the owner
+    // today, as tappable actions. Everything else is demoted to a quiet footer.
+    const short = rWarns.filter(w=>w.level==='red').length;
     const todo = [];
-    if(m.deliveries.length)        todo.push({em:'🚚', href:'#/owner/deliveries', title:`${m.deliveries.length} deliver${m.deliveries.length===1?'y':'ies'} waiting to be confirmed`, sub:'Check them off at the back door'});
-    if(m.lowStock.length)          todo.push({em:'📦', href:'#/owner/stock',      title:`${m.lowStock.length} item${m.lowStock.length===1?'':'s'} low or near expiry`, sub:m.lowStock.slice(0,3).map(r=>r.name).join(', ')});
-    if(m.trainingOverdue.length)   todo.push({em:'📘', href:'#/owner/training',   title:`${m.trainingOverdue.length} training task${m.trainingOverdue.length===1?'':'s'} overdue`, sub:'People signed up but haven\'t signed off'});
-    if(rWarns.filter(w=>w.level==='red').length) todo.push({em:'📅', href:'#/manager/schedule', title:`${rWarns.filter(w=>w.level==='red').length} shift${rWarns.filter(w=>w.level==='red').length===1?'':'s'} short on the roster`, sub:'Fewer people on than you asked for'});
-    if(m.alerts.length)            todo.push({em:'🚨', href:'#/owner/alerts',     title:`${m.alerts.length} unread alert${m.alerts.length===1?'':'s'}`, sub:'Tap to clear the list'});
+    if(m.deliveries.length)      todo.push({em:'🚚', href:'#/owner/deliveries', title:'Deliveries to confirm', sub:'Check them at the back door', n:m.deliveries.length, tint:'var(--blue-soft)'});
+    if(m.lowStock.length)        todo.push({em:'📦', href:'#/owner/stock',      title:'Stock running low', sub:m.lowStock.slice(0,3).map(r=>r.name).join(', '), n:m.lowStock.length, tint:'var(--amber-soft)'});
+    if(m.trainingOverdue.length) todo.push({em:'📘', href:'#/owner/training',   title:'Training overdue', sub:'Waiting to be signed off', n:m.trainingOverdue.length, tint:'var(--accent-soft)'});
+    if(short)                    todo.push({em:'📅', href:'#/manager/schedule', title:'Roster is short today', sub:'Fewer people on than you planned', n:short, tint:'var(--red-soft)'});
+    if(m.alerts.length)          todo.push({em:'🚨', href:'#/owner/alerts',     title:'Unread alerts', sub:'Tap to review', n:m.alerts.length, tint:'var(--red-soft)'});
 
-    const taskPct = m.tasks.length ? Math.round(m.tasksDone/m.tasks.length*100) : 0;
-    const tile=(href,em,label,val,sub,tone)=>`<a class="card ds-tile clickable" href="${href}">
-      <div class="ds-ico" aria-hidden="true">${em}</div>
-      <div class="ds-tile-body"><span class="ds-tile-label">${label}</span><span class="ds-tile-val" style="${tone?`color:${tone}`:''}">${val}</span><span class="ds-tile-delta">${sub}</span></div></a>`;
+    const weekHrs = U.round2(m.shifts.reduce((t,s)=>t+U.shiftHours(s.start,s.end),0)).toFixed(1);
 
     c.innerHTML = `
       <div class="section-head"><div><h2>Today</h2><p>Runs quietly — it only asks for you when something actually needs you</p></div></div>
 
-      <div class="ds-hero card">
-        <div class="ds-hero-main">
-          <span class="ds-hero-label">👋 ${todo.length?`${todo.length} thing${todo.length===1?' wants':'s want'} you`:'Nothing needs you right now'}</span>
-          <span class="ds-hero-value" style="font-size:${todo.length?'40px':'34px'}">${todo.length?todo.length:'All clear'}</span>
-          <span class="ds-hero-sub">${U.fmtDate(Date.now())} · ${m.onNow} on shift right now</span>
-          <div class="ds-mini-row">
-            <div class="ds-mini"><span>🟢 On now</span><b>${m.onNow}</b></div>
-            <div class="ds-mini"><span>Rostered today</span><b>${m.todayShifts.length}</b></div>
-            <div class="ds-mini"><span>Clocked in</span><b>${m.clockedIn}/${m.todayShifts.length}</b></div>
-            <div class="ds-mini"><span>Tasks done</span><b>${m.tasksDone}/${m.tasks.length}</b></div>
-          </div>
+      ${todo.length ? `
+        <div class="today-label">Needs you now</div>
+        <div class="today-acts">
+          ${todo.map(t=>`<a class="today-act clickable" href="${t.href}">
+            <div class="today-act-ic" style="background:${t.tint}" aria-hidden="true">${t.em}</div>
+            <div class="today-act-body"><b>${t.title}</b><span>${U.esc(t.sub)}</span></div>
+            ${t.n>1?`<span class="today-act-n">${t.n}</span>`:''}
+            <span class="today-act-chev" aria-hidden="true">›</span>
+          </a>`).join('')}
         </div>
-        <div class="ds-hero-chart">
-          <div class="ds-chart-cap">Today's checklist</div>
-          <div class="gauge" style="margin-top:10px"><div class="gauge-fill" data-w="${taskPct}" style="background:${taskPct>=80?'var(--green)':'var(--accent)'}"></div></div>
-          <div class="gauge-legend"><span>${taskPct}% complete</span><span>${m.tasks.length-m.tasksDone} left</span></div>
-          <div class="ds-chart-cap" style="margin-top:14px">This week's roster</div>
-          <div class="gauge-legend"><span>${m.shifts.length} shifts</span><span>${U.round2(m.shifts.reduce((t,s)=>t+U.shiftHours(s.start,s.end),0)).toFixed(1)} h</span></div>
+      ` : `
+        <div class="today-clear card">
+          <div class="today-clear-ic" aria-hidden="true">✓</div>
+          <b>Nothing needs you right now</b>
+          <span>Nothing outstanding. Go and run your restaurant.</span>
+        </div>
+      `}
+
+      <div class="today-foot">
+        <div class="today-foot-head"><span aria-hidden="true">✓</span> Everything else is running fine</div>
+        <div class="today-foot-metrics">
+          <a href="#/owner/stock"><span>Stock</span><b>${U.money0(m.stockValue)}</b></a>
+          <a href="#/manager/schedule"><span>This week</span><b>${weekHrs}h</b></a>
+          <a href="#/owner/training"><span>Training</span><b>${m.training.length}</b></a>
+          <a href="#/manager/schedule"><span>On today</span><b>${m.todayShifts.length}</b></a>
         </div>
       </div>
 
-      <div class="grid g4" style="margin:16px 0">
-        ${tile('#/owner/stock','📦','Stock value', U.money0(m.stockValue), `${m.stock.length} items tracked`)}
-        ${tile('#/owner/stock','⚠️','Low or expiring', m.lowStock.length, m.lowStock.length?'Needs an order ›':'Nothing short ›', m.lowStock.length?'var(--red)':'')}
-        ${tile('#/owner/deliveries','🚚','Deliveries waiting', m.deliveries.length, m.deliveries.length?'Confirm at the door ›':'None pending ›')}
-        ${tile('#/owner/training','📘','Training outstanding', m.training.length,
-          m.trainingOverdue.length ? `${m.trainingOverdue.length} overdue ›`
-            : (m.training.length ? 'None overdue yet ›' : 'All signed off ›'),
-          m.trainingOverdue.length?'var(--red)':'')}
-      </div>
-
-      <div class="grid g2" style="align-items:start">
-        <div class="card pad20">
-          <div class="section-title">✅ Wants a decision</div>
-          ${todo.length? `<div class="list">${todo.map(t=>`
-            <a class="li clickable" href="${t.href}"><div class="ds-li-ic">${t.em}</div>
-              <div class="meta"><b>${U.esc(t.title)}</b><span>${U.esc(t.sub)}</span></div><span class="faint">›</span></a>`).join('')}</div>`
-            : `<div class="empty"><div class="em">😌</div><p>Nothing outstanding. Go and run your restaurant.</p></div>`}
-        </div>
-        <div class="card pad20">
-          <div class="section-title">👥 On today<a href="#/manager/schedule" class="faint" style="font-size:12px">Roster →</a></div>
-          ${m.todayShifts.length? `<div class="list">${m.todayShifts.slice().sort((a,b)=>String(a.start).localeCompare(String(b.start))).map(s=>{
-            const now=new Date().getHours()*60+new Date().getMinutes();
-            const on = now>=U.toMin(s.start) && now<U.toMin(s.end);
-            return `<div class="li"><div class="ava">${U.initials(nameOf(s.staffId))}</div>
-              <div class="meta"><b>${U.esc(nameOf(s.staffId))}</b><span>${s.start} – ${s.end}</span></div>
-              <span class="pill ${on?'ok':'ghost'}">${on?'On now':'Scheduled'}</span></div>`;
-          }).join('')}</div>` : `<div class="empty"><div class="em">🌴</div><p>Nobody rostered today</p></div>`}
-        </div>
-      </div>
-
-      <div class="grid g2 mt16" style="align-items:start">
-        <div class="card pad20">
-          <div class="section-title">🚨 Alerts<a href="#/owner/alerts" class="faint" style="font-size:12px">All →</a></div>
-          <div id="aprev"></div>
-        </div>
-        <div class="card pad20">
-          <div class="section-title">⚠️ Roster warnings<a href="#/manager/schedule" class="faint" style="font-size:12px">Open roster →</a></div>
-          ${rWarns.length? `<div class="list">${rWarns.slice(0,4).map(w=>`
-            <div class="li"><div class="ds-li-ic">${w.level==='red'?'🔴':(w.level==='amber'?'🟠':'🔵')}</div>
-              <div class="meta"><b>${U.esc(w.title)}</b><span>${U.esc(w.detail)}</span></div></div>`).join('')}
-            ${rWarns.length>4?`<div class="li"><div class="meta"><span class="faint">+ ${rWarns.length-4} more</span></div></div>`:''}</div>
-            <div class="faint" style="font-size:12px;margin-top:10px">Advisory only — nothing here blocks a roster.</div>`
-            : `<div class="empty"><div class="em">👍</div><p>Nothing flagged on this week's roster</p></div>`}
-        </div>
-      </div>
       <div class="disclaimer mt16"><span>ℹ️</span>This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.</div>`;
-
-    requestAnimationFrame(()=> U.qsa('.gauge-fill',c).forEach(b=> b.style.width=b.dataset.w+'%'));
-
-    const ap = U.qs('#aprev',c);
-    const top = m.alerts.slice(0,4);
-    ap.innerHTML = top.length? top.map(a=>`<div class="alert ${a.level==='red'?'red':'amber'}" style="margin-bottom:10px"><span>${a.level==='red'?'⚠️':'🔔'}</span><div><b>${U.esc(a.title)}</b><br>${U.esc(a.desc)} · <span class="faint">${U.ago(a.ts)}</span></div></div>`).join('')
-      : `<div class="empty"><div class="em">😌</div><p>No alerts — running quietly</p></div>`;
   }
 
   // ---------- Staff performance points ----------

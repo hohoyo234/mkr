@@ -48,6 +48,12 @@
     "Language":"언어", "System language":"시스템 언어",
     "This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.":
       "이 앱은 매장 자체 운영만 기록합니다. 급여를 계산하거나 award를 해석하거나 정부 시스템과 연동하지 않습니다.",
+    // simplified "Today" home
+    "Needs you now":"지금 확인 필요", "Deliveries to confirm":"확인할 입고", "Check them at the back door":"뒷문에서 확인하세요",
+    "Stock running low":"재고 부족", "Training overdue":"교육 기한 초과", "Waiting to be signed off":"서명 대기 중",
+    "Roster is short today":"오늘 인원 부족", "Fewer people on than you planned":"계획보다 인원이 적음",
+    "Unread alerts":"읽지 않은 알림", "Tap to review":"눌러서 확인",
+    "Everything else is running fine":"나머지는 모두 정상", "This week":"이번 주",
   };
   MKR.i18n.register('ko', { T: T, P: [] });
 })();

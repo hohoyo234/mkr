@@ -48,6 +48,12 @@
     "Language":"ภาษา", "System language":"ภาษาระบบ",
     "This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.":
       "แอปนี้บันทึกเฉพาะการดำเนินงานของร้านคุณเท่านั้น ไม่คำนวณค่าจ้าง ไม่ตีความ award และไม่เชื่อมต่อกับระบบราชการใด ๆ",
+    // simplified "Today" home
+    "Needs you now":"ต้องจัดการตอนนี้", "Deliveries to confirm":"การรับของที่ต้องยืนยัน", "Check them at the back door":"ตรวจที่ประตูหลัง",
+    "Stock running low":"สต๊อกใกล้หมด", "Training overdue":"การอบรมเกินกำหนด", "Waiting to be signed off":"รอเซ็นรับรอง",
+    "Roster is short today":"วันนี้คนไม่พอ", "Fewer people on than you planned":"คนน้อยกว่าที่วางแผน",
+    "Unread alerts":"การแจ้งเตือนที่ยังไม่อ่าน", "Tap to review":"แตะเพื่อดู",
+    "Everything else is running fine":"อย่างอื่นเรียบร้อยดี", "This week":"สัปดาห์นี้",
   };
   MKR.i18n.register('th', { T: T, P: [] });
 })();

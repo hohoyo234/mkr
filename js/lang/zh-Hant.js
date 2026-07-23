@@ -41,6 +41,12 @@
       "Runs quietly — it only asks for you when something actually needs you":"安靜運行 —— 只有真的需要你時才提醒",
       "Nothing needs you right now":"現在沒有需要你處理的事",
       "Nothing outstanding. Go and run your restaurant.":"沒有待辦了，安心去做生意吧。",
+      // -- simplified "Today" home --
+      "Needs you now":"現在需要你處理", "Deliveries to confirm":"待確認的送貨", "Check them at the back door":"在後門點收一下",
+      "Stock running low":"庫存快沒了", "Training overdue":"培訓逾期了", "Waiting to be signed off":"還沒簽字確認",
+      "Roster is short today":"今天排班人手不夠", "Fewer people on than you planned":"上班人數比計劃少",
+      "Unread alerts":"未讀提醒", "Tap to review":"點開看看",
+      "Everything else is running fine":"其他都正常，不用管", "This week":"本週",
       "Today's checklist":"今日清單", "This week's roster":"本週排班",
       "On now":"當前在崗", "Rostered today":"今天排班", "Clocked in":"已打卡", "Tasks done":"任務完成",
       "Stock value":"庫存價值", "Low or expiring":"偏低或臨期", "Deliveries waiting":"待確認送貨", "Training outstanding":"待完成培訓",

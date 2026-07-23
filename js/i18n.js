@@ -73,6 +73,12 @@ window.MKR = window.MKR || {};
     "Runs quietly — it only asks for you when something actually needs you":"安静运行 —— 只有真的需要你时才提醒",
     "Nothing needs you right now":"现在没有需要你处理的事",
     "Nothing outstanding. Go and run your restaurant.":"没有待办了，安心去做生意吧。",
+    // -- simplified "Today" home --
+    "Needs you now":"现在需要你处理", "Deliveries to confirm":"待确认的送货", "Check them at the back door":"在后门点收一下",
+    "Stock running low":"库存快没了", "Training overdue":"培训逾期了", "Waiting to be signed off":"还没签字确认",
+    "Roster is short today":"今天排班人手不够", "Fewer people on than you planned":"上班人数比计划少",
+    "Unread alerts":"未读提醒", "Tap to review":"点开看看",
+    "Everything else is running fine":"其他都正常，不用管", "This week":"本周",
     "Today's checklist":"今日清单", "This week's roster":"本周排班",
     "On now":"当前在岗", "Rostered today":"今天排班", "Clocked in":"已打卡", "Tasks done":"任务完成",
     "Stock value":"库存价值", "Low or expiring":"偏低或临期", "Deliveries waiting":"待确认送货", "Training outstanding":"待完成培训",
