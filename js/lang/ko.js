@@ -61,6 +61,9 @@
     "purchases":"구매 건수", "spent · 30d":"지출 · 30일", "suppliers":"거래처",
     "waiting":"확인 대기", "confirmed":"확인됨", "problems":"문제",
     "SOPs":"SOP", "outstanding":"미완료", "overdue":"기한 초과",
+    "Stocktake":"재고 실사", "Export CSV":"CSV 내보내기", "Add item":"품목 추가", "Record purchase":"구매 기록",
+    "Add line":"줄 추가", "Add supplier":"거래처 추가", "Ask AI":"AI에게 묻기", "New delivery":"새 입고",
+    "Assign training":"교육 배정", "New SOP":"새 SOP", "Preferences":"환경설정", "Export":"내보내기", "AI auto-roster":"AI 자동 배정",
   };
   MKR.i18n.register('ko', { T: T, P: [] });
 })();

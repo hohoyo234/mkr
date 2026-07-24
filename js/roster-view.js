@@ -45,9 +45,9 @@ window.MKR = window.MKR || {};
       <div class="section-head"><div><h2>Rostering</h2><p>AI plans it from availability, skills and your own history · you stay in charge</p></div>
         <div class="row gap8 wrap">
           ${MKR.partners ? MKR.partners.buttons(((MKR.auth.current()||{}).role)||'manager') : ''}
-          <button class="btn btn-ghost btn-sm" id="rsPrefs">⚙️ Preferences</button>
-          <button class="btn btn-ghost btn-sm" id="rsCsv">⬇️ Export</button>
-          <button class="btn btn-accent btn-sm" id="rsAuto">✨ AI auto-roster</button>
+          <button class="btn btn-ghost btn-sm" id="rsPrefs">${MKR.ui.icon('gear')} Preferences</button>
+          <button class="btn btn-ghost btn-sm" id="rsCsv">${MKR.ui.icon('download')} Export</button>
+          <button class="btn btn-accent btn-sm" id="rsAuto">${MKR.ui.icon('sparkle')} AI auto-roster</button>
         </div></div>
 
       <div class="weekbar">

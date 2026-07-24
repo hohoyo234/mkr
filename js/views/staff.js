@@ -95,7 +95,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           </div>
         ` : `
           <div class="today-clear card">
-            <div class="today-clear-ic" aria-hidden="true">🌴</div>
+            <div class="today-clear-ic" style="background:var(--amber-soft);color:#8a6410">${MKR.ui.icon('sun')}</div>
             <b>No shift today</b>
             <span>Enjoy your day off.</span>
           </div>
@@ -104,7 +104,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         ${shifts.length
           ? `<div class="today-label" style="margin-top:24px">This week</div>
              <div class="list card" style="padding:8px 18px" id="slist"></div>`
-          : `<div class="today-clear card" style="margin-top:16px"><div class="today-clear-ic" aria-hidden="true">🌴</div><b>No shifts rostered this week</b></div>`}`;
+          : `<div class="today-clear card" style="margin-top:16px"><div class="today-clear-ic" style="background:var(--amber-soft);color:#8a6410">${MKR.ui.icon('sun')}</div><b>No shifts rostered this week</b></div>`}`;
 
       if(shifts.length){
         const el=U.qs('#slist',c);

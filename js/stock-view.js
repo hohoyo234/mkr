@@ -35,9 +35,9 @@ window.MKR = window.MKR || {};
     const perish = rows.filter(r=>r.kind==='perishable'), durable = rows.filter(r=>r.kind!=='perishable');
     const flagged = rows.filter(r=>r.low||r.expiring).length;
 
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="stkCount">🔢 Stocktake</button>
-      <button class="btn btn-ghost btn-sm" id="stkCsv">⬇️ Export CSV</button>
-      <button class="btn btn-dark btn-sm" id="stkAdd">＋ Add item</button>`;
+    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="stkCount">${MKR.ui.icon('checksq')} Stocktake</button>
+      <button class="btn btn-ghost btn-sm" id="stkCsv">${MKR.ui.icon('download')} Export CSV</button>
+      <button class="btn btn-dark btn-sm" id="stkAdd">${MKR.ui.icon('plus')} Add item</button>`;
 
     const group = (title, hint, list)=>`
       <div class="card pad20 mt16">
@@ -181,8 +181,8 @@ window.MKR = window.MKR || {};
   async function purchasesTab(c, actions, reload){
     const [purch, sups, its] = await Promise.all([S().purchases(), S().suppliers(), S().items()]);
     const spend30 = purch.filter(p=>p.ts>Date.now()-30*864e5).reduce((t,p)=>t+(p.total||0),0);
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="purCsv">⬇️ Export CSV</button>
-      <button class="btn btn-dark btn-sm" id="purAdd">＋ Record purchase</button>`;
+    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="purCsv">${MKR.ui.icon('download')} Export CSV</button>
+      <button class="btn btn-dark btn-sm" id="purAdd">${MKR.ui.icon('plus')} Record purchase</button>`;
     const nameOf = id=>{ const s=sups.find(x=>x.id===id); return s?s.name:'—'; };
 
     c.innerHTML = `
@@ -242,7 +242,7 @@ window.MKR = window.MKR || {};
         <tbody id="p_lines">${lineHtml()}</tbody>
         <tfoot><tr><td colspan="3" class="num"><b>Total</b></td><td class="num"><b id="p_total">${U.money(0)}</b></td><td></td></tr></tfoot>
       </table></div>
-      <button class="btn btn-ghost btn-sm mt8" id="p_add">＋ Add line</button>
+      <button class="btn btn-ghost btn-sm mt8" id="p_add">${MKR.ui.icon('plus')} Add line</button>
       <div class="field mt12"><label>Note (optional)</label><input class="input" id="p_note" placeholder="e.g. weekly veg run"></div>
       <div class="disclaimer"><span>📦</span>Saving adds these quantities to stock and updates each item's unit price.</div>
     </div>`);
@@ -286,7 +286,7 @@ window.MKR = window.MKR || {};
   // ---------------- Suppliers ----------------
   async function suppliersTab(c, actions, reload){
     const [sups, purch, its] = await Promise.all([S().suppliers(), S().purchases(), S().items()]);
-    actions.innerHTML = `<button class="btn btn-dark btn-sm" id="supAdd">＋ Add supplier</button>`;
+    actions.innerHTML = `<button class="btn btn-dark btn-sm" id="supAdd">${MKR.ui.icon('plus')} Add supplier</button>`;
     c.innerHTML = sups.length ? `<div class="grid g2 mt16" style="align-items:start">${sups.map(s=>{
         const mine = purch.filter(p=>p.supplierId===s.id);
         const spend = mine.reduce((t,p)=>t+(p.total||0),0);
@@ -339,7 +339,7 @@ window.MKR = window.MKR || {};
     const known = rows.filter(r=>r.usageSamples>0);
     const reorder = rows.filter(r=>r.low || r.short);
     actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="fcList">🛒 Build order list</button>
-      <button class="btn btn-dark btn-sm" id="fcAsk">✨ Ask AI</button>`;
+      <button class="btn btn-dark btn-sm" id="fcAsk">${MKR.ui.icon('sparkle')} Ask AI</button>`;
 
     const suggest = (r)=>{
       // Cover the lead time plus a week, minus what's on the shelf.

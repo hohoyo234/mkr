@@ -429,11 +429,11 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     // today, as tappable actions. Everything else is demoted to a quiet footer.
     const short = rWarns.filter(w=>w.level==='red').length;
     const todo = [];
-    if(m.deliveries.length)      todo.push({em:'🚚', href:'#/owner/deliveries', title:'Deliveries to confirm', sub:'Check them at the back door', n:m.deliveries.length, tint:'var(--blue-soft)'});
-    if(m.lowStock.length)        todo.push({em:'📦', href:'#/owner/stock',      title:'Stock running low', sub:m.lowStock.slice(0,3).map(r=>r.name).join(', '), n:m.lowStock.length, tint:'var(--amber-soft)'});
-    if(m.trainingOverdue.length) todo.push({em:'📘', href:'#/owner/training',   title:'Training overdue', sub:'Waiting to be signed off', n:m.trainingOverdue.length, tint:'var(--accent-soft)'});
-    if(short)                    todo.push({em:'📅', href:'#/manager/schedule', title:'Roster is short today', sub:'Fewer people on than you planned', n:short, tint:'var(--red-soft)'});
-    if(m.alerts.length)          todo.push({em:'🚨', href:'#/owner/alerts',     title:'Unread alerts', sub:'Tap to review', n:m.alerts.length, tint:'var(--red-soft)'});
+    if(m.deliveries.length)      todo.push({icon:'truck',    ink:'var(--blue)',       href:'#/owner/deliveries', title:'Deliveries to confirm', sub:'Check them at the back door', n:m.deliveries.length, tint:'var(--blue-soft)'});
+    if(m.lowStock.length)        todo.push({icon:'box',      ink:'#8a6410',           href:'#/owner/stock',      title:'Stock running low', sub:m.lowStock.slice(0,3).map(r=>r.name).join(', '), n:m.lowStock.length, tint:'var(--amber-soft)'});
+    if(m.trainingOverdue.length) todo.push({icon:'book',     ink:'var(--accent-ink)', href:'#/owner/training',   title:'Training overdue', sub:'Waiting to be signed off', n:m.trainingOverdue.length, tint:'var(--accent-soft)'});
+    if(short)                    todo.push({icon:'calendar', ink:'var(--red)',        href:'#/manager/schedule', title:'Roster is short today', sub:'Fewer people on than you planned', n:short, tint:'var(--red-soft)'});
+    if(m.alerts.length)          todo.push({icon:'bell',     ink:'var(--red)',        href:'#/owner/alerts',     title:'Unread alerts', sub:'Tap to review', n:m.alerts.length, tint:'var(--red-soft)'});
 
     const weekHrs = U.round2(m.shifts.reduce((t,s)=>t+U.shiftHours(s.start,s.end),0)).toFixed(1);
 
@@ -444,7 +444,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="today-label">Needs you now</div>
         <div class="today-acts">
           ${todo.map(t=>`<a class="today-act clickable" href="${t.href}">
-            <div class="today-act-ic" style="background:${t.tint}" aria-hidden="true">${t.em}</div>
+            <div class="today-act-ic" style="background:${t.tint};color:${t.ink}">${MKR.ui.icon(t.icon)}</div>
             <div class="today-act-body"><b>${t.title}</b><span>${U.esc(t.sub)}</span></div>
             ${t.n>1?`<span class="today-act-n">${t.n}</span>`:''}
             <span class="today-act-chev" aria-hidden="true">›</span>
@@ -452,14 +452,14 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         </div>
       ` : `
         <div class="today-clear card">
-          <div class="today-clear-ic" aria-hidden="true">✓</div>
+          <div class="today-clear-ic">${MKR.ui.icon('check')}</div>
           <b>Nothing needs you right now</b>
           <span>Nothing outstanding. Go and run your restaurant.</span>
         </div>
       `}
 
       <div class="today-foot">
-        <div class="today-foot-head"><span aria-hidden="true">✓</span> Everything else is running fine</div>
+        <div class="today-foot-head">${MKR.ui.icon('check')} Everything else is running fine</div>
         <div class="today-foot-metrics">
           <a href="#/owner/stock"><span>Stock</span><b>${U.money0(m.stockValue)}</b></a>
           <a href="#/manager/schedule"><span>This week</span><b>${weekHrs}h</b></a>

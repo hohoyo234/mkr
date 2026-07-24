@@ -61,6 +61,9 @@
     "purchases":"lần mua", "spent · 30d":"chi · 30 ngày", "suppliers":"nhà cung cấp",
     "waiting":"chờ xác nhận", "confirmed":"đã xác nhận", "problems":"có vấn đề",
     "SOPs":"SOP", "outstanding":"chưa xong", "overdue":"quá hạn",
+    "Stocktake":"Kiểm kho", "Export CSV":"Xuất CSV", "Add item":"Thêm mặt hàng", "Record purchase":"Ghi lần mua",
+    "Add line":"Thêm dòng", "Add supplier":"Thêm nhà cung cấp", "Ask AI":"Hỏi AI", "New delivery":"Giao hàng mới",
+    "Assign training":"Giao đào tạo", "New SOP":"SOP mới", "Preferences":"Tùy chọn", "Export":"Xuất", "AI auto-roster":"AI tự xếp ca",
   };
   MKR.i18n.register('vi', { T: T, P: [] });
 })();

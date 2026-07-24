@@ -86,6 +86,10 @@ window.MKR = window.MKR || {};
     "purchases":"采购笔数", "spent · 30d":"近30天支出", "suppliers":"供应商",
     "waiting":"待确认", "confirmed":"已确认", "problems":"有问题",
     "SOPs":"SOP 数", "outstanding":"未完成", "overdue":"已逾期",
+    // button labels (icons replaced the emoji prefixes, so the plain text needs its own key)
+    "Stocktake":"盘点", "Export CSV":"导出 CSV", "Add item":"添加物品", "Record purchase":"录入采购",
+    "Add line":"加一行", "Add supplier":"添加供应商", "Ask AI":"问 AI", "New delivery":"新建送货",
+    "Assign training":"派培训", "New SOP":"新建 SOP", "Preferences":"偏好设置", "Export":"导出", "AI auto-roster":"AI 自动排班",
     "Today's checklist":"今日清单", "This week's roster":"本周排班",
     "On now":"当前在岗", "Rostered today":"今天排班", "Clocked in":"已打卡", "Tasks done":"任务完成",
     "Stock value":"库存价值", "Low or expiring":"偏低或临期", "Deliveries waiting":"待确认送货", "Training outstanding":"待完成培训",

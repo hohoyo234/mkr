@@ -54,6 +54,10 @@
       "purchases":"採購筆數", "spent · 30d":"近30天支出", "suppliers":"供應商",
       "waiting":"待確認", "confirmed":"已確認", "problems":"有問題",
       "SOPs":"SOP 數", "outstanding":"未完成", "overdue":"已逾期",
+      // button labels (icons replaced the emoji prefixes, so the plain text needs its own key)
+      "Stocktake":"盤點", "Export CSV":"導出 CSV", "Add item":"添加物品", "Record purchase":"錄入採購",
+      "Add line":"加一行", "Add supplier":"添加供應商", "Ask AI":"問 AI", "New delivery":"新建送貨",
+      "Assign training":"派培訓", "New SOP":"新建 SOP", "Preferences":"偏好設置", "Export":"導出", "AI auto-roster":"AI 自動排班",
       "Today's checklist":"今日清單", "This week's roster":"本週排班",
       "On now":"當前在崗", "Rostered today":"今天排班", "Clocked in":"已打卡", "Tasks done":"任務完成",
       "Stock value":"庫存價值", "Low or expiring":"偏低或臨期", "Deliveries waiting":"待確認送貨", "Training outstanding":"待完成培訓",

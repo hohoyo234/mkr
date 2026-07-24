@@ -59,8 +59,8 @@ window.MKR = window.MKR || {};
 
     c.innerHTML = `
       <div class="section-head"><div><h2>Training &amp; SOPs</h2><p>Write it once, assign it, see who's actually read it</p></div>
-        <div class="row gap8 wrap"><button class="btn btn-ghost btn-sm" id="trAssign">👥 Assign training</button>
-          <button class="btn btn-dark btn-sm" id="trNew">＋ New SOP</button></div></div>
+        <div class="row gap8 wrap"><button class="btn btn-ghost btn-sm" id="trAssign">${MKR.ui.icon('users')} Assign training</button>
+          <button class="btn btn-dark btn-sm" id="trNew">${MKR.ui.icon('plus')} New SOP</button></div></div>
 
       <div class="statline">
         <span class="statcell"><b>${list.length}</b><i>SOPs</i></span>

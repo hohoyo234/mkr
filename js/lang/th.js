@@ -61,6 +61,9 @@
     "purchases":"การซื้อ", "spent · 30d":"ใช้จ่าย · 30 วัน", "suppliers":"ซัพพลายเออร์",
     "waiting":"รอยืนยัน", "confirmed":"ยืนยันแล้ว", "problems":"มีปัญหา",
     "SOPs":"SOP", "outstanding":"ค้างอยู่", "overdue":"เกินกำหนด",
+    "Stocktake":"เช็กสต๊อก", "Export CSV":"ส่งออก CSV", "Add item":"เพิ่มรายการ", "Record purchase":"บันทึกการซื้อ",
+    "Add line":"เพิ่มบรรทัด", "Add supplier":"เพิ่มซัพพลายเออร์", "Ask AI":"ถาม AI", "New delivery":"รับของใหม่",
+    "Assign training":"มอบหมายการอบรม", "New SOP":"SOP ใหม่", "Preferences":"การตั้งค่า", "Export":"ส่งออก", "AI auto-roster":"AI จัดกะอัตโนมัติ",
   };
   MKR.i18n.register('th', { T: T, P: [] });
 })();
