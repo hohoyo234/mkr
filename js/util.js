@@ -101,6 +101,39 @@ window.MKR = window.MKR || {};
     window.print();
   };
 
+  // Read a photo off a phone camera and shrink it before it ever reaches the
+  // database. A modern handset shoots 3–5 MB; base64 adds a third on top, and
+  // these rows sync to the cloud — a few weeks of docket photos would fill the
+  // browser's storage quota and start throwing on write.
+  //
+  // A docket only has to stay READABLE, not printable: 1600px on the long edge
+  // at JPEG 0.7 keeps every number legible and lands around 200–400 KB.
+  U.IMG_MAX = 1600;
+  U.readImage = (file, cb)=>{
+    if(!file) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      const img = new Image();
+      // A file the browser can't decode (HEIC on some Androids, a PDF renamed
+      // .jpg) still has to reach the user rather than vanishing — keep the
+      // original in that case, it's rare and correctness beats the saving.
+      img.onerror = ()=> cb(r.result);
+      img.onload = ()=>{
+        const scale = Math.min(1, U.IMG_MAX/Math.max(img.width, img.height));
+        if(scale === 1 && r.result.length < 400e3) return cb(r.result);
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(img.width*scale); cv.height = Math.round(img.height*scale);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        // A PNG stays a PNG: logos are the one thing uploaded here with
+        // transparency, and re-encoding those as JPEG paints the background in.
+        const type = /^data:image\/png/i.test(r.result) ? 'image/png' : 'image/jpeg';
+        try{ cb(cv.toDataURL(type, 0.7)); }catch(e){ cb(r.result); }
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  };
+
   // simple confirm
   U.confirm = (title, msg, opts={})=> new Promise(res=>{
     U.modal(title, `<p class="muted">${U.esc(msg)}</p>`, { actions:[

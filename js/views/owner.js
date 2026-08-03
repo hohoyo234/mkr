@@ -132,7 +132,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       </div>
       <div class="row gap8 mt16" style="max-width:560px"><button class="btn btn-dark grow" id="finishSetup">✅ Finish setup</button></div>
       <div class="disclaimer mt12"><span>ℹ️</span>You can revisit Settings anytime to toggle features or switch language.</div>`;
-    U.qs('#logoFile',c).onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ logo=r.result; U.qs('#logoPrev',c).innerHTML=`<img src="${logo}">`; }; r.readAsDataURL(f); };
+    U.qs('#logoFile',c).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{ logo=data; U.qs('#logoPrev',c).innerHTML=`<img src="${logo}">`; });
     const fl=U.qs('#featList',c);
     fl.innerHTML=Object.keys(work).map(k=>{
       const m=work[k];
@@ -334,9 +334,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     // ---- Restaurant profile (logo + name) ----
     if(kitchen){
       const prev=U.qs('#rLogoPrev',c);
-      U.qs('#rLogoFile',c).onchange=(e)=>{ const f=e.target.files[0]; if(!f) return;
-        if(f.size>2*1024*1024){ U.toast('Image too large — please use one under 2 MB','red'); return; }
-        const r=new FileReader(); r.onload=()=>{ rLogo=r.result; prev.innerHTML=`<img src="${rLogo}">`; }; r.readAsDataURL(f); };
+      // No size gate any more: the reader shrinks it, so a straight-off-the-phone
+      // photo is accepted instead of bounced back at the owner.
+      U.qs('#rLogoFile',c).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{ rLogo=data; prev.innerHTML=`<img src="${rLogo}">`; });
       U.qs('#rClear',c).onclick=()=>{ rLogo=null; prev.innerHTML='<span>📷 Tap to upload</span>'; };
       U.qs('#rSave',c).onclick=async()=>{
         const name=U.qs('#rName',c).value.trim()||kitchen.name;
@@ -417,8 +417,39 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
   // The owner shouldn't have to go looking. Everything that wants a decision
   // today is on this one screen; everything quiet stays quiet.
+  // Home comes three ways: the restaurant floor (the default — rooms you walk
+  // into), the springboard of blocks the owner arranges themselves, or the plain
+  // list. Same data underneath; the choice sticks per device.
+  const HKEY = 'mkr_home_view';
+  const HOME_VIEWS = ['floor','tiles','list'];
+  let homeView = (function(){
+    try{ const v = localStorage.getItem(HKEY); return HOME_VIEWS.includes(v) ? v : 'floor'; }
+    catch(e){ return 'floor'; }
+  })();
+  function homeSwitch(){
+    return `<div class="viewswitch" role="group" aria-label="How to show today">
+      <button class="${homeView==='floor'?'on':''}" data-home="floor">🏠 Floor</button>
+      <button class="${homeView==='tiles'?'on':''}" data-home="tiles">⬛ Blocks</button>
+      <button class="${homeView==='list'?'on':''}" data-home="list">☰ List</button>
+    </div>`;
+  }
+  function bindHomeSwitch(c){
+    U.qsa('[data-home]',c).forEach(b=> b.onclick = ()=>{
+      homeView = b.dataset.home;
+      try{ localStorage.setItem(HKEY, homeView); }catch(e){}
+      dashboard(c);
+    });
+  }
+
   async function dashboard(c){
     await noShowScan();
+    if((homeView==='floor' && MKR.gameMap) || (homeView==='tiles' && MKR.tiles)){
+      c.innerHTML = `<div class="section-head"><div><h2>Today</h2><p>Runs quietly — it only asks for you when something actually needs you</p></div>
+        <div class="row gap8 wrap">${homeSwitch()}</div></div><div id="homeBody"></div>`;
+      bindHomeSwitch(c);
+      const body = U.qs('#homeBody',c);
+      return homeView==='tiles' ? MKR.tiles.render(body, {role:'owner'}) : MKR.gameMap.render(body);
+    }
     const m = await metrics();
     const staff = (await MKR.db.getAll('users')).filter(u=>(u.role==='staff'||u.role==='manager') && !u.offboarded);
 
@@ -438,7 +469,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const weekHrs = U.round2(m.shifts.reduce((t,s)=>t+U.shiftHours(s.start,s.end),0)).toFixed(1);
 
     c.innerHTML = `
-      <div class="section-head"><div><h2>Today</h2><p>Runs quietly — it only asks for you when something actually needs you</p></div></div>
+      <div class="section-head"><div><h2>Today</h2><p>Runs quietly — it only asks for you when something actually needs you</p></div>
+        <div class="row gap8 wrap">${homeSwitch()}</div></div>
 
       ${todo.length ? `
         <div class="today-label">Needs you now</div>
@@ -469,6 +501,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       </div>
 
       <div class="disclaimer mt16"><span>ℹ️</span>This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.</div>`;
+
+    bindHomeSwitch(c);
   }
 
   // ---------- Staff performance points ----------

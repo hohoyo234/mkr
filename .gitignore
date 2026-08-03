@@ -26,3 +26,10 @@ build/
 *.log
 tmp/
 scratch/
+
+# Nested demo build artifacts / caches
+mkr-owner-game-demo/node_modules/
+mkr-owner-game-demo/dist/
+mkr-owner-game-demo/.vinext/
+mkr-owner-game-demo/.wrangler/
+mkr-owner-game-demo/.next/

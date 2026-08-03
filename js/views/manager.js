@@ -365,14 +365,27 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   }
 
   // ---------- Task checklist review ----------
+  // Two ways to look at the same checklist: the kitchen it happens in (the
+  // default — a station per bench, a dot per outstanding job) or the plain list
+  // with the photos staff submitted. The choice sticks per device.
+  const TKEY = 'mkr_tasks_view';
+  let tasksView = (function(){ try{ return localStorage.getItem(TKEY)==='list' ? 'list' : 'room'; }catch(e){ return 'room'; } })();
+
   async function tasks(c){
     let list = (await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO());
     c.innerHTML = `
       <div class="section-head"><div><h2>Daily task checklist</h2><p>Publish cleaning / prep / temperature checks · review the digital logs and photos staff submit</p></div>
-        <button class="btn btn-ghost btn-sm" id="addTask">+ Add task</button></div>
+        <div class="row gap8 wrap center">
+          <div class="viewswitch" role="group" aria-label="How to show today's tasks">
+            <button class="${tasksView==='room'?'on':''}" data-tview="room">🍳 Kitchen</button>
+            <button class="${tasksView==='list'?'on':''}" data-tview="list">☰ List</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="addTask">+ Add task</button>
+        </div></div>
       <div id="tlist"></div>`;
     function draw(){
       const el = U.qs('#tlist',c);
+      if(tasksView==='room' && MKR.kitchenGame){ MKR.kitchenGame.render(el, {tasks:list, reload:refresh}); return; }
       const done = list.filter(t=>t.done).length;
       el.innerHTML = `<div class="card stat" style="margin-bottom:16px"><div class="k">Today's progress</div>
         <div class="v">${done}<small> / ${list.length}</small></div><div class="bar"><i style="width:${list.length?done/list.length*100:0}%"></i></div></div>` +
@@ -383,8 +396,14 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         </div>`).join('');
       U.qsa('[data-img]',el).forEach(im=> im.onclick=()=> U.modal('Submitted photo', `<img src="${im.src}" style="width:100%;border-radius:12px">`));
     }
+    async function refresh(){ list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); draw(); }
+    U.qsa('[data-tview]',c).forEach(b=> b.onclick = ()=>{
+      tasksView = b.dataset.tview;
+      try{ localStorage.setItem(TKEY, tasksView); }catch(e){}
+      tasks(c);
+    });
     draw();
-    MKR.db.on('tasks', async()=>{ list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); draw(); });
+    MKR.db.on('tasks', refresh);
     U.qs('#addTask',c).onclick=()=>{
       const wrap=U.el(`<div class="field"><label>Task name</label><input class="input" id="tn" placeholder="e.g. clean the range hood"></div>`);
       U.modal('Add task',wrap,{actions:[{label:'Publish',class:'btn-dark',onClick:async(cl)=>{

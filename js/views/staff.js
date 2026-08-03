@@ -175,11 +175,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       list=(await MKR.db.getAll('tasks')).filter(x=>x.date===U.todayISO()); draw();
     }
     function upload(id,file){
-      if(!file) return;
-      const r=new FileReader();
-      r.onload=async()=>{ await MKR.db.put('tasks',{id, photo:r.result, done:true, by:MKR.auth.current().name});
-        list=(await MKR.db.getAll('tasks')).filter(x=>x.date===U.todayISO()); draw(); U.toast('Photo uploaded','green'); };
-      r.readAsDataURL(file);
+      U.readImage(file, async(data)=>{
+        await MKR.db.put('tasks',{id, photo:data, done:true, by:MKR.auth.current().name});
+        list=(await MKR.db.getAll('tasks')).filter(x=>x.date===U.todayISO()); draw(); U.toast('Photo uploaded','green');
+      });
     }
     draw();
     MKR.db.on('tasks', async()=>{ list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); draw(); });
@@ -305,8 +304,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(fb && allDone) fb.onclick=()=>finish();
     }
 
-    // Reusable document-upload helper: file -> dataURL
-    function fileToData(input, cb){ const f=input.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>cb(r.result); r.readAsDataURL(f); }
+    // Reusable document-upload helper: file -> shrunk dataURL
+    function fileToData(input, cb){ U.readImage(input.files[0], cb); }
 
     function docModal(key){
       if(key==='passport'){

@@ -98,7 +98,7 @@ window.MKR = window.MKR || {};
           <tbody>${trs.slice().sort((a,b)=>String(a.dueDate||'').localeCompare(String(b.dueDate||''))).map(t=>`
             <tr><td><b>${U.esc(nameOf(t.staffId))}</b></td><td>${U.esc(t.title)}</td>
               <td>${t.dueDate?U.esc(t.dueDate):'<span class="faint">—</span>'}</td>
-              <td>${t.status==='done'?'<span class="pill ok">Done</span>':(isOverdue(t)?'<span class="pill danger">Overdue</span>':(dueSoon(t)?'<span class="pill warn">Due soon</span>':'<span class="pill ghost">Assigned</span>'))}</td>
+              <td>${t.status==='done'?'<span class="pill ok">Completed</span>':(isOverdue(t)?'<span class="pill danger">Overdue</span>':(dueSoon(t)?'<span class="pill warn">Due soon</span>':'<span class="pill ghost">Assigned</span>'))}</td>
               <td>${t.completedAt?`${U.esc(t.signedBy||'')} <span class="faint">${U.fmtDate(t.completedAt)}</span>`:'<span class="faint">—</span>'}</td>
               <td class="num"><button class="btn btn-ghost btn-sm" data-trdel="${t.id}">Remove</button></td></tr>`).join('')}</tbody>
         </table></div>` : `<div class="empty"><div class="em">📝</div><p>Nothing assigned yet</p></div>`}

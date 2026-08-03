@@ -52,7 +52,9 @@ window.MKR = window.MKR || {};
       const active = n.id===section ? 'active':'';
       const badge = badges[n.id] ? `<span class="badge">${badges[n.id]}</span>`:'';
       const ic = MKR.ui ? MKR.ui.navIcon(n.id) : n.em;
-      return `<a class="nav-item ${active}" href="#/${viewingRole}/${n.id}"><span class="em">${ic}</span>${n.label}${badge}</a>`;
+      // The title is what you get when the menu is folded down to icons — the
+      // label itself is hidden with font-size:0, so hovering has to say it.
+      return `<a class="nav-item ${active}" href="#/${viewingRole}/${n.id}" title="${MKR.util.esc(n.label)}"><span class="em">${ic}</span>${n.label}${badge}</a>`;
     }).join('');
 
     const mobileNav = visNav.slice(0,5).map(n=>{
@@ -79,14 +81,24 @@ window.MKR = window.MKR || {};
       ? `<div class="logo" style="overflow:hidden;padding:0"><img src="${brandLogo}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`
       : `<div class="logo">${MKR.util.esc(brandLetter)}</div>`;
 
+    // Collapsed sidebar is a per-device preference, applied before first paint so
+    // the shell never renders wide and then snaps narrow. Three states, not two:
+    // unset lets the width decide (the narrow-window icon rail), 'mini' and
+    // 'full' are the owner overruling it in either direction.
+    const sidePref = (function(){ try{ return localStorage.getItem('mkr_side')||''; }catch(e){ return ''; } })();
+    document.body.classList.toggle('side-mini', sidePref==='mini');
+    document.body.classList.toggle('side-full', sidePref==='full');
+
     root.innerHTML = `
       <div class="shell">
         <aside class="sidebar">
-          <div class="side-brand">${logoHtml}<div><b>${MKR.util.esc(brandName)}</b><small>${MKR.auth.roleName(viewingRole)}</small></div></div>
+          <div class="side-brand">${logoHtml}<div><b>${MKR.util.esc(brandName)}</b><small>${MKR.auth.roleName(viewingRole)}</small></div>
+            <button class="side-toggle" id="sideToggle" aria-label="${sidePref==='mini'?'Open the menu':'Fold the menu'}" title="${sidePref==='mini'?'Open the menu':'Fold the menu'}"></button>
+          </div>
           ${nav}
           <div class="side-foot">
             <div class="who" style="margin-bottom:10px"><div class="ava">${sess.emoji||MKR.util.initials(sess.name)}</div><div><b style="font-size:14px">${MKR.util.esc(sess.name)}</b><div class="faint" style="font-size:11.5px">${MKR.auth.roleName(sess.role)}${preview?' · previewing '+MKR.auth.roleName(viewingRole):''}</div></div></div>
-            <div class="row gap6"><button class="btn btn-ghost btn-sm grow" id="pwBtn">🔑 Password</button><button class="btn btn-ghost btn-sm grow" id="logoutBtn">Log out</button></div>
+            <div class="row gap6"><button class="btn btn-ghost btn-sm grow" id="pwBtn" title="Password">🔑 Password</button><button class="btn btn-ghost btn-sm grow" id="logoutBtn" title="Log out">Log out</button></div>
           </div>
         </aside>
         <div class="main">
@@ -108,6 +120,17 @@ window.MKR = window.MKR || {};
 
     const newSidebar = root.querySelector('.sidebar');
     if(newSidebar && savedSideScroll) newSidebar.scrollTop = savedSideScroll;
+
+    const sideToggle = document.getElementById('sideToggle');
+    if(sideToggle) sideToggle.onclick = ()=>{
+      const mini = !document.body.classList.contains('side-mini');
+      document.body.classList.toggle('side-mini', mini);
+      document.body.classList.toggle('side-full', !mini);
+      const label = mini ? 'Open the menu' : 'Fold the menu';
+      sideToggle.setAttribute('aria-label', label);
+      sideToggle.title = label;
+      try{ localStorage.setItem('mkr_side', mini?'mini':'full'); }catch(e){}
+    };
 
     document.getElementById('logoutBtn').onclick = ()=>{
       if(MKR.net.isDirty() && !confirm('You have unsaved data — log out anyway?')) return;

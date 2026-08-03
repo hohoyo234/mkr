@@ -734,6 +734,24 @@ table.dtable{border-collapse:separate;border-spacing:0;width:100%;min-width:520p
 .dtable .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dtable .input{height:38px;padding:6px 10px;font-size:13.5px}
 @media (hover:hover) and (pointer:fine){ .dtable tbody tr:hover{background:var(--paper-2)} }
+
+/* Entry tables (stocktake, waste) are filled in on a phone while walking the
+   shelves, so on a narrow screen they stack instead of scrolling sideways —
+   sideways-scrolling to reach the box you have to type in is the wrong
+   interaction. The label spans are plain text nodes so they translate like
+   everything else; they're redundant with the header on desktop, hence hidden. */
+.dtable .cell-l{display:none}
+@media(max-width:520px){
+  table.dtable.entry{min-width:0}
+  .dtable.entry, .dtable.entry tbody, .dtable.entry tr, .dtable.entry td{display:block;width:100%}
+  .dtable.entry thead{display:none}
+  .dtable.entry tbody tr{border-bottom:1px solid var(--line-2);padding:10px 0}
+  .dtable.entry tbody tr:last-child{border-bottom:none}
+  .dtable.entry td{border-bottom:none;padding:3px 0;text-align:left}
+  .dtable.entry td.num{text-align:left}
+  .dtable.entry .cell-l{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:3px}
+  .dtable.entry td .input{width:100%;text-align:left!important}
+}
 .linkish{appearance:none;border:none;background:transparent;padding:0;font:inherit;cursor:pointer}
 
 /* ---------- roster grid ---------- */
@@ -810,20 +828,31 @@ img,svg,video{max-width:100%}
 }
 /* Narrow desktop windows: collapse to an icon rail rather than squeezing the
    labels into an unreadable column. Nav labels are bare text nodes, so they are
-   hidden with font-size:0 and the icon's size is restored on the child. */
+   hidden with font-size:0 and the icon's size is restored on the child.
+   Every rule is skipped once the owner has pressed » to keep the menu open
+   (body.side-full) — an explicit choice always beats the automatic one. */
 @media(min-width:881px) and (max-width:1000px){
-  :root{--sidebar:72px}
-  .sidebar{padding:16px 8px;align-items:center;overflow-x:hidden}
-  .nav-item{position:relative;justify-content:center;padding:11px 0;width:100%;font-size:0;gap:0}
-  .nav-item .em{font-size:18px;width:auto}
-  .nav-item .badge{position:absolute;top:4px;right:8px;font-size:10px;padding:0 5px;min-width:16px}
-  .side-brand{padding:6px 0 16px;justify-content:center}
-  .side-brand div{display:none}
-  .side-foot .who div{display:none}
-  .side-foot .who{justify-content:center}
-  .side-foot .row{flex-direction:column;gap:6px}
-  .side-foot .btn{font-size:0;padding:0;min-width:44px}
-  .side-foot .btn::first-letter{font-size:16px}
+  body:not(.side-full){--sidebar:72px}
+  body:not(.side-full) .sidebar{padding:16px 8px;align-items:center;overflow-x:hidden}
+  body:not(.side-full) .nav-item{position:relative;justify-content:center;padding:11px 0;width:100%;font-size:0;gap:0}
+  body:not(.side-full) .nav-item .em{font-size:18px;width:auto}
+  body:not(.side-full) .nav-item .badge{position:absolute;top:4px;right:8px;font-size:10px;padding:0 5px;min-width:16px}
+  body:not(.side-full) .side-brand{padding:6px 0 16px;justify-content:center}
+  body:not(.side-full) .side-brand div{display:none}
+  body:not(.side-full) .side-foot .who div{display:none}
+  body:not(.side-full) .side-foot .who{justify-content:center}
+  body:not(.side-full) .side-foot .row{flex-direction:column;gap:6px}
+  body:not(.side-full) .side-foot .btn{font-size:0;padding:0;min-width:44px}
+  /* The label is hidden with font-size:0, so the folded button needs a glyph of
+     its own. ::first-letter can't supply one — these buttons are flex
+     containers and ::first-letter only applies to block containers, which left
+     them rendering as two blank pills. */
+  body:not(.side-full) #pwBtn::before{content:'🔑';font-size:15px}
+  body:not(.side-full) #logoutBtn::before{content:'⏻';font-size:16px;font-weight:700}
+  /* Explicitly opened at this width: the labels come back and the content just
+     gets a little narrower. */
+  body.side-full{--sidebar:210px}
+  body.side-full .nav-item{font-size:13.5px;gap:9px;padding:10px}
 }
 @media(max-width:880px){
   .topbar h1{font-size:17px}
@@ -844,3 +873,563 @@ img,svg,video{max-width:100%}
 .preview-box b{font-size:13.5px;display:block}
 .preview-box p{font-size:12.5px;color:var(--ink-soft);margin:4px 0 10px;line-height:1.5}
 .preview-box .btn{flex:1;min-width:96px}
+
+/* ===== Stock · Shelf view =====
+   A picture of the room instead of a table. How full the jar is IS the quantity,
+   so an owner who never reads a spreadsheet can still see what's running out.
+   Flat vector only — no 3D, no sprites, nothing to download. */
+:root{
+  --gv-wood:#D8B98C; --gv-wood-dk:#B4915F;
+  --gv-cold:#EAF1F6; --gv-cold-2:#DCE8F1;
+  --gv-dry:#F5EFE4;  --gv-dry-2:#EDE3D2;
+}
+
+/* view switch (Shelf / List) */
+.viewswitch{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card);flex-shrink:0}
+.viewswitch button{font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:0 14px;min-height:48px;line-height:1;white-space:nowrap;transition:background .2s,color .2s}
+.viewswitch button.on{background:var(--ink);color:var(--paper)}
+
+/* the board across the top */
+.gv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.gv-top-num{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:8px 16px;min-height:48px;
+  display:flex;flex-direction:column;justify-content:center}
+.gv-top-num b{font-size:19px;line-height:1.15}
+.gv-top-num i{font-style:normal;font-size:11.5px;color:var(--ink-faint)}
+.gv-top-num.hot{background:var(--red-soft);border-color:#f3c8c4}
+.gv-top-num.hot b{color:var(--red)}
+.gv-top .btn{margin-left:auto}
+
+/* a room = a cabinet with a back wall */
+.gv-room{margin-top:16px;border-radius:var(--radius-lg);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-soft)}
+.gv-room.cold{background:linear-gradient(180deg,var(--gv-cold) 0%,var(--gv-cold-2) 100%)}
+.gv-room.dry {background:linear-gradient(180deg,var(--gv-dry) 0%,var(--gv-dry-2) 100%)}
+.gv-room-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 18px 10px}
+.gv-room-head b{font-size:15px;font-weight:700}
+.gv-room-head span{font-size:12px;color:var(--ink-soft)}
+.gv-empty{padding:0 18px 22px;font-size:13px;color:var(--ink-soft)}
+
+/* the shelf itself — planks are a repeating background so every row is one
+   continuous board no matter how many items land on it */
+.gv-shelf{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));
+  grid-auto-rows:126px;row-gap:52px;column-gap:0;
+  justify-items:center;
+  padding:6px 12px 50px;
+  /* One period = one row: jar height + row gap. The shelf-edge label carries a
+     price line now, so the gap and the last (empty) band grew together. */
+  background-image:repeating-linear-gradient(to bottom,
+    transparent 0 126px,
+    var(--gv-wood) 126px 140px,
+    var(--gv-wood-dk) 140px 146px,
+    rgba(33,30,27,.07) 146px 151px,
+    transparent 151px 178px);
+  background-position:0 6px;
+}
+.gv-slot{position:relative;width:100%;max-width:106px;display:flex;flex-direction:column;
+  justify-content:flex-end;align-items:center;padding:0 5px}
+
+/* the jar */
+.gv-tap{display:block;width:100%;padding:0;background:none;border:none}
+.gv-jar{display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;
+  transition:transform .18s var(--ease-out)}
+.gv-tap:active .gv-jar{transform:translateY(2px) scale(.97)}
+.gv-em{font-size:22px;line-height:1.1;filter:drop-shadow(0 1px 1px rgba(33,30,27,.18))}
+.gv-glass{position:relative;display:block;width:100%;height:76px;border-radius:7px 7px 11px 11px;overflow:hidden;
+  background:rgba(255,255,255,.72);border:2px solid rgba(33,30,27,.16);
+  box-shadow:inset 0 -3px 8px rgba(33,30,27,.06), 0 3px 6px -3px rgba(33,30,27,.35)}
+.gv-fill{position:absolute;left:0;right:0;bottom:0;transition:height .55s var(--ease-out);
+  background:linear-gradient(180deg,rgba(255,255,255,.35) 0,rgba(255,255,255,0) 18px)}
+.gv-jar.st-ok   .gv-fill{background-color:#6FBF8F}
+.gv-jar.st-warn .gv-fill{background-color:#EBC062}
+.gv-jar.st-low  .gv-fill{background-color:#E8776E}
+/* an empty jar should look alarming, not just empty */
+.gv-jar.st-warn .gv-glass{border-color:rgba(224,161,27,.45);background:rgba(251,242,218,.9)}
+.gv-jar.st-low  .gv-glass{border-color:rgba(216,69,60,.5);background:rgba(253,236,234,.95)}
+.gv-glass::after{content:"";position:absolute;left:6px;top:6px;width:7px;bottom:10px;border-radius:4px;
+  background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.15))}
+.gv-qty{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:11.5px;font-weight:800;
+  color:var(--ink);text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.gv-qty i{font-style:normal;font-weight:600;opacity:.65;font-size:9.5px;margin-left:1px}
+
+/* the "n days left" tab clipped to the jar */
+.gv-cover{position:absolute;top:16px;right:-3px;z-index:2;font-size:9.5px;font-weight:800;line-height:1;
+  padding:3px 5px;border-radius:5px;background:var(--ink);color:var(--paper);opacity:.82}
+.gv-jar.st-low .gv-cover{background:var(--red);opacity:1;animation:gvPulse 1.9s var(--ease-in-out) infinite}
+@keyframes gvPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+/* one tap = straight into the basket */
+.gv-add{position:absolute;top:14px;left:-4px;z-index:3;width:26px;height:26px;border-radius:50%;
+  background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
+  font-size:15px;font-weight:700;line-height:1;color:var(--ink-soft);
+  display:flex;align-items:center;justify-content:center;transition:transform .16s var(--ease-out),background .2s}
+.gv-add:active{transform:scale(.88)}
+.gv-add.on{background:var(--accent);border-color:var(--accent);color:#fff;font-size:11.5px;font-weight:800}
+@media (hover:hover) and (pointer:fine){ .gv-add:hover{background:var(--ink);color:var(--paper)} }
+
+/* the shelf-edge label, sitting on the plank like a supermarket price tag */
+.gv-tag{position:absolute;top:calc(100% + 4px);left:3px;right:3px;z-index:2;
+  background:var(--card);border:1px solid rgba(33,30,27,.14);border-radius:5px;
+  padding:3px 4px;text-align:center;box-shadow:0 1px 2px rgba(33,30,27,.14)}
+.gv-tag b{display:block;font-size:10.5px;font-weight:700;line-height:1.25;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the price line — the second thing you want off a shelf label */
+.gv-tag i{display:block;font-style:normal;font-size:9px;font-weight:600;line-height:1.3;
+  color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gv-tag.st-warn{border-color:rgba(224,161,27,.5);background:var(--amber-soft)}
+.gv-tag.st-low{border-color:rgba(216,69,60,.5);background:var(--red-soft)}
+.gv-tag.st-low b{color:#922019}
+
+/* the reorder point, drawn across the glass */
+.gv-mark{position:absolute;left:0;right:0;height:0;z-index:2;pointer-events:none;
+  border-top:1.5px dashed rgba(33,30,27,.42)}
+.gv-mark::after{content:"";position:absolute;right:1px;top:-3px;width:0;height:0;
+  border:3px solid transparent;border-right-color:rgba(33,30,27,.5)}
+
+/* the items that need topping up, by name, each one a tap into the basket */
+.gv-needs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;
+  padding:12px 14px;border-radius:var(--radius);background:var(--red-soft);border:1px solid #f3c8c4}
+.gv-needs-h{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#922019}
+.gv-needs .btn{margin-left:auto}
+@media(max-width:560px){ .gv-needs .btn{margin-left:0;width:100%} }
+
+.gv-hint{margin-top:14px;font-size:12.5px;color:var(--ink-faint);text-align:center}
+
+/* the basket rides along the bottom, above the mobile nav */
+.gv-bar[hidden]{display:none}
+.gv-bar{position:sticky;bottom:12px;z-index:20;margin:14px 76px 0 0;
+  display:flex;align-items:center;gap:12px;padding:10px 12px 10px 18px;
+  background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow)}
+.gv-bar-txt{white-space:nowrap}
+.gv-bar-txt b{font-size:17px}
+.gv-bar-txt i{font-style:normal;font-size:12.5px;color:var(--ink-soft)}
+.gv-bar-sum{margin-left:auto;font-weight:700;font-size:15px}
+.gv-bar .btn{flex-shrink:0}
+@media(max-width:880px){
+  .gv-bar{bottom:calc(78px + env(safe-area-inset-bottom));margin-right:0;padding:8px 8px 8px 14px;gap:8px}
+  .gv-bar-txt b{font-size:15px}
+  .gv-bar-txt i{font-size:11.5px}
+  .gv-bar-sum{font-size:14px}
+  .gv-bar .btn{padding:0 14px;font-size:13.5px}
+  /* the assistant bubble lives in the same corner — lift it while the basket is up */
+  body.gv-basket .ai-fab{bottom:calc(150px + env(safe-area-inset-bottom))}
+}
+
+/* the sheet you get when you tap a jar */
+.gv-sheet-top{display:flex;gap:16px;align-items:flex-start}
+.gv-sheet-top .gv-jar{width:88px;flex-shrink:0}
+.gv-jar.big .gv-glass{height:96px}
+.gv-jar.big .gv-em{font-size:26px}
+.gv-jar.big .gv-qty{font-size:13px;bottom:7px}
+.gv-sheet-meta p{font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.5}
+.gv-sheet-meta .gv-warnline{color:var(--accent-ink);font-weight:600}
+.gv-order{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-2)}
+.gv-order>label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:8px}
+.gv-order .faint{font-size:11.5px;margin-top:8px;line-height:1.45}
+.gv-step{display:flex;align-items:center;gap:8px}
+.gv-step .input{text-align:center;font-weight:700;max-width:120px}
+.gv-step.tight{gap:4px;flex-shrink:0}
+.gv-step.tight .input{max-width:66px;padding:0 4px;font-size:14px}
+.gv-step-b{width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--card);border:1px solid var(--line);
+  font-size:19px;font-weight:700;line-height:1;color:var(--ink);transition:transform .16s var(--ease-out)}
+.gv-step-b:active{transform:scale(.9)}
+.gv-step.tight .gv-step-b{width:34px;height:34px;font-size:16px}
+.gv-step-u{font-size:12.5px;color:var(--ink-faint);font-weight:600}
+
+.gv-group{margin-bottom:14px}
+.gv-group-head{font-size:13px;font-weight:700;padding:0 2px 6px}
+.gv-line-amt{flex-shrink:0;min-width:66px;text-align:right;font-size:13.5px}
+
+@media(max-width:520px){
+  .gv-shelf{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));padding:6px 8px 38px}
+  .gv-top .btn{margin-left:0;width:100%}
+  .gv-sheet-top{gap:12px}
+  .gv-sheet-top .gv-jar{width:74px}
+}
+
+/* ===== The restaurant floor (owner home) =====
+   Rooms you walk into instead of a list you read. Flat vector, no assets. */
+:root{
+  --fp-floor:#E8DFCC; --fp-floor-2:#DFD4BD; --fp-wall:#3C4A3E;
+}
+.fp-hello{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-top:8px}
+.fp-hello h2{font-size:30px;line-height:1.15;letter-spacing:-.02em}
+.fp-hello .fp-count{font-size:15px;color:var(--ink-soft);margin-top:6px;font-weight:600}
+.fp-hello .btn{margin-left:auto}
+
+/* progress across the six rooms */
+.fp-prog{margin-top:16px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.fp-prog-copy{display:flex;align-items:baseline;gap:10px;flex-shrink:0}
+.fp-prog-copy span{font-size:12.5px;color:var(--ink-soft)}
+.fp-prog-copy strong{font-size:17px}
+.fp-prog-track{flex:1;min-width:140px;height:9px;border-radius:999px;background:var(--paper);overflow:hidden}
+.fp-prog-track span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--accent),#E4A15C);transition:width .7s var(--ease-out)}
+.fp-prog-goal{font-size:12px;color:var(--ink-faint);flex-shrink:0}
+
+/* the room itself */
+.fp-floor{position:relative;margin-top:16px;padding:68px 20px 30px;border-radius:var(--radius-lg);
+  border:6px solid var(--fp-wall);
+  background-color:var(--fp-floor);
+  background-image:
+    linear-gradient(45deg,var(--fp-floor-2) 25%,transparent 25%,transparent 75%,var(--fp-floor-2) 75%),
+    linear-gradient(45deg,var(--fp-floor-2) 25%,transparent 25%,transparent 75%,var(--fp-floor-2) 75%);
+  background-size:34px 34px; background-position:0 0, 17px 17px;
+  box-shadow:var(--shadow)}
+.fp-floor-label{position:absolute;top:14px;left:18px;background:var(--card);border-radius:14px;
+  padding:8px 14px;box-shadow:var(--shadow-soft);line-height:1.3}
+.fp-floor-label span{display:block;font-size:13.5px;font-weight:700}
+.fp-floor-label small{font-size:11.5px;color:var(--ink-soft)}
+
+.fp-rooms{display:grid;grid-template-columns:repeat(3,1fr);gap:122px 18px}
+
+/* a room card */
+.rm{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  min-height:132px;padding:16px 12px;border-radius:16px;text-align:center;
+  background:var(--card);border:2px solid var(--line);
+  transition:transform .18s var(--ease-out), box-shadow .2s, border-color .2s}
+.rm b{font-size:14.5px;font-weight:700}
+.rm small{font-size:11.5px;color:var(--ink-soft)}
+.rm-em{font-size:26px;line-height:1.1}
+.rm:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){ .rm:hover{transform:translateY(-2px);box-shadow:var(--shadow)} }
+/* a room that wants you has a warm wall and a live badge */
+.rm-live{border-color:var(--accent);background:var(--accent-soft)}
+.rm-done{opacity:.72}
+.rm-badge{position:absolute;top:-11px;right:-9px;min-width:26px;height:26px;padding:0 7px;border-radius:999px;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:800;line-height:26px;text-align:center;
+  box-shadow:0 2px 6px -1px rgba(33,30,27,.35)}
+.rm-badge.ok{background:var(--green);font-size:14px}
+
+/* the boss stands in the middle and points at the first room */
+.fp-boss{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:2}
+.fp-think{background:var(--card);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;
+  box-shadow:var(--shadow-soft);white-space:nowrap;max-width:270px;overflow:hidden;text-overflow:ellipsis;
+  margin-bottom:6px;animation:fpBob 3.2s var(--ease-in-out) infinite}
+@keyframes fpBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.fp-head{font-size:24px;line-height:1}
+.fp-body{display:flex;align-items:center;justify-content:center;width:52px;height:38px;margin-top:-2px;
+  border-radius:12px 12px 8px 8px;background:var(--fp-wall);color:var(--paper);
+  font-size:10px;font-weight:800;letter-spacing:.06em;
+  box-shadow:0 6px 12px -6px rgba(33,30,27,.5)}
+.fp-deco{position:absolute;font-size:19px;opacity:.62;pointer-events:none}
+.fp-deco.d1{left:15%;top:50%;transform:translateY(-50%)}
+.fp-deco.d2{right:15%;top:50%;transform:translateY(-50%)}
+.fp-deco.d3{left:32%;top:26px}.fp-deco.d4{right:32%;top:26px}
+
+/* the one line of context under the floor */
+.fp-insight{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;padding:16px 18px;
+  border-radius:var(--radius);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
+.fp-insight-ic{font-size:20px;flex-shrink:0}
+.fp-insight div{flex:1;min-width:200px}
+.fp-insight b{font-size:13.5px}
+.fp-insight p{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+
+@media(max-width:880px){
+  .fp-hello h2{font-size:24px}
+  .fp-hello .btn{margin-left:0;width:100%}
+  .fp-floor{padding:66px 14px 26px}
+  .fp-rooms{gap:112px 12px}
+}
+@media(max-width:560px){
+  .fp-rooms{grid-template-columns:repeat(2,1fr);gap:14px}
+  .rm{min-height:112px;padding:14px 8px}
+  .rm b{font-size:13px}
+  .rm small{font-size:10.5px}
+  .rm-em{font-size:23px}
+  /* two columns leaves no middle aisle — the boss stands at the door instead */
+  .fp-boss{position:static;transform:none;flex-direction:row;align-items:center;gap:10px;
+    margin-top:18px;justify-content:center}
+  .fp-think{margin-bottom:0;order:3;max-width:none}
+  .fp-body{width:40px;height:30px;margin-top:0}
+  .fp-deco{display:none}
+  .fp-prog-goal{display:none}
+}
+
+/* ==========================================================================
+   Collapsible sidebar
+   The « button folds the menu down to an icon rail and back. It's a per-device
+   preference, not a per-page one: the class is set on <body> before the shell
+   paints, so the menu never renders wide and then snaps narrow.
+   Below 881px the sidebar is replaced by the bottom bar, so the button goes.
+   ========================================================================== */
+.side-toggle{margin-left:auto;flex:none;width:28px;height:28px;border-radius:9px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink-soft);
+  display:grid;place-items:center;transition:background .15s,color .15s,border-color .15s}
+.side-toggle::before{content:'«';font-size:14px;font-weight:800;line-height:1}
+.side-toggle:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+body.side-mini .side-toggle::before{content:'»'}
+
+@media(min-width:881px){
+  body.side-mini{--sidebar:76px}
+  body.side-mini .sidebar{padding:16px 8px;align-items:center;overflow-x:hidden}
+  body.side-mini .side-brand{flex-direction:column;gap:9px;padding:6px 0 14px;justify-content:center}
+  body.side-mini .side-brand div{display:none}
+  body.side-mini .side-toggle{margin:0}
+  /* Same trick as the automatic rail above: the nav label is a bare text node. */
+  body.side-mini .nav-item{position:relative;justify-content:center;padding:11px 0;width:100%;font-size:0;gap:0}
+  body.side-mini .nav-item .em{font-size:18px;width:auto}
+  body.side-mini .nav-item .badge{position:absolute;top:4px;right:8px;font-size:10px;padding:0 5px;min-width:16px}
+  body.side-mini .side-foot .who div{display:none}
+  body.side-mini .side-foot .who{justify-content:center}
+  body.side-mini .side-foot .row{flex-direction:column;gap:6px}
+  body.side-mini .side-foot .btn{font-size:0;padding:0;min-width:44px}
+  /* Same as the automatic rail: a glyph via ::before, because ::first-letter
+     does nothing on a flex container. */
+  body.side-mini #pwBtn::before{content:'🔑';font-size:15px}
+  body.side-mini #logoutBtn::before{content:'⏻';font-size:16px;font-weight:700}
+}
+@media(max-width:880px){ .side-toggle{display:none} }
+
+/* ==========================================================================
+   Home tiles — the springboard
+   Every page in the app as a tile the owner can add, drop and re-order, the
+   way a tablet home screen works. Edit mode wobbles the tiles and puts a −
+   on each one; the rest of the time a tile is just a big tap target.
+   ========================================================================== */
+.tiles-wrap{margin-top:16px}
+.tiles-head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.tiles-head b{font-size:15px;display:block}
+.tiles-head span{font-size:12.5px;color:var(--ink-soft)}
+.tiles-head .btn{margin-left:auto;flex:none}
+
+.tiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:20px 16px;align-items:start}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;
+  padding:0;background:none;border:none;font:inherit;color:inherit;text-align:center;
+  -webkit-tap-highlight-color:transparent;touch-action:none}
+.tile-ic{position:relative;display:grid;place-items:center;width:100%;max-width:78px;aspect-ratio:1;
+  border-radius:22px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
+  color:var(--ink);transition:transform .18s var(--ease-out),box-shadow .18s}
+.tile-ic .ic{width:30px;height:30px}
+.tile-label{font-size:12.5px;font-weight:600;line-height:1.3;max-width:96px}
+.tile-badge{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;
+  background:var(--red);color:#fff;font-size:11.5px;font-weight:800;display:grid;place-items:center;
+  border:2px solid var(--paper)}
+.tile:active .tile-ic{transform:scale(.93)}
+@media (hover:hover) and (pointer:fine){ .tile:hover .tile-ic{transform:translateY(-3px);box-shadow:var(--shadow)} }
+
+/* edit mode */
+.tiles-edit .tile{animation:tile-wobble .28s ease-in-out infinite alternate}
+.tiles-edit .tile:nth-child(even){animation-delay:-.14s}
+.tiles-edit .tile-add{animation:none}
+@keyframes tile-wobble{ from{transform:rotate(-1.1deg)} to{transform:rotate(1.1deg)} }
+@media (prefers-reduced-motion:reduce){ .tiles-edit .tile{animation:none} }
+.tile-x{position:absolute;top:-8px;left:-8px;z-index:3;width:24px;height:24px;border-radius:999px;
+  background:var(--ink);color:var(--paper);font-size:17px;font-weight:800;line-height:1;
+  display:grid;place-items:center;border:2px solid var(--paper);box-shadow:var(--shadow-soft)}
+.tile-dragging{opacity:.9;z-index:5;animation:none!important}
+.tile-dragging .tile-ic{transform:scale(1.08);box-shadow:var(--shadow)}
+.tile-add .tile-ic{background:transparent;border-style:dashed;border-width:2px;color:var(--ink-faint)}
+.tiles-empty{padding:26px 18px;border-radius:var(--radius);background:var(--paper-2);
+  border:1px dashed var(--line);text-align:center;font-size:13.5px;color:var(--ink-soft)}
+.tiles-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:18px 14px}
+@media(max-width:560px){
+  .tiles-grid,.tiles-pick{grid-template-columns:repeat(4,1fr);gap:18px 10px}
+  .tile-ic{max-width:66px;border-radius:19px}
+  .tile-label{font-size:11.5px}
+}
+
+/* ==========================================================================
+   Kitchen room — the same daily checklist drawn as the kitchen
+   Stations along the wall, a dot per outstanding job. Tap the station, tick
+   the job. Identical data to the list; no points, no walking about.
+   ========================================================================== */
+.kv{margin-top:16px}
+.kv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kv-top-num{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:8px 16px;
+  min-height:48px;display:flex;flex-direction:column;justify-content:center}
+.kv-top-num b{font-size:19px;line-height:1.15}
+.kv-top-num i{font-style:normal;font-size:11.5px;color:var(--ink-soft)}
+.kv-top-num.hot b{color:var(--red)}
+
+.kv-room{position:relative;margin-top:16px;padding:56px 18px 24px;border-radius:var(--radius-lg);
+  border:6px solid var(--fp-wall,#3C4A3E);
+  background-color:#EDE6D8;
+  background-image:linear-gradient(#0000 0 0),
+    repeating-linear-gradient(90deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px),
+    repeating-linear-gradient(0deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px);
+  overflow:hidden}
+.kv-room-label{position:absolute;top:13px;left:16px;background:var(--card);border-radius:14px;
+  padding:6px 13px;box-shadow:var(--shadow-soft)}
+.kv-room-label span{display:block;font-size:13.5px;font-weight:700}
+.kv-room-label small{font-size:11.5px;color:var(--ink-soft)}
+
+.kv-stations{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kv-st{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-height:126px;padding:16px 10px;border-radius:18px;background:var(--card);
+  border:2px solid var(--line);box-shadow:var(--shadow-soft);
+  transition:transform .18s var(--ease-out),box-shadow .18s,border-color .18s}
+.kv-st b{font-size:14px;font-weight:700}
+.kv-st small{font-size:11.5px;color:var(--ink-soft);text-align:center}
+.kv-st-em{font-size:27px;line-height:1.1}
+.kv-st:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){ .kv-st:hover{transform:translateY(-2px);box-shadow:var(--shadow)} }
+.kv-st.live{border-color:var(--accent);background:var(--accent-soft)}
+.kv-st.clear{opacity:.68}
+.kv-st-badge{position:absolute;top:-11px;right:-9px;min-width:26px;height:26px;padding:0 7px;border-radius:999px;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;
+  border:2px solid var(--paper)}
+.kv-st-badge.ok{background:var(--green);font-size:14px}
+/* the outstanding jobs, as dots on the bench */
+.kv-dots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:2px;min-height:8px}
+.kv-dot{width:7px;height:7px;border-radius:999px;background:var(--red)}
+.kv-dot.done{background:var(--green);opacity:.5}
+
+.kv-hint{font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:14px}
+.kv-list .li{cursor:pointer}
+.kv-tick{width:30px;height:30px;flex:none;border-radius:10px;border:2px solid var(--line);
+  display:grid;place-items:center;font-size:16px;font-weight:800;color:transparent}
+.kv-tick.on{background:var(--green);border-color:var(--green);color:#fff}
+@media(max-width:880px){ .kv-stations{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:560px){
+  .kv-stations{grid-template-columns:repeat(2,1fr);gap:12px}
+  .kv-room{padding:54px 12px 20px}
+  .kv-st{min-height:110px;padding:13px 8px}
+  .kv-st b{font-size:13px}
+  .kv-st-em{font-size:24px}
+}
+
+/* ==========================================================================
+   Purchases — the wall of dockets
+   A purchase is the piece of paper that came with the delivery, so it's drawn
+   as one: off-white stock, monospace, dashed rules, a torn bottom edge. The
+   card in the wall is the same component as the full-size one, just clipped to
+   its first few lines.
+   ========================================================================== */
+.dkt-filters{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.dkt-filters .input{flex:1 1 190px;min-width:0}
+.dkt-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px 18px;
+  margin-top:18px;align-items:start}
+.dkt-card{display:block;width:100%;padding:0;border:none;background:none;text-align:left;
+  font:inherit;color:inherit;cursor:pointer}
+.dkt-card .dkt{transition:transform .18s var(--ease-out),box-shadow .18s}
+@media (hover:hover) and (pointer:fine){ .dkt-card:hover .dkt{transform:translateY(-4px) rotate(-.35deg);box-shadow:var(--shadow)} }
+.dkt-card:active .dkt{transform:translateY(0) scale(.99)}
+.dkt-none{padding:26px 18px;text-align:center;color:var(--ink-soft);font-size:13.5px}
+
+.dkt{position:relative;max-width:340px;margin:0 auto;padding:18px 18px 20px;
+  background:#FFFDF7;border-radius:5px 5px 0 0;box-shadow:var(--shadow-soft);
+  font-family:ui-monospace,Menlo,Consolas,monospace;color:#211E1B}
+/* the torn-off bottom edge */
+.dkt::after{content:"";position:absolute;left:0;right:0;bottom:-9px;height:10px;
+  background:linear-gradient(-45deg,#FFFDF7 34%,transparent 34%) 0 0/13px 10px repeat-x,
+             linear-gradient(45deg,#FFFDF7 34%,transparent 34%) 0 0/13px 10px repeat-x}
+.dkt-head{text-align:center;padding-bottom:12px}
+.dkt-head b{display:block;font-family:"Playfair Display",serif;font-size:16px;line-height:1.25;letter-spacing:.01em}
+.dkt-head span{display:block;margin-top:3px;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#9A8F84}
+.dkt-meta{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px}
+.dkt-meta span{display:block;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:#9A8F84}
+.dkt-meta b{font-size:11.5px;font-weight:700;line-height:1.3;word-break:break-word}
+.dkt-rule{border-top:1px dashed #CDC2B4;margin:12px 0}
+.dkt-line + .dkt-line{margin-top:10px}
+.dkt-line-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px}
+.dkt-line-top b{font-weight:700;white-space:nowrap}
+.dkt-name{font-weight:700;line-height:1.3}
+.dkt-line-sub{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  font-size:10px;color:#8A8078;margin-top:2px;flex-wrap:wrap}
+.dkt-move{white-space:nowrap}
+.dkt-move.up{color:var(--red);font-weight:700}
+.dkt-move.down{color:var(--green);font-weight:700}
+.dkt-more{margin-top:9px;text-align:center;font-size:10px;color:#8A8078}
+.dkt-sum div{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;padding:1.5px 0}
+.dkt-sum .dkt-total{margin-top:7px;padding-top:7px;border-top:1.5px solid #211E1B;font-size:14px;font-weight:800}
+.dkt-note{margin-top:11px;padding:7px 9px;border-radius:7px;background:var(--amber-soft);
+  font-size:10.5px;line-height:1.45}
+.dkt-foot{margin-top:13px;text-align:center;font-size:9px;line-height:1.6;color:#9A8F84}
+.dkt-photo img{display:block;width:100%;border-radius:12px;margin-top:10px;border:1px solid var(--line)}
+.dkt-runtotal{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;
+  padding:11px 15px;border-radius:14px;background:var(--paper-2);border:1px solid var(--line)}
+.dkt-runtotal b{font-size:17px}
+@media(max-width:560px){
+  .dkt-wall{grid-template-columns:1fr;gap:24px}
+  .dkt{max-width:none}
+}
+
+/* Price watch — the movers table */
+.pw-cheap{margin-top:4px;font-size:11.5px;color:var(--green);font-weight:600}
+.pw-worse{color:var(--red)}
+.pw-better{color:var(--green)}
+.pw-spark{width:72px}
+.spark{display:block;overflow:visible}
+
+/* Supplier cards — the page you open with the phone already in your hand */
+.sup-grid{display:grid;gap:16px;align-items:start;
+  grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+.sup-card{display:flex;flex-direction:column}
+.sup-actions{margin-top:auto;padding-top:14px}
+.sup-actions .btn{flex:1 1 auto}
+.sup-links{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.sup-links .btn{min-height:40px}
+.sup-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.sup-fact span{display:block;font-size:11px;color:var(--ink-faint)}
+.sup-fact b{font-size:13px;font-weight:600;line-height:1.35;word-break:break-word}
+.sup-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.sup-stats span{flex:1 1 92px;background:var(--paper-2);border:1px solid var(--line);border-radius:14px;
+  padding:9px 12px;display:flex;flex-direction:column;gap:1px}
+.sup-stats b{font-size:16px;line-height:1.2}
+.sup-stats i{font-style:normal;font-size:10.5px;color:var(--ink-faint)}
+.sup-stats .hot{background:var(--red-soft);border-color:#f3c8c4}
+.sup-stats .hot b{color:var(--red)}
+.sup-items{margin-top:16px;display:flex;flex-wrap:wrap;gap:7px}
+.sup-items-h{flex:1 0 100%;font-size:12px;color:var(--ink-faint);margin-bottom:2px}
+
+/* A chip: a small tappable label. Used for linked items and day pickers. */
+.chip{font:inherit;font-size:12.5px;font-weight:600;line-height:1;padding:8px 11px;border-radius:999px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s,transform .15s}
+.chip i{font-style:normal;font-weight:500;color:var(--ink-faint);margin-left:3px}
+.chip:active{transform:scale(.96)}
+@media (hover:hover) and (pointer:fine){ .chip:hover{border-color:var(--ink)} }
+.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip.on i{color:rgba(246,242,236,.7)}
+.chip-hot{background:var(--amber-soft);border-color:#eed9a4;color:#8a6410}
+.chip-hot i{color:#a5803a}
+.daypick{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:520px){ .sup-facts{grid-template-columns:1fr} }
+
+/* Forecast — showing the working */
+.fc-formula{display:block;margin:8px 0;padding:8px 11px;border-radius:9px;background:rgba(255,255,255,.55);
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5}
+.fc-worked{margin-top:16px;padding:18px;border-radius:var(--radius);background:var(--card);
+  border:1px solid var(--line);box-shadow:var(--shadow-soft)}
+.fc-worked>b{font-size:14px}
+.fc-worked p{margin-top:12px;font-size:13.5px;color:var(--ink-soft)}
+.fc-sum{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin-top:12px}
+.fc-sum span{flex:1 1 120px;background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:10px 13px}
+.fc-sum i{display:block;font-style:normal;font-size:11px;color:var(--ink-faint);line-height:1.35}
+.fc-sum b{font-size:16px}
+.fc-sum em{display:flex;align-items:center;font-style:normal;font-weight:800;font-size:17px;color:var(--ink-faint)}
+.fc-sum .hot{background:var(--accent-soft);border-color:#e6c9b4}
+.fc-sum .hot b{color:var(--accent-ink)}
+@media(max-width:560px){ .fc-sum span{flex:1 1 100%} .fc-sum em{justify-content:center} }
+
+/* Adding stock in bulk — paste the list, check the table */
+.bulk-ta{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;line-height:1.6;
+  min-height:150px;resize:vertical;margin-top:12px}
+.bulk-common{margin-top:16px;padding:12px 14px;border-radius:14px;background:var(--paper-2);
+  border:1px solid var(--line)}
+.bulk-common summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft)}
+.bulk-common[open] summary{margin-bottom:12px}
+.bulk-common>div{margin-top:10px}
+.bulk-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bulk-group>span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);
+  width:100%;margin-bottom:-2px}
+.bulk-group .chip{font-size:12px;padding:7px 10px}
+.bulk-prev table{min-width:660px}
+.bulk-prev td:first-child{min-width:170px}
+.bulk-prev .input{min-height:42px;padding:8px 10px;font-size:13px}
+.bulk-prev .input.num{text-align:right}
+.bulk-bad .input[data-f="name"]{border-color:var(--red);background:var(--red-soft)}
+
+/* Delivery ⇄ docket: the same event seen from either end */
+.dkt-flag{margin-top:3px;font-size:10px;font-weight:700;color:var(--red)}
+.dkt-stamp{margin-top:12px;padding:8px 10px;border-radius:8px;border:1.5px dashed rgba(47,143,91,.5);
+  background:rgba(233,246,238,.7);text-align:center}
+.dkt-stamp b{display:block;font-size:10.5px;letter-spacing:.04em;color:#1d6a40}
+.dkt-stamp span{display:block;margin-top:2px;font-size:9.5px;color:#4b7c60;line-height:1.4}
+.dkt-stamp.plain{border-color:rgba(33,30,27,.18);background:rgba(33,30,27,.03)}
+.dkt-stamp.plain b{color:var(--ink-soft)}
+.dkt-stamp.plain span{color:var(--ink-faint)}
+.dlv-amt{white-space:nowrap;font-size:14px}
+/* the back-door check sheet: never let the condition column get crushed */
+.dc-row td:last-child{min-width:132px}

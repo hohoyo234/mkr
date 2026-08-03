@@ -9,12 +9,35 @@ window.MKR = window.MKR || {};
   const TABS = [
     {id:'stock',    label:'Stock',     em:'📦'},
     {id:'purchases',label:'Purchases', em:'🧾'},
+    {id:'prices',   label:'Prices',    em:'🏷️'},
     {id:'suppliers',label:'Suppliers', em:'🚚'},
     {id:'forecast', label:'Forecast',  em:'📈'},
   ];
   let tab = 'stock';
 
+  // How much to order: enough to cover the delivery lead time plus a week, less
+  // whatever is already on the shelf. One definition, used by the forecast, the
+  // supplier order sheets and the shelf's basket — three screens that would
+  // otherwise quietly disagree about the same number.
+  const suggestQty = (r)=>{
+    const target = r.daily>0 ? r.daily*((+r.leadTimeDays||2)+7) : (+r.safety||0)*2;
+    return Math.max(0, U.round2(target - (+r.qty||0)));
+  };
+
+  // The Stock tab draws the same data two ways: the shelf (a picture of the room)
+  // or the list (the table). Shelf is the default — it's what an owner who never
+  // reads a spreadsheet can act on — and the choice sticks per device.
+  const VKEY = 'mkr_stock_view';
+  let view = (function(){ try{ return localStorage.getItem(VKEY)==='list' ? 'list' : 'shelf'; }catch(e){ return 'shelf'; } })();
+  const viewSwitch = ()=> `<div class="viewswitch" role="group" aria-label="How to show stock">
+      <button class="${view==='shelf'?'on':''}" data-view="shelf">🧊 Shelf</button>
+      <button class="${view==='list'?'on':''}" data-view="list">☰ List</button>
+    </div>`;
+
   async function render(c){
+    // Any re-render tears the shelf's basket bar down; the shelf puts this back
+    // when it draws one again.
+    document.body.classList.remove('gv-basket');
     c.innerHTML = `
       <div class="section-head"><div><h2>Stock &amp; costs</h2><p>Ingredients and tools · what you hold, what it cost, who you buy it from</p></div>
         <div class="row gap8 wrap" id="stockActions"></div></div>
@@ -24,6 +47,7 @@ window.MKR = window.MKR || {};
     const body = U.qs('#stockBody',c), actions = U.qs('#stockActions',c);
     if(tab==='stock')     return stockTab(body, actions, ()=>render(c));
     if(tab==='purchases') return purchasesTab(body, actions, ()=>render(c));
+    if(tab==='prices')    return MKR.stockPrices.tab(body, actions, ()=>render(c));
     if(tab==='suppliers') return suppliersTab(body, actions, ()=>render(c));
     if(tab==='forecast')  return forecastTab(body, actions, ()=>render(c));
   }
@@ -35,9 +59,17 @@ window.MKR = window.MKR || {};
     const perish = rows.filter(r=>r.kind==='perishable'), durable = rows.filter(r=>r.kind!=='perishable');
     const flagged = rows.filter(r=>r.low||r.expiring).length;
 
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="stkCount">${MKR.ui.icon('checksq')} Stocktake</button>
+    actions.innerHTML = `${viewSwitch()}
+      <button class="btn btn-ghost btn-sm" id="stkCount">${MKR.ui.icon('checksq')} Stocktake</button>
+      <button class="btn btn-ghost btn-sm" id="stkWaste">🗑 Threw it out</button>
       <button class="btn btn-ghost btn-sm" id="stkCsv">${MKR.ui.icon('download')} Export CSV</button>
-      <button class="btn btn-dark btn-sm" id="stkAdd">${MKR.ui.icon('plus')} Add item</button>`;
+      <button class="btn btn-dark btn-sm" id="stkAdd">${MKR.ui.icon('plus')} Add items</button>`;
+
+    U.qsa('[data-view]',actions).forEach(b=> b.onclick = ()=>{
+      view = b.dataset.view;
+      try{ localStorage.setItem(VKEY, view); }catch(e){}
+      reload();
+    });
 
     const group = (title, hint, list)=>`
       <div class="card pad20 mt16">
@@ -48,19 +80,27 @@ window.MKR = window.MKR || {};
           :`<div class="empty" style="padding:18px"><div class="em">📦</div><p>Nothing here yet</p></div>`}
       </div>`;
 
-    c.innerHTML = `
-      <div class="statline">
-        <span class="statcell"><b>${U.money(total)}</b><i>stock value</i></span>
-        <span class="statcell"><b>${U.money(perish.reduce((t,r)=>t+r.value,0))}</b><i>perishable</i></span>
-        <span class="statcell"><b>${U.money(durable.reduce((t,r)=>t+r.value,0))}</b><i>non-perishable</i></span>
-        <span class="statcell"${flagged?' style="color:#8a6410"':''}><b>${flagged}</b><i>needs attention</i></span>
-      </div>
-      ${group('🥬 Perishable · goes off', 'shelf life tracked from the last delivery', perish)}
-      ${group('🥢 Non-perishable · tools & consumables', 'chopsticks, containers, gloves — counted, never expires', durable)}
-      <div class="disclaimer mt16"><span>ℹ️</span>Amount = quantity × the last price you actually paid. Price trend compares your two most recent purchase prices for that item.</div>`;
+    if(view==='shelf' && MKR.stockGame){
+      await MKR.stockGame.render(c, {rows, reload, onEdit:(r)=> itemModal(r, reload)});
+    } else {
+      c.innerHTML = `
+        <div class="statline">
+          <span class="statcell"><b>${U.money(total)}</b><i>stock value</i></span>
+          <span class="statcell"><b>${U.money(perish.reduce((t,r)=>t+r.value,0))}</b><i>perishable</i></span>
+          <span class="statcell"><b>${U.money(durable.reduce((t,r)=>t+r.value,0))}</b><i>non-perishable</i></span>
+          <span class="statcell"${flagged?' style="color:#8a6410"':''}><b>${flagged}</b><i>needs attention</i></span>
+        </div>
+        ${group('🥬 Perishable · goes off', 'shelf life tracked from the last delivery', perish)}
+        ${group('🥢 Non-perishable · tools & consumables', 'chopsticks, containers, gloves — counted, never expires', durable)}
+        <div class="disclaimer mt16"><span>ℹ️</span>Amount = quantity × the last price you actually paid. Price trend compares your two most recent purchase prices for that item.</div>`;
 
-    U.qs('#stkAdd',actions).onclick   = ()=> itemModal(null, reload);
+      U.qsa('[data-edit]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.edit); itemModal(r, reload); });
+      U.qsa('[data-hist]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.hist); historyModal(r); });
+    }
+
+    U.qs('#stkAdd',actions).onclick   = ()=> bulkAddModal(reload);
     U.qs('#stkCount',actions).onclick = ()=> stocktakeModal(rows, reload);
+    U.qs('#stkWaste',actions).onclick = ()=> wasteModal(rows, reload);
     U.qs('#stkCsv',actions).onclick   = ()=>{
       const out=[['Item','Kind','Qty','Unit','Unit price','Amount','Reorder at','Supplier','Last price change']];
       rows.forEach(r=>out.push([r.name, S().KIND[r.kind].label, r.qty, r.unit||'', (+r.price||0).toFixed(2),
@@ -68,8 +108,6 @@ window.MKR = window.MKR || {};
       out.push([], ['Total stock value','','','','', total.toFixed(2)]);
       U.downloadCSV(`stock-${U.todayISO()}.csv`, out); U.toast('Exported','green');
     };
-    U.qsa('[data-edit]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.edit); itemModal(r, reload); });
-    U.qsa('[data-hist]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.hist); historyModal(r); });
   }
 
   function rowHtml(r){
@@ -154,15 +192,158 @@ window.MKR = window.MKR || {};
     return h.slice(-40);
   }
 
+  /* ---------------- Adding stock: write the list, not the form ----------------
+     Setting a kitchen up one modal at a time is the fastest way to make someone
+     give up on the whole app. Nobody has forty ingredients in their head as
+     forty forms — they have them as a list, usually already written on paper or
+     in a phone note.
+
+     So: paste the list. One thing per line, in whatever shape it was written —
+     "Tomatoes 6 kg 5.80", "番茄 6kg", or just "Tomatoes". Everything parsed out
+     is shown as an editable table before anything is saved, because a guess you
+     can see and correct is useful and a guess you can't is not.               */
+  // "Non-perishable" means it doesn't go off — the tools and consumables, plus
+  // the dry-store staples that sit there quite happily. Every guess is a
+  // dropdown in the preview, so being wrong here costs one tap.
+  const DURABLE_RE = /chopstick|glove|container|takeaway|box|bag|napkin|tissue|paper|towel|foil|wrap|cup|straw|plate|bowl|knife|sponge|detergent|clean|soap|oil|salt|sugar|vinegar|soy|sauce|flour|spice|筷|手套|餐盒|打包|袋|纸|紙|保鲜膜|保鮮膜|锡纸|錫紙|杯|碗|碟|盘|盤|刀|抹布|洗洁精|洗潔精|清洁|清潔|油|盐|鹽|糖|醋|酱油|醬油|面粉|麵粉|香料/i;
+  const LIQUID_RE  = /oil|sauce|vinegar|wine|milk|water|juice|油|酱|醬|醋|酒|奶|水|汁/i;
+
+  // Common lines, so a venue that is starting from nothing has something to
+  // start from. Tapping one appends it to the list — it's a shortcut, not a
+  // template: everything stays editable.
+  const COMMON = [
+    ['Fresh', ['Tomatoes 5 kg','Onions 10 kg','Garlic 3 kg','Ginger 2 kg','Lettuce 4 kg','Fresh herbs 6 bunch','Mushrooms 3 kg','Chilli 2 kg']],
+    ['Protein', ['Beef brisket 10 kg','Chicken thigh 10 kg','Pork belly 8 kg','Prawns 4 kg','Fish fillet 5 kg','Eggs 12 dozen','Tofu 6 kg']],
+    ['Dry store', ['Rice 25 kg','Rice noodles 15 kg','Flour 10 kg','Cooking oil 20 L','Soy sauce 12 L','Salt 5 kg','Sugar 5 kg','Spice mix 2 kg']],
+    ['Consumables', ['Chopsticks 2000 pairs','Takeaway containers 1000 pcs','Food-prep gloves 5 box','Napkins 2000 pcs','Cling wrap 6 roll','Bin bags 200 pcs']],
+  ];
+
+  // One typed line → one draft item. Deliberately forgiving: commas or spaces,
+  // dollar signs or not, "6kg" glued or "6 kg" apart, English or Chinese.
+  function parseLine(line){
+    const raw = String(line||'').replace(/[，、]/g,',').replace(/[$￥]/g,' ').trim();
+    if(!raw) return null;
+    const s = raw.replace(/,/g,' ').replace(/\s+/g,' ').trim();
+    const parts = s.split(' ');
+
+    // The name runs until the first token that starts with a digit.
+    const nameParts = [];
+    let i = 0;
+    for(; i<parts.length; i++){ if(/^\d/.test(parts[i])) break; nameParts.push(parts[i]); }
+    const rest = parts.slice(i);
+
+    const nums = [], words = [];
+    rest.forEach(t=>{
+      const m = t.match(/^([\d.]+)(.*)$/);
+      if(m && m[1]!=='.'){ nums.push(Number(m[1])); if(m[2]) words.push(m[2]); }
+      else words.push(t);
+    });
+
+    const name = nameParts.join(' ').trim();
+    const qty  = nums[0]!=null ? nums[0] : 0;
+    const price= nums[1]!=null ? nums[1] : 0;
+    const kind = DURABLE_RE.test(name) ? 'durable' : 'perishable';
+    const unit = (words[0]||'').replace(/^x$/i,'') ||
+                 (kind==='durable' ? 'pcs' : (LIQUID_RE.test(name) ? 'L' : 'kg'));
+    return {
+      name, kind, qty, unit, price,
+      // A starting reorder point of about a third of what you hold is a guess,
+      // and it's labelled as one — but a zero would mean nothing ever warns.
+      safety: U.round2(qty*0.3),
+      bad: !name,
+      raw,
+    };
+  }
+
+  function bulkAddModal(after){
+    let drafts = [];
+    const wrap = U.el(`<div class="bulk">
+      <p class="muted" style="font-size:13.5px">One thing per line, however you'd write it on paper. Quantity, unit and price are optional — <b>Tomatoes 6 kg 5.80</b>, <b>番茄 6kg</b>, or just <b>Tomatoes</b>. You get to check everything before it saves.</p>
+      <textarea class="input bulk-ta" id="b_txt" rows="7" placeholder="Tomatoes 6 kg 5.80&#10;Beef brisket 12 kg 18.90&#10;Chopsticks 1400 pairs&#10;Fresh herbs"></textarea>
+      <div class="bulk-prev" id="b_prev"></div>
+      <details class="bulk-common">
+        <summary>Or tap a common one to add it to the list</summary>
+        ${COMMON.map(([group, items])=>`<div class="bulk-group"><span>${group}</span>
+          ${items.map(x=>`<button type="button" class="chip" data-add="${U.esc(x)}">${U.esc(x.replace(/\s+[\d.].*$/,''))}</button>`).join('')}
+        </div>`).join('')}
+      </details>
+    </div>`);
+
+    const ta = U.qs('#b_txt', wrap), prev = U.qs('#b_prev', wrap);
+
+    function parseAll(){
+      drafts = ta.value.split('\n').map(parseLine).filter(Boolean);
+      drawPreview();
+    }
+    function drawPreview(){
+      if(!drafts.length){ prev.innerHTML = ''; return; }
+      const ok = drafts.filter(d=>!d.bad).length;
+      prev.innerHTML = `
+        <div class="section-title mt16">Check before it saves
+          <span class="faint" style="font-size:12px;font-weight:500">${ok} item${ok===1?'':'s'} ready${drafts.length-ok?` · ${drafts.length-ok} need a name`:''}</span></div>
+        <div class="tablewrap"><table class="dtable">
+          <thead><tr><th>Name</th><th>Type</th><th class="num" style="width:84px">Qty</th><th style="width:78px">Unit</th><th class="num" style="width:92px">Price</th><th class="num" style="width:92px">Reorder at</th><th></th></tr></thead>
+          <tbody>${drafts.map((d,i)=>`<tr${d.bad?' class="bulk-bad"':''}>
+            <td><input class="input" data-f="name" data-i="${i}" value="${U.esc(d.name)}" placeholder="needs a name"></td>
+            <td><select class="input" data-f="kind" data-i="${i}">
+              ${Object.entries(S().KIND).map(([k,v])=>`<option value="${k}" ${d.kind===k?'selected':''}>${v.em} ${v.label}</option>`).join('')}
+            </select></td>
+            <td><input class="input num" type="number" step="0.01" data-f="qty" data-i="${i}" value="${d.qty}"></td>
+            <td><input class="input" data-f="unit" data-i="${i}" value="${U.esc(d.unit)}"></td>
+            <td><input class="input num" type="number" step="0.01" data-f="price" data-i="${i}" value="${d.price}"></td>
+            <td><input class="input num" type="number" step="0.01" data-f="safety" data-i="${i}" value="${d.safety}"></td>
+            <td class="num"><button class="btn btn-ghost btn-sm" data-del="${i}" aria-label="drop this line">×</button></td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+        <div class="kv-hint" style="text-align:left">Reorder point is a starting guess (about a third of what you're holding) — change it here or later, it's what decides when an item turns red.</div>`;
+
+      U.qsa('[data-f]', prev).forEach(inp=> inp.oninput = inp.onchange = ()=>{
+        const d = drafts[+inp.dataset.i]; if(!d) return;
+        const f = inp.dataset.f;
+        d[f] = (f==='qty'||f==='price'||f==='safety') ? (Number(inp.value)||0) : inp.value;
+        if(f==='name') d.bad = !inp.value.trim();
+      });
+      U.qsa('[data-del]', prev).forEach(b=> b.onclick = ()=>{
+        drafts.splice(+b.dataset.del, 1);
+        // The list is the source of truth for the textarea too, so rebuild it.
+        ta.value = drafts.map(d=>d.raw).join('\n');
+        drawPreview();
+      });
+    }
+
+    ta.oninput = parseAll;
+    U.qsa('[data-add]', wrap).forEach(b=> b.onclick = ()=>{
+      ta.value = (ta.value.trim() ? ta.value.replace(/\s*$/,'') + '\n' : '') + b.dataset.add;
+      parseAll(); ta.focus();
+    });
+
+    U.modal('Add stock items', wrap, {actions:[
+      {label:'One at a time instead', class:'btn-ghost', onClick:(close)=>{ close(); itemModal(null, after); }},
+      {label:'Add them', class:'btn-dark', onClick:async(close)=>{
+        const good = drafts.filter(d=>d.name && d.name.trim());
+        if(!good.length){ U.toast('Type a list first — one thing per line','amber'); return; }
+        for(const d of good){
+          await S().saveItem({
+            name:d.name.trim(), kind:d.kind, qty:d.qty, unit:d.unit.trim()||'units',
+            price:d.price, safety:d.safety, leadTimeDays:2,
+            shelfLifeDays: d.kind==='perishable' ? null : null,
+            priceHistory: d.price>0 ? [{ts:Date.now(), price:U.round2(d.price), note:'added by hand'}] : [],
+          });
+        }
+        close(); U.toast(`${good.length} item${good.length===1?'':'s'} added`,'green'); after();
+      }},
+    ]});
+  }
+
   function stocktakeModal(rows, after){
     if(!rows.length){ U.toast('Add some stock items first','amber'); return; }
     const wrap = U.el(`<div>
       <p class="muted" style="font-size:13.5px">Walk the shelves and type what you actually count. Anything you leave blank is skipped. Counting regularly is what makes the usage forecast work — it's the only place usage comes from.</p>
-      <div class="tablewrap mt12"><table class="dtable">
-        <thead><tr><th>Item</th><th class="num">System</th><th class="num" style="width:120px">Counted</th></tr></thead>
+      <div class="tablewrap mt12"><table class="dtable entry">
+        <thead><tr><th>Item</th><th class="num">System count</th><th class="num" style="width:120px">Counted</th></tr></thead>
         <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${U.esc(r.unit||'')}</div></td>
-          <td class="num faint">${r.qty}</td>
-          <td class="num"><input class="input" type="number" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
+          <td class="num faint"><span class="cell-l">System count</span>${r.qty}</td>
+          <td class="num"><span class="cell-l">Counted</span><input class="input" type="number" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
       </table></div>
       <div class="field mt12"><label>Note (optional)</label><input class="input" id="stk_note" placeholder="e.g. Monday morning count"></div>
     </div>`);
@@ -177,187 +358,406 @@ window.MKR = window.MKR || {};
     ]});
   }
 
-  // ---------------- Purchases ----------------
-  async function purchasesTab(c, actions, reload){
-    const [purch, sups, its] = await Promise.all([S().purchases(), S().suppliers(), S().items()]);
-    const spend30 = purch.filter(p=>p.ts>Date.now()-30*864e5).reduce((t,p)=>t+(p.total||0),0);
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="purCsv">${MKR.ui.icon('download')} Export CSV</button>
-      <button class="btn btn-dark btn-sm" id="purAdd">${MKR.ui.icon('plus')} Record purchase</button>`;
-    const nameOf = id=>{ const s=sups.find(x=>x.id===id); return s?s.name:'—'; };
-
-    c.innerHTML = `
-      <div class="statline">
-        <span class="statcell"><b>${purch.length}</b><i>purchases</i></span>
-        <span class="statcell"><b>${U.money0(spend30)}</b><i>spent · 30d</i></span>
-        <span class="statcell"><b>${new Set(purch.map(p=>p.supplierId).filter(Boolean)).size}</b><i>suppliers</i></span>
-      </div>
-      <div class="card pad20 mt16">
-        <div class="section-title">Purchase history</div>
-        ${purch.length? `<div class="list">${purch.map(p=>`
-          <div class="li clickable" data-pur="${p.id}">
-            <div class="ds-li-ic">🧾</div>
-            <div class="meta"><b>${U.esc(nameOf(p.supplierId))} · ${U.money(p.total)}</b>
-              <span>${U.fmtDateTime(p.ts)} · ${(p.lines||[]).length} line${(p.lines||[]).length===1?'':'s'}${p.invoiceNo?' · inv '+U.esc(p.invoiceNo):''} · by ${U.esc(p.by||'—')}</span></div>
-            <span class="faint">›</span></div>`).join('')}</div>`
-          : `<div class="empty"><div class="em">🧾</div><p>No purchases recorded yet. Log one and the price trend and usage forecast start filling in.</p></div>`}
-      </div>`;
-
-    U.qs('#purAdd',actions).onclick = ()=>{
-      if(!its.length){ U.toast('Add some stock items first','amber'); return; }
-      purchaseModal(sups, its, reload);
-    };
-    U.qs('#purCsv',actions).onclick = ()=>{
-      const out=[['Date','Supplier','Invoice','Item','Qty','Unit price','Amount','Purchase total','By']];
-      purch.forEach(p=>(p.lines||[]).forEach((l,i)=>out.push([U.fmtDateTime(p.ts), nameOf(p.supplierId), p.invoiceNo||'',
-        l.name, l.qty, (+l.unitPrice||0).toFixed(2), (+l.amount||0).toFixed(2), i===0?(+p.total||0).toFixed(2):'', p.by||''])));
-      if(out.length===1){ U.toast('Nothing to export','amber'); return; }
-      U.downloadCSV(`purchases-${U.todayISO()}.csv`, out); U.toast('Exported','green');
-    };
-    U.qsa('[data-pur]',c).forEach(b=> b.onclick=()=>{
-      const p=purch.find(x=>x.id===b.dataset.pur);
-      U.modal(`Purchase · ${nameOf(p.supplierId)}`, `
-        <div class="faint" style="font-size:12.5px;margin-bottom:8px">${U.fmtDateTime(p.ts)}${p.invoiceNo?' · invoice '+U.esc(p.invoiceNo):''} · recorded by ${U.esc(p.by||'—')}</div>
-        <div class="tablewrap"><table class="dtable"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th></tr></thead>
-        <tbody>${(p.lines||[]).map(l=>`<tr><td>${U.esc(l.name)}</td><td class="num">${l.qty}</td><td class="num">${U.money(l.unitPrice)}</td><td class="num"><b>${U.money(l.amount)}</b></td></tr>`).join('')}</tbody>
-        <tfoot><tr><td colspan="3" class="num"><b>Total</b></td><td class="num"><b>${U.money(p.total)}</b></td></tr></tfoot></table></div>
-        ${p.note?`<p class="muted mt12" style="font-size:13.5px">${U.esc(p.note)}</p>`:''}`);
-    });
-  }
-
-  function purchaseModal(sups, its, after){
-    const opt = its.map(i=>`<option value="${i.id}">${U.esc(i.name)} (${U.esc(i.unit||'')})</option>`).join('');
-    const lineHtml = ()=>`<tr class="pl-row">
-      <td><select class="input pl-item">${opt}</select></td>
-      <td class="num"><input class="input pl-qty" type="number" step="0.01" value="1" style="text-align:right"></td>
-      <td class="num"><input class="input pl-price" type="number" step="0.01" value="0" style="text-align:right"></td>
-      <td class="num pl-amt">${U.money(0)}</td>
-      <td class="num"><button class="btn btn-ghost btn-sm pl-del" aria-label="remove line">×</button></td></tr>`;
+  // Recording the bin. Same shape as a stocktake — type quantities against the
+  // shelf list — because it's the same job done at the same moment, usually with
+  // the bin lid still open.
+  function wasteModal(rows, after){
+    if(!rows.length){ U.toast('Add some stock items first','amber'); return; }
+    const R = S().WASTE_REASONS;
     const wrap = U.el(`<div>
-      <div class="row"><div class="field grow"><label>Supplier</label><select class="input" id="p_sup">
-        <option value="">— not recorded —</option>${sups.map(s=>`<option value="${s.id}">${U.esc(s.name)}</option>`).join('')}
+      <p class="muted" style="font-size:13.5px">Write down what went in the bin and why. This takes it off your stock straight away, and it's the only way the forecast can tell what you cooked from what you threw away.</p>
+      <div class="field mt12"><label>Why</label><select class="input" id="wst_why">
+        ${Object.entries(R).map(([k,v])=>`<option value="${k}">${v.em} ${v.label}</option>`).join('')}
       </select></div>
-      <div class="field grow"><label>Invoice / docket no.</label><input class="input" id="p_inv" placeholder="optional"></div></div>
-      <div class="tablewrap"><table class="dtable">
-        <thead><tr><th>Item</th><th class="num" style="width:96px">Qty</th><th class="num" style="width:110px">Unit price</th><th class="num" style="width:100px">Amount</th><th></th></tr></thead>
-        <tbody id="p_lines">${lineHtml()}</tbody>
-        <tfoot><tr><td colspan="3" class="num"><b>Total</b></td><td class="num"><b id="p_total">${U.money(0)}</b></td><td></td></tr></tfoot>
+      <div class="tablewrap mt12"><table class="dtable entry">
+        <thead><tr><th>Item</th><th class="num">On shelf</th><th class="num" style="width:110px">Binned</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${U.esc(r.unit||'')} · ${U.money(r.price)}<span data-wamt="${r.id}"></span></div></td>
+          <td class="num faint"><span class="cell-l">On shelf</span>${r.qty}</td>
+          <td class="num"><span class="cell-l">Binned</span><input class="input" type="number" step="0.01" min="0" data-waste="${r.id}" data-price="${+r.price||0}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
       </table></div>
-      <button class="btn btn-ghost btn-sm mt8" id="p_add">${MKR.ui.icon('plus')} Add line</button>
-      <div class="field mt12"><label>Note (optional)</label><input class="input" id="p_note" placeholder="e.g. weekly veg run"></div>
-      <div class="disclaimer"><span>📦</span>Saving adds these quantities to stock and updates each item's unit price.</div>
+      <div class="dkt-runtotal"><span>What it cost you</span><b id="wst_total">${U.money(0)}</b></div>
+      <div class="field mt12"><label>Note (optional)</label><input class="input" id="wst_note" placeholder="e.g. fridge door left open overnight"></div>
     </div>`);
-    const body = U.qs('#p_lines',wrap);
-    function recalc(){
-      let total=0;
-      U.qsa('.pl-row',body).forEach(tr=>{
-        const amt = S().lineAmount(U.qs('.pl-qty',tr).value, U.qs('.pl-price',tr).value);
-        U.qs('.pl-amt',tr).textContent = U.money(amt); total+=amt;
-      });
-      U.qs('#p_total',wrap).textContent = U.money(total);
-    }
-    function bindRow(tr){
-      U.qs('.pl-qty',tr).oninput = recalc;
-      U.qs('.pl-price',tr).oninput = recalc;
-      U.qs('.pl-item',tr).onchange = ()=>{
-        const it = its.find(i=>i.id===U.qs('.pl-item',tr).value);
-        if(it && Number(U.qs('.pl-price',tr).value)===0) U.qs('.pl-price',tr).value = it.price||0;
-        recalc();
-      };
-      U.qs('.pl-del',tr).onclick = ()=>{ if(U.qsa('.pl-row',body).length>1){ tr.remove(); recalc(); } };
-    }
-    U.qsa('.pl-row',body).forEach(bindRow);
-    U.qs('#p_add',wrap).onclick = ()=>{ const tr=U.el(lineHtml()); body.appendChild(tr); bindRow(tr); recalc(); };
 
-    U.modal('Record a purchase', wrap, {actions:[
+    // The running cost is the point of the screen: nobody bins $80 of fish on
+    // purpose, they do it because the number was never in front of them.
+    function recalc(){
+      let t=0;
+      U.qsa('[data-waste]',wrap).forEach(i=>{
+        const amt = S().lineAmount(i.value, i.dataset.price);
+        // Appended to the item's own sub-line rather than given a column: on a
+        // 375px phone a fourth column pushes the input the user is typing into
+        // off the edge of the screen.
+        U.qs(`[data-wamt="${i.dataset.waste}"]`,wrap).textContent = (+i.value||0)>0 ? ` · −${U.money(amt)}` : '';
+        t += amt;
+      });
+      U.qs('#wst_total',wrap).textContent = U.money(t);
+    }
+    U.qsa('[data-waste]',wrap).forEach(i=> i.oninput = recalc);
+
+    U.modal('Threw it out', wrap, {actions:[
       {label:'Cancel', class:'btn-ghost', onClick:c=>c()},
-      {label:'Save purchase', class:'btn-dark', onClick:async(close)=>{
-        const lines = U.qsa('.pl-row',body).map(tr=>{
-          const id=U.qs('.pl-item',tr).value; const it=its.find(i=>i.id===id)||{};
-          return {itemId:id, name:it.name||'', unit:it.unit||'', qty:Number(U.qs('.pl-qty',tr).value)||0, unitPrice:Number(U.qs('.pl-price',tr).value)||0};
-        }).filter(l=>l.qty>0);
-        if(!lines.length){ U.toast('Add at least one line','red'); return; }
-        await S().savePurchase({supplierId:U.qs('#p_sup',wrap).value||null, invoiceNo:U.qs('#p_inv',wrap).value.trim(),
-                                note:U.qs('#p_note',wrap).value.trim(), lines});
-        close(); U.toast('Purchase recorded','green'); after();
+      // Not "Record it" — the order sheet already owns that exact string, and a
+      // shared one-word key can only be translated right in one of the two.
+      {label:'Record the waste', class:'btn-dark', onClick:async(close)=>{
+        const lines = U.qsa('[data-waste]',wrap).map(i=>({itemId:i.dataset.waste, qty:i.value===''?0:Number(i.value)}));
+        const saved = await S().saveWaste(lines, U.qs('#wst_why',wrap).value, U.qs('#wst_note',wrap).value.trim());
+        if(!saved){ U.toast('Nothing recorded','amber'); return; }
+        close(); U.toast(`Binned ${saved.lines.length} item(s) · ${U.money(saved.cost)}`,'amber'); after();
       }}
     ]});
   }
 
+  // ---------------- Purchases ----------------
+  // The dockets themselves live in js/stock-receipt.js — a receipt is a thing
+  // you look at, not a row you read, and that file is where it's drawn.
+  const purchasesTab = (c, actions, reload)=> MKR.stockReceipt.tab(c, actions, reload);
+
   // ---------------- Suppliers ----------------
+  // A supplier card is the page you'd open standing at the back door with the
+  // phone in your hand: who to ring, when they deliver, what you owe them, what
+  // they normally bring — and the order you're about to place, ready to send.
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // Only ever open a plain http(s) address, and never one typed as javascript:.
+  function webURL(raw){
+    const s = String(raw||'').trim(); if(!s) return null;
+    const url = /^https?:\/\//i.test(s) ? s : 'https://'+s;
+    try{ const u = new URL(url); return (u.protocol==='http:'||u.protocol==='https:') ? u.href : null; }
+    catch(e){ return null; }
+  }
+  const webLabel = (href)=>{ try{ return new URL(href).hostname.replace(/^www\./,''); }catch(e){ return href; } };
+
   async function suppliersTab(c, actions, reload){
-    const [sups, purch, its] = await Promise.all([S().suppliers(), S().purchases(), S().items()]);
+    const [sups, purch, rows, recs] = await Promise.all([S().suppliers(), S().purchases(), S().overview(), S().reconciliations()]);
     actions.innerHTML = `<button class="btn btn-dark btn-sm" id="supAdd">${MKR.ui.icon('plus')} Add supplier</button>`;
-    c.innerHTML = sups.length ? `<div class="grid g2 mt16" style="align-items:start">${sups.map(s=>{
-        const mine = purch.filter(p=>p.supplierId===s.id);
-        const spend = mine.reduce((t,p)=>t+(p.total||0),0);
-        const last = mine[0];
-        const buys = its.filter(i=>i.supplierId===s.id).map(i=>i.name);
-        return `<div class="card pad20">
-          <div class="section-title">🚚 ${U.esc(s.name)}<button class="btn btn-ghost btn-sm" data-sup="${s.id}">Edit</button></div>
-          <div class="list">
-            <div class="li"><div class="meta"><span>Contact</span><b>${U.esc(s.contact||'—')}</b></div></div>
-            <div class="li"><div class="meta"><span>Phone</span><b>${s.phone?`<a href="tel:${U.esc(s.phone)}">${U.esc(s.phone)}</a>`:'—'}</b></div></div>
-            <div class="li"><div class="meta"><span>Email</span><b>${s.email?`<a href="mailto:${U.esc(s.email)}">${U.esc(s.email)}</a>`:'—'}</b></div></div>
-            <div class="li"><div class="meta"><span>Bought from ${mine.length} time${mine.length===1?'':'s'}</span><b>${U.money(spend)} total</b></div></div>
-            <div class="li"><div class="meta"><span>Last purchase</span><b>${last?U.fmtDate(last.ts):'—'}</b></div></div>
-          </div>
-          ${buys.length?`<p class="faint" style="font-size:12px;margin-top:10px">Usually supplies: ${U.esc(buys.join(', '))}</p>`:''}
-          ${s.note?`<p class="muted" style="font-size:13px;margin-top:8px">${U.esc(s.note)}</p>`:''}
-        </div>`;
-      }).join('')}</div>`
-      : `<div class="empty mt16"><div class="em">🚚</div><p>No suppliers yet. Add the people you actually ring when you need stock — name, phone, what they supply.</p></div>`;
+    // Months with dockets but no signed-off statement check — the number that
+    // makes the button worth pressing.
+    const todo = (id)=> Array.from(new Set(purch.filter(p=>p.supplierId===id).map(p=>S().periodOf(p.ts))))
+      .filter(k=>!recs.some(r=>r.supplierId===id && r.period===k)).length;
+
+    const card = (s)=>{
+      const mine  = purch.filter(p=>p.supplierId===s.id);
+      const spend = mine.reduce((t,p)=>t+(p.total||0),0);
+      const last  = mine[0];
+      const buys  = rows.filter(i=>i.supplierId===s.id);
+      const short = buys.filter(i=>i.low||i.short).length;
+      const href  = webURL(s.website);
+      const days  = (s.deliveryDays||[]).map(d=>DOW[d]).filter(Boolean);
+      // How many of their lines have gone up in the last month — and only the
+      // last month, or a rise from spring is still on the card in winter.
+      const up = buys.filter(i=> i.move && i.move.dir==='up' && i.move.ts > Date.now()-30*864e5).length;
+
+      const fact = (k,v)=> v ? `<div class="sup-fact"><span>${k}</span><b>${v}</b></div>` : '';
+      return `<div class="card pad20 sup-card">
+        <div class="section-title">🚚 ${U.esc(s.name)}<button class="btn btn-ghost btn-sm" data-sup="${s.id}">Edit</button></div>
+
+        <div class="sup-links">
+          ${s.phone?`<a class="btn btn-ghost btn-sm" href="tel:${U.esc(s.phone)}">📞 ${U.esc(s.phone)}</a>`:''}
+          ${s.email?`<a class="btn btn-ghost btn-sm" href="mailto:${U.esc(s.email)}">✉️ Email</a>`:''}
+          ${href?`<a class="btn btn-ghost btn-sm" href="${U.esc(href)}" target="_blank" rel="noopener noreferrer">🌐 ${U.esc(webLabel(href))} ↗</a>`:''}
+        </div>
+
+        <div class="sup-facts">
+          ${fact('Who you ask for', U.esc(s.contact||''))}
+          ${fact('Delivers', days.length ? U.esc(days.join(' · ')) : '')}
+          ${fact('Order by', U.esc(s.cutoff||''))}
+          ${fact('Minimum order', +s.minOrder ? U.money0(s.minOrder) : '')}
+          ${fact('Payment terms', U.esc(s.terms||''))}
+          ${fact('Account no.', U.esc(s.account||''))}
+          ${fact('ABN', U.esc(s.abn||''))}
+          ${fact('Address', U.esc(s.address||''))}
+        </div>
+
+        <div class="sup-stats">
+          <span><b>${mine.length}</b><i>dockets</i></span>
+          <span><b>${U.money0(spend)}</b><i>spent with them</i></span>
+          <span><b>${last?U.fmtDate(last.ts):'—'}</b><i>last delivery</i></span>
+          <span${up?' class="hot"':''}><b>${up}</b><i>dearer this month</i></span>
+        </div>
+
+        ${buys.length?`<div class="sup-items">
+          <div class="sup-items-h${short?' pw-worse':''}">${short?`What they bring · ${short} to order`:'What they bring'}</div>
+          ${buys.map(i=>`<button class="chip${i.low||i.short?' chip-hot':''}" data-item="${i.id}">${U.esc(i.name)} <i>${U.money(i.price)}/${U.esc(i.unit||'')}</i></button>`).join('')}
+        </div>`:`<p class="faint" style="font-size:12.5px;margin-top:12px">No stock items point at this supplier yet — set one on the item and it shows up here.</p>`}
+
+        ${s.note?`<p class="muted" style="font-size:13px;margin-top:12px">${U.esc(s.note)}</p>`:''}
+
+        <div class="row gap8 wrap mt12 sup-actions">
+          <button class="btn btn-ghost btn-sm" data-dockets="${s.id}">🧾 Their dockets (${mine.length})</button>
+          ${mine.length?`<button class="btn btn-ghost btn-sm${todo(s.id)?' chip-hot':''}" data-stmt="${s.id}">📋 Check their statement${todo(s.id)?` (${todo(s.id)})`:''}</button>`:''}
+          <button class="btn btn-dark btn-sm" data-order="${s.id}">🛒 Build their order</button>
+        </div>
+      </div>`;
+    };
+
+    c.innerHTML = sups.length
+      ? `<div class="sup-grid mt16">${sups.map(card).join('')}</div>`
+      : `<div class="empty mt16"><div class="em">🚚</div><p>No suppliers yet. Add the people you actually ring when you need stock — name, phone, what they bring and when they deliver.</p></div>`;
+
     U.qs('#supAdd',actions).onclick = ()=> supplierModal(null, reload);
     U.qsa('[data-sup]',c).forEach(b=> b.onclick=()=> supplierModal(sups.find(x=>x.id===b.dataset.sup), reload));
+    U.qsa('[data-item]',c).forEach(b=> b.onclick=()=> itemModal(rows.find(x=>x.id===b.dataset.item), reload));
+    U.qsa('[data-dockets]',c).forEach(b=> b.onclick=()=> dockets(sups.find(x=>x.id===b.dataset.dockets), purch));
+    U.qsa('[data-stmt]',c).forEach(b=> b.onclick=()=> statementModal(sups.find(x=>x.id===b.dataset.stmt), purch, recs, reload));
+    U.qsa('[data-order]',c).forEach(b=> b.onclick=()=> orderSheet(sups.find(x=>x.id===b.dataset.order), rows));
+  }
+
+  // Every docket from one supplier, newest first — the drawer, filtered.
+  async function dockets(s, purch){
+    const mine = purch.filter(p=>p.supplierId===s.id);
+    if(!mine.length){ U.toast('No dockets from '+s.name+' yet','amber'); return; }
+    let venue='My Kitchen';
+    try{ const k=await MKR.db.get('kitchens',(MKR.auth.current()||{}).kitchenId||'k_main'); if(k&&k.name) venue=k.name; }catch(e){}
+    const wrap = U.el(`<div class="dkt-wall">${mine.map(p=>`<button class="dkt-card" data-d="${p.id}">
+      ${MKR.stockReceipt.receiptHtml(p,{sup:s, venue, purch, compact:true})}</button>`).join('')}</div>`);
+    U.modal(`🧾 ${s.name} · ${mine.length} docket${mine.length===1?'':'s'}`, wrap);
+    U.qsa('[data-d]',wrap).forEach(b=> b.onclick=()=>{
+      MKR.stockReceipt.openReceipt(mine.find(x=>x.id===b.dataset.d), s, venue, purch);
+    });
+  }
+
+  // Checking a monthly statement against your own dockets.
+  //
+  // Tick what appears on their statement, type their total, and the two numbers
+  // that matter fall out: what they've billed that you can't account for (chase
+  // it before you pay) and what you hold that they haven't billed yet (don't
+  // pay it twice next month). Everything is per supplier per month, and the
+  // verdict is saved so next month you know July is done.
+  async function statementModal(s, purch, recs, after){
+    const periods = await S().statementPeriods(s.id, purch, recs);
+    if(!periods.length){ U.toast('No dockets from '+s.name+' yet','amber'); return; }
+
+    const wrap = U.el(`<div>
+      <div class="field"><label>Which month</label><select class="input" id="st_per">
+        ${periods.map(p=>`<option value="${p.period}">${U.esc(monthLabel(p.period))} · ${p.dockets} docket${p.dockets===1?'':'s'} · ${U.money(p.ourTotal)}${p.saved?' ✓':''}</option>`).join('')}
+      </select></div>
+      <div id="st_body"></div>
+    </div>`);
+    const body = U.qs('#st_body',wrap);
+
+    async function draw(){
+      const period = U.qs('#st_per',wrap).value;
+      const st = await S().statementFor(s.id, period, purch, recs);
+      const savedIds = st.saved ? (st.saved.matched||[]) : null;
+      body.innerHTML = `
+        <p class="muted" style="font-size:13px;margin-top:12px">Tick every docket that appears on their statement. Leave the ones they haven't billed yet.</p>
+        <div class="list">${st.dockets.map(p=>`<label class="li clickable">
+          <input type="checkbox" data-tick="${p.id}" ${!savedIds || savedIds.includes(p.id) ? 'checked':''}>
+          <div class="meta"><b>${U.esc(p.invoiceNo||'no number')}</b>
+            <span>${U.fmtDate(p.ts)} · ${(p.lines||[]).length} line${(p.lines||[]).length===1?'':'s'}</span></div>
+          <b>${U.money(p.total)}</b></label>`).join('')}</div>
+        <div class="field mt12"><label>What their statement says</label>
+          <input class="input" id="st_total" type="number" step="0.01" value="${st.saved?st.saved.statementTotal:''}" placeholder="the one total on their paperwork"></div>
+        <div id="st_verdict"></div>
+        <div class="field mt12"><label>Note (optional)</label><input class="input" id="st_note" value="${U.esc(st.saved?st.saved.note:'')}" placeholder="e.g. rang Kim, credit coming for the short crate"></div>
+        ${st.saved?`<div class="disclaimer mt8"><span>✓</span><div>Checked ${U.fmtDate(st.saved.ts)} by ${U.esc(st.saved.by||'—')}. Saving again replaces it.</div></div>`:''}`;
+
+      const ticks = U.qsa('[data-tick]',body);
+      function verdict(){
+        const on  = ticks.filter(t=>t.checked).map(t=>t.dataset.tick);
+        const off = st.dockets.filter(p=>!on.includes(p.id));
+        const matched = U.round2(st.dockets.filter(p=>on.includes(p.id)).reduce((t,p)=>t+(+p.total||0),0));
+        const notBilled = U.round2(off.reduce((t,p)=>t+(+p.total||0),0));
+        const claimed = Number(U.qs('#st_total',body).value);
+        const has = U.qs('#st_total',body).value !== '' && !isNaN(claimed);
+        const gap = has ? U.round2(claimed - matched) : 0;
+        U.qs('#st_verdict',body).innerHTML = `
+          <div class="cart-total mt8"><span>Your dockets, ticked</span><span class="v">${U.money(matched)}</span></div>
+          ${notBilled?`<div class="alert info mt8"><span>📄</span><div>
+            <b>${U.money(notBilled)}</b> <b>of your dockets isn't on their statement</b>
+            <div class="faint">${off.map(p=>U.esc(p.invoiceNo||'no number')+' '+U.money(p.total)).join(' · ')}</div>
+            <div>Not an error — they usually catch up next month. Worth knowing so you don't pay it twice when they do.</div>
+          </div></div>`:''}
+          ${!has ? `<div class="disclaimer mt8"><span>⌨️</span><div>Type their total above and the gap appears here.</div></div>`
+            : Math.abs(gap) < 0.005
+              ? `<div class="alert green mt8"><span>✅</span><div><b>Matches to the cent.</b> <div>Nothing to chase — this month is clean.</div></div></div>`
+              : `<div class="alert ${gap>0?'red':'amber'} mt8"><span>${gap>0?'⚠️':'🔍'}</span><div>
+                  <b>${U.money(Math.abs(gap))}</b> <b>${gap>0?'they have billed that you have no docket for':'on your dockets that their statement is under'}</b>
+                  <div>${gap>0
+                    ? 'Ring them before this gets paid. Usually a delivery nobody wrote down, or a docket billed at a different price than the one on the paper.'
+                    : "They've undercharged against what you ticked. Check you ticked the right dockets before you celebrate."}</div>
+                </div></div>`}`;
+      }
+      ticks.forEach(t=> t.onchange = verdict);
+      U.qs('#st_total',body).oninput = verdict;
+      verdict();
+    }
+    U.qs('#st_per',wrap).onchange = draw;
+    await draw();
+
+    U.modal(`📋 ${s.name} · statement check`, wrap, {actions:[
+      {label:'Close', class:'btn-ghost', onClick:c=>c()},
+      {label:'Save the check', class:'btn-dark', onClick:async(close)=>{
+        const period = U.qs('#st_per',wrap).value;
+        const el = U.qs('#st_total',body);
+        if(el.value===''){ U.toast("Type what their statement says first",'amber'); return; }
+        const st = await S().statementFor(s.id, period, purch, recs);
+        const on = U.qsa('[data-tick]',body).filter(t=>t.checked).map(t=>t.dataset.tick);
+        const matched = U.round2(st.dockets.filter(p=>on.includes(p.id)).reduce((t,p)=>t+(+p.total||0),0));
+        const claimed = Number(el.value)||0;
+        await S().saveReconciliation({supplierId:s.id, period, statementTotal:claimed,
+          matchedTotal:matched, ourTotal:st.ourTotal, gap:U.round2(claimed-matched),
+          matched:on, note:U.qs('#st_note',body).value.trim()});
+        close(); U.toast('Statement check saved','green'); after();
+      }}
+    ]});
+  }
+  const monthLabel = (key)=>{ const [y,m]=key.split('-');
+    return new Date(+y, +m-1, 1).toLocaleDateString('en-AU',{month:'long', year:'numeric'}); };
+
+  // The order you're about to place with this supplier — same suggestion the
+  // forecast makes, narrowed to their lines, in a form you can send them.
+  function orderSheet(s, rows){
+    const mine = rows.filter(r=>r.supplierId===s.id);
+    const list = mine.map(r=>({r, q:suggestQty(r)})).filter(x=>x.q>0);
+    if(!list.length){ U.toast(`Nothing to order from ${s.name} right now`,'green'); return; }
+    const total = list.reduce((t,x)=>t+S().lineAmount(x.q, x.r.price), 0);
+    const text = [`Order for ${s.name}`, ...list.map(({r,q})=>`- ${r.name}: ${q} ${r.unit||''}`)].join('\n');
+    const wrap = U.el(`<div>
+      <div class="list">${list.map(({r,q})=>`<div class="li">
+        <div class="ds-li-ic">${MKR.stockGame?MKR.stockGame.emojiFor(r):'📦'}</div>
+        <div class="meta"><b>${U.esc(r.name)} · ${q} ${U.esc(r.unit||'')}</b>
+          <span>${r.cover!=null?`${r.cover.toFixed(1)} days left`:'no usage data yet'} · last paid ${U.money(r.price)}</span></div>
+        <b>${U.money(S().lineAmount(q,r.price))}</b></div>`).join('')}</div>
+      <div class="cart-total mt8"><span>Estimated cost</span><span class="v">${U.money(total)}</span></div>
+      ${s.minOrder && total < +s.minOrder ? `<div class="alert amber mt12"><span>⚠️</span><div>Their minimum order is ${U.money0(s.minOrder)} — this comes to ${U.money(total)}.</div></div>`:''}
+      ${s.cutoff?`<div class="disclaimer"><span>⏰</span>Order by ${U.esc(s.cutoff)}${(s.deliveryDays||[]).length?` · delivers ${(s.deliveryDays||[]).map(d=>DOW[d]).join(' & ')}`:''}</div>`:''}
+    </div>`);
+    U.modal(`🛒 Order for ${s.name}`, wrap, {actions:[
+      {label:'Copy as a message', class:'btn-ghost', onClick:async(close)=>{
+        try{ await navigator.clipboard.writeText(text); U.toast('Copied — paste it into a text or email','green'); }
+        catch(e){ U.toast('Could not copy on this device','amber'); }
+      }},
+      {label:'Export CSV', class:'btn-ghost', onClick:(close)=>{
+        const out=[['Item','Order qty','Unit','Last price paid','Est. cost']];
+        list.forEach(({r,q})=>out.push([r.name,q,r.unit||'',(+r.price||0).toFixed(2),S().lineAmount(q,r.price).toFixed(2)]));
+        U.downloadCSV(`order-${s.name.replace(/\W+/g,'-').toLowerCase()}-${U.todayISO()}.csv`, out);
+        close(); U.toast('Exported','green');
+      }},
+      // Once it's been rung through, the same list becomes what the back door
+      // checks off — nobody types these items again.
+      {label:'🚚 Expect it at the back door', class:'btn-dark', onClick:async(close)=>{
+        if(!MKR.deliveries){ U.toast('Deliveries are switched off','amber'); return; }
+        await MKR.deliveries.save({
+          supplierId:s.id, supplierName:s.name,
+          lines:list.map(({r,q})=>({itemId:r.id, name:r.name, unit:r.unit||'', ordered:q,
+                                    received:null, unitPrice:r.price||0, condition:'ok', note:''})),
+        });
+        close(); U.toast(`Waiting at the back door for ${s.name}`,'green');
+      }},
+    ]});
   }
 
   function supplierModal(s, after){
     const isNew=!s; s=s||{};
+    const days = s.deliveryDays||[];
     const wrap = U.el(`<div>
       <div class="field"><label>Business name</label><input class="input" id="s_n" value="${U.esc(s.name||'')}" placeholder="e.g. Vic Fresh Produce"></div>
-      <div class="field"><label>Who you contact</label><input class="input" id="s_c" value="${U.esc(s.contact||'')}" placeholder="e.g. Tony (driver)"></div>
-      <div class="row"><div class="field grow"><label>Phone</label><input class="input" id="s_p" value="${U.esc(s.phone||'')}"></div>
-        <div class="field grow"><label>Email</label><input class="input" id="s_e" value="${U.esc(s.email||'')}"></div></div>
-      <div class="field"><label>Notes</label><input class="input" id="s_note" value="${U.esc(s.note||'')}" placeholder="e.g. delivers Tue &amp; Fri before 9am"></div>
+      <div class="row"><div class="field grow"><label>Who you contact</label><input class="input" id="s_c" value="${U.esc(s.contact||'')}" placeholder="e.g. Tony (driver)"></div>
+        <div class="field grow"><label>Phone</label><input class="input" id="s_p" value="${U.esc(s.phone||'')}"></div></div>
+      <div class="row"><div class="field grow"><label>Email</label><input class="input" id="s_e" value="${U.esc(s.email||'')}"></div>
+        <div class="field grow"><label>Website</label><input class="input" id="s_w" value="${U.esc(s.website||'')}" placeholder="vicfreshproduce.com.au"></div></div>
+      <div class="field"><label>Address</label><input class="input" id="s_a" value="${U.esc(s.address||'')}" placeholder="where you'd send someone to pick up"></div>
+
+      <div class="field"><label>Delivery days</label>
+        <div class="daypick" id="s_days">${DOW.map((d,i)=>`<button type="button" class="chip${days.includes(i)?' on':''}" data-day="${i}">${d}</button>`).join('')}</div></div>
+      <div class="row"><div class="field grow"><label>Order by (cut-off)</label><input class="input" id="s_cut" value="${U.esc(s.cutoff||'')}" placeholder="e.g. 15:00"></div>
+        <div class="field grow"><label>Minimum order (AUD)</label><input class="input" id="s_min" type="number" step="1" value="${+s.minOrder||0}"></div></div>
+      <div class="row"><div class="field grow"><label>Payment terms</label><input class="input" id="s_t" value="${U.esc(s.terms||'')}" placeholder="e.g. 30 days"></div>
+        <div class="field grow"><label>Your account no.</label><input class="input" id="s_acc" value="${U.esc(s.account||'')}"></div></div>
+      <div class="field"><label>ABN</label><input class="input" id="s_abn" value="${U.esc(s.abn||'')}" placeholder="so it's on hand at invoice time"></div>
+      <div class="field"><label>Notes</label><input class="input" id="s_note" value="${U.esc(s.note||'')}" placeholder="e.g. ring Tony directly if the truck is late"></div>
+      <div class="disclaimer"><span>🔗</span>Point your stock items at a supplier and the two link up: their card lists what they bring, and every order groups itself by who to ring.</div>
     </div>`);
+
+    const picked = days.slice();
+    U.qsa('[data-day]',wrap).forEach(b=> b.onclick = ()=>{
+      const d = +b.dataset.day, i = picked.indexOf(d);
+      if(i>-1) picked.splice(i,1); else picked.push(d);
+      b.classList.toggle('on', i===-1);
+    });
+
     const actions=[{label:'Save', class:'btn-dark', onClick:async(close)=>{
       const name=U.qs('#s_n',wrap).value.trim(); if(!name){ U.toast('Enter a name','red'); return; }
-      await MKR.db.put('suppliers',{id:s.id||U.uid('sup'), name, contact:U.qs('#s_c',wrap).value.trim(),
-        phone:U.qs('#s_p',wrap).value.trim(), email:U.qs('#s_e',wrap).value.trim(),
-        note:U.qs('#s_note',wrap).value.trim(), kitchenId:(MKR.auth.current()||{}).kitchenId||'k_main'});
+      await MKR.db.put('suppliers',{id:s.id||U.uid('sup'), name,
+        contact:U.qs('#s_c',wrap).value.trim(), phone:U.qs('#s_p',wrap).value.trim(),
+        email:U.qs('#s_e',wrap).value.trim(), website:U.qs('#s_w',wrap).value.trim(),
+        address:U.qs('#s_a',wrap).value.trim(), deliveryDays:picked.slice().sort(),
+        cutoff:U.qs('#s_cut',wrap).value.trim(), minOrder:Number(U.qs('#s_min',wrap).value)||0,
+        terms:U.qs('#s_t',wrap).value.trim(), account:U.qs('#s_acc',wrap).value.trim(),
+        abn:U.qs('#s_abn',wrap).value.trim(), note:U.qs('#s_note',wrap).value.trim(),
+        kitchenId:(MKR.auth.current()||{}).kitchenId||'k_main'});
       close(); U.toast('Saved','green'); after();
     }}];
     if(!isNew) actions.unshift({label:'Delete', class:'btn-ghost', onClick:async(close)=>{
-      if(!(await U.confirm('Delete supplier', `Remove ${s.name}?`, {ok:'Delete', danger:true}))) return;
+      if(!(await U.confirm('Delete supplier', `Remove ${s.name}? Their past dockets stay in your records.`, {ok:'Delete', danger:true}))) return;
       await MKR.db.put('suppliers',{id:s.id, archived:true}); close(); U.toast('Deleted','amber'); after();
     }});
     U.modal(isNew?'Add supplier':'Edit supplier', wrap, {actions});
   }
 
   // ---------------- Forecast ----------------
-  async function forecastTab(c, actions){
+  // Nothing on this page is a projection of the future. It is arithmetic on
+  // what already happened, and the page says so — including the working, per
+  // item, so an owner can check it against their own notebook and either trust
+  // it or tell us where it's wrong.
+  async function forecastTab(c, actions, reload){
     const rows = await S().overview();
+    const [takes, purch, wst] = await Promise.all([S().stocktakes(), S().purchases(), S().wastes()]);
+    const bin = await S().wasteSince(30, wst);
     const known = rows.filter(r=>r.usageSamples>0);
-    const reorder = rows.filter(r=>r.low || r.short);
     actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="fcList">🛒 Build order list</button>
       <button class="btn btn-dark btn-sm" id="fcAsk">${MKR.ui.icon('sparkle')} Ask AI</button>`;
 
-    const suggest = (r)=>{
-      // Cover the lead time plus a week, minus what's on the shelf.
-      const target = r.daily>0 ? r.daily*((+r.leadTimeDays||2)+7) : (+r.safety||0)*2;
-      return Math.max(0, U.round2(target - (+r.qty||0)));
-    };
+    const suggest = suggestQty;
+    const lastCount = takes.length ? takes[0].ts : null;
+
+    // The explanation is worth more with the venue's own numbers in it, so pick
+    // the item with the most history and show its actual sum.
+    const star = known.slice().sort((a,b)=>b.usageSamples-a.usageSamples)[0];
+    let worked = '';
+    if(star){
+      const iv = (await S().usageIntervals(star.id, takes, purch, wst)).filter(x=>!x.skip).slice(-1)[0];
+      if(iv) worked = `<div class="fc-worked">
+        <b>${U.esc(star.name)}, most recently:</b>
+        <div class="fc-sum">
+          <span><i>counted ${U.fmtDate(iv.fromTs)}</i><b>${iv.before} ${U.esc(star.unit||'')}</b></span>
+          <em>+</em>
+          <span><i>arrived on ${iv.deliveries} docket${iv.deliveries===1?'':'s'}</i><b>${iv.bought} ${U.esc(star.unit||'')}</b></span>
+          <em>−</em>
+          <span><i>counted ${U.fmtDate(iv.toTs)}</i><b>${iv.now} ${U.esc(star.unit||'')}</b></span>
+          <em>=</em>
+          <span class="hot"><i>used over ${iv.days} days</i><b>${iv.used} ${U.esc(star.unit||'')}</b></span>
+        </div>
+        <p>That week worked out at ${iv.daily} ${U.esc(star.unit||'')} a day. Averaged with every other count, it settles at ${star.daily.toFixed(2)} a day — at ${star.qty} ${U.esc(star.unit||'')} on the shelf, that's ${star.cover!=null?star.cover.toFixed(1):'—'} days before it runs out.</p>
+        ${iv.wasted>0?`<p>Of that ${iv.used} ${U.esc(star.unit||'')}, <b>${iv.wasted}</b> went in the bin and ${iv.cooked} was cooked. You still have to buy both — but only one of them earns anything.</p>`:''}
+      </div>`;
+    }
 
     c.innerHTML = `
-      <div class="alert info mt16"><span>🤖</span><div><b>Usage is measured, not guessed.</b> There's no till in this app, so consumption comes from your stocktakes: what you counted last time, plus what you bought since, minus what you counted this time. Count twice and this page comes alive.</div></div>
+      <div class="alert info mt16"><span>🧮</span><div>
+        <b>Nothing here is guessed — it's your stocktakes, added up.</b>
+        <div>There's no till in this app, so nobody can deduct an ingredient per dish. Instead usage is what the shelf actually shows:</div>
+        <code class="fc-formula">counted last time + everything the dockets brought in − counted this time = used</code>
+        <div>Divide by the days between the two counts and you have a daily rate. Two counts is the minimum; more counts, steadier number.</div>
+        <div>${lastCount?`Your last count was ${U.fmtDate(lastCount)} · ${takes.length} count${takes.length===1?'':'s'} on file.`:`No stocktakes yet — that's the one thing this page needs from you.`}</div>
+      </div></div>
+      ${bin.rows.length ? `<div class="alert amber mt16"><span>🗑</span><div>
+        <b>${U.money(bin.cost)}</b> <b>went in the bin in the last 30 days</b>
+        <div>${bin.byItem.slice(0,3).map(b=>`${U.esc(b.name)} ${U.money(b.cost)}`).join(' · ')}${bin.byItem.length>3?` · +${bin.byItem.length-3} more`:''}</div>
+        <div class="faint">That's stock you paid for and sold none of. It's inside the usage figures below, not on top of them.</div>
+      </div></div>` : ''}
+      ${worked}
       <div class="card pad20 mt16">
-        <div class="section-title">📈 Usage &amp; days of cover</div>
+        <div class="section-title">📈 Usage &amp; days of cover<span class="faint" style="font-size:12px;font-weight:500">tap a row to see its working</span></div>
         ${rows.length?`<div class="tablewrap"><table class="dtable">
           <thead><tr><th>Item</th><th class="num">On hand</th><th class="num">Used / day</th><th class="num">Days of cover</th><th class="num">Suggest order</th><th class="num">Est. cost</th></tr></thead>
           <tbody>${rows.map(r=>{
             const sg = suggest(r), cost = S().lineAmount(sg, r.price);
             const cover = r.cover==null ? '<span class="faint">needs 2 counts</span>'
               : `<b style="color:${r.short?'var(--red)':'inherit'}">${r.cover.toFixed(1)}</b>`;
-            return `<tr><td><b>${U.esc(r.name)}</b> ${r.low?'<span class="pill warn">Low</span>':''}<div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${r.usageSamples?`from ${r.usageSamples} count interval${r.usageSamples===1?'':'s'}`:'no usage data yet'}</div></td>
+            return `<tr class="clickable" data-why="${r.id}"><td><b>${U.esc(r.name)}</b> ${r.low?'<span class="pill warn">Low</span>':''}<div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${r.usageSamples?`measured across ${r.usageSamples} stretch${r.usageSamples===1?'':'es'} between counts`:'no usage data yet'}</div></td>
               <td class="num">${r.qty} <small class="faint">${U.esc(r.unit||'')}</small></td>
               <td class="num">${r.daily?r.daily.toFixed(2):'—'}</td>
               <td class="num">${cover}</td>
@@ -365,11 +765,38 @@ window.MKR = window.MKR || {};
               <td class="num">${sg?U.money(cost):'—'}</td></tr>`;
           }).join('')}</tbody></table></div>`
           :`<div class="empty" style="padding:18px"><div class="em">📈</div><p>No stock items yet</p></div>`}
+        <div class="kv-hint" style="text-align:left;margin-top:12px">Suggested order = enough to cover the delivery lead time plus a week, less what's already on the shelf. With no usage history yet it falls back to twice your reorder point.</div>
       </div>
-      <div class="card pad20 mt16"><div class="section-title">✨ What the assistant says</div><div id="fcAi"><p class="muted" style="font-size:13.5px">Tap <b>Ask AI</b> for a plain-English read on what to order and what's creeping up in price.</p></div></div>`;
+      <div class="card pad20 mt16"><div class="section-title">✨ What the assistant says</div><div id="fcAi"><p class="muted" style="font-size:13.5px">Tap Ask AI for a plain-English read on what to order and what's creeping up in price.</p></div></div>`;
+
+    U.qsa('[data-why]',c).forEach(tr=> tr.onclick = async()=>{
+      const r = rows.find(x=>x.id===tr.dataset.why);
+      const iv = await S().usageIntervals(r.id, takes, purch, wst);
+      const good = iv.filter(x=>!x.skip);
+      const used = good.reduce((t,x)=>t+x.used,0), dys = good.reduce((t,x)=>t+x.days,0);
+      const binned = good.reduce((t,x)=>t+x.wasted,0);
+      U.modal(`How ${r.name} was worked out`, `
+        ${iv.length ? `<div class="tablewrap"><table class="dtable">
+          <thead><tr><th>Between two counts</th><th class="num">Counted</th><th class="num">Bought</th><th class="num">Counted</th><th class="num">Used</th><th class="num">Per day</th></tr></thead>
+          <tbody>${iv.map(x=>`<tr${x.skip?' style="opacity:.55"':''}>
+            <td><b>${U.fmtDate(x.fromTs)} → ${U.fmtDate(x.toTs)}</b><div class="faint" style="font-size:11.5px">${x.days} days · ${x.deliveries} ${x.deliveries===1?'delivery':'deliveries'}${x.skip?` · <span class="pw-worse">skipped: ${U.esc(x.skip)}</span>`:''}</div></td>
+            <td class="num">${x.before}</td><td class="num">+ ${x.bought}</td><td class="num">− ${x.now}</td>
+            <td class="num"><b>${x.used}</b>${x.wasted>0?`<div class="faint" style="font-size:11.5px"><span class="pw-worse">${x.wasted} binned</span></div>`:''}</td>
+            <td class="num">${x.skip?'—':x.daily}</td></tr>`).join('')}</tbody>
+          ${good.length?`<tfoot><tr><td class="num"><b>Averaged</b></td><td colspan="3" class="num faint">${dys.toFixed(1)} days counted</td>
+            <td class="num"><b>${U.round2(used)}</b>${binned>0?`<div class="faint" style="font-size:11.5px"><span class="pw-worse">${U.round2(binned)} binned</span></div>`:''}</td><td class="num"><b>${r.daily.toFixed(2)}</b></td></tr></tfoot>`:''}
+        </table></div>
+        ${binned>0?`<div class="disclaimer mt12"><span>🗑</span><div>
+          <b>${U.round2(binned)} ${U.esc(r.unit||'')} · ${U.money(S().lineAmount(binned, r.price))}</b>
+          <div>went in the bin rather than into a dish. The daily rate above deliberately still counts it — you have to buy it either way.</div>
+        </div></div>`:''}
+        ${good.length?`<div class="disclaimer mt12"><span>📏</span>${r.qty} ${U.esc(r.unit||'')} on the shelf ÷ ${r.daily.toFixed(2)} a day = <b>${r.cover!=null?r.cover.toFixed(1):'—'} days of cover</b>. Order lead time is ${r.leadTimeDays||2} day${(r.leadTimeDays||2)===1?'':'s'}, so the suggestion is ${suggest(r)} ${U.esc(r.unit||'')}.</div>`
+          :`<div class="alert amber mt12"><span>⚠️</span><div>Every interval had to be skipped, so there's no usable rate yet. The reasons are listed above.</div></div>`}`
+        : `<div class="empty"><div class="em">📋</div><p>${r.name} has been counted ${takes.filter(t=>(t.lines||[]).some(l=>l.itemId===r.id)).length} time(s). Two counts of the same item is the minimum — count it again next week and the rate appears here.</p></div>`}`);
+    });
 
     U.qs('#fcList',actions).onclick = ()=>{
-      const list = rows.map(r=>({r, q:suggest(r)})).filter(x=>x.q>0);
+      const list = rows.map(r=>({r, q:suggestQty(r)})).filter(x=>x.q>0);
       if(!list.length){ U.toast('Nothing needs ordering','green'); return; }
       U.modal('Order list', `<div class="list">${list.map(({r,q})=>`
         <div class="li"><div class="ds-li-ic">${S().KIND[r.kind].em}</div>

@@ -50,9 +50,24 @@ window.MKR = window.MKR || {};
   ];
 
   S.SUPPLIERS = [
-    {id:'sup_veg',  name:'Vic Fresh Produce', contact:'Tony',   phone:'0412 000 111', email:'orders@vicfresh.au',   note:'Delivers Tue & Fri before 9am'},
-    {id:'sup_meat', name:'Southbank Meats',   contact:'Dana',   phone:'0413 222 333', email:'sales@sbmeats.au',     note:'Order by 3pm for next-day'},
-    {id:'sup_dry',  name:'Asia Wholesale',    contact:'Mr Lim', phone:'0455 444 555', email:'lim@asiawholesale.au', note:'Chopsticks, containers, dry goods — cheapest in bulk'},
+    {id:'sup_veg',  name:'Vic Fresh Produce', contact:'Tony',   phone:'0412 000 111', email:'orders@vicfresh.au',
+     website:'https://vicfreshproduce.com.au', address:'Unit 4, 120 Footscray Rd, West Melbourne VIC',
+     abn:'54 221 990 118', account:'MYK-0412', deliveryDays:[2,5], cutoff:'18:00', minOrder:80, terms:'7 days',
+     note:'Delivers Tue & Fri before 9am'},
+    {id:'sup_meat', name:'Southbank Meats',   contact:'Dana',   phone:'0413 222 333', email:'sales@sbmeats.au',
+     website:'https://southbankmeats.com.au', address:'7 Gordon St, South Melbourne VIC',
+     abn:'19 604 337 002', account:'SBM-1188', deliveryDays:[1,4], cutoff:'15:00', minOrder:150, terms:'14 days',
+     note:'Order by 3pm for next-day'},
+    {id:'sup_dry',  name:'Asia Wholesale',    contact:'Mr Lim', phone:'0455 444 555', email:'lim@asiawholesale.au',
+     website:'https://asiawholesale.com.au', address:'23 Hallam Rd, Springvale VIC',
+     abn:'77 118 245 630', account:'AW-3390', deliveryDays:[3], cutoff:'12:00', minOrder:200, terms:'30 days',
+     note:'Chopsticks, containers, dry goods — cheapest in bulk'},
+    // The Saturday market run — cash, no account, but sometimes much cheaper.
+    // It exists so the price page can answer "could I have paid less?".
+    {id:'sup_mkt',  name:'Queen Vic Market run', contact:'—',  phone:'', email:'',
+     website:'https://qvm.com.au', address:'Queen Victoria Market, Melbourne VIC',
+     abn:'', account:'', deliveryDays:[6], cutoff:'', minOrder:0, terms:'Cash on the day',
+     note:'Saturday morning run — cash, pick it up yourself'},
   ];
 
   // Raw materials plus the tools that quietly run out. Two kinds: perishable
@@ -68,6 +83,173 @@ window.MKR = window.MKR || {};
     {id:'itm_box',    name:'Takeaway containers', kind:'durable', unit:'pcs', qty:320, safety:150, price:0.22,  leadTimeDays:5, supplierId:'sup_dry'},
     {id:'itm_glove',  name:'Food-prep gloves',    kind:'durable', unit:'box', qty:4,   safety:3,   price:9.90,  leadTimeDays:3, supplierId:'sup_dry'},
   ];
+
+  /* ---------- six weeks of trading, simulated once ----------
+     A brand-new venue with no purchases and no counts can't show a receipt, a
+     price trend or a usage forecast — every one of those pages is derived from
+     history. So the demo venue gets a believable six weeks of it: deliveries on
+     the days each supplier actually runs, a Monday count every week, and prices
+     that move the way produce prices really move (tomatoes spiking this week,
+     oil easing off).
+
+     Everything is generated from one simulation so the numbers agree with each
+     other: what you counted, plus what the dockets say you bought, minus what
+     you counted next time IS the usage the forecast reports. Nothing is typed
+     in twice, so nothing can contradict.                                       */
+  const DAYMS = 864e5;
+
+  // What each item costs per week, newest week first (index 0 = the last 7 days).
+  const PRICES = {
+    itm_beef:  [19.60, 18.90, 18.90, 18.60, 18.40, 18.40, 18.20],
+    itm_chick: [11.50, 11.50, 11.20, 11.20, 11.00, 11.00, 11.00],
+    itm_tom:   [ 7.20,  6.10,  5.90,  5.80,  5.60,  5.50,  5.50],   // a wet fortnight up north
+    itm_herb:  [ 2.90,  2.55,  2.50,  2.40,  2.40,  2.35,  2.35],
+    itm_noodle:[ 4.20,  4.20,  4.05,  4.05,  4.05,  3.95,  3.95],
+    itm_oil:   [ 3.35,  3.60,  3.60,  3.55,  3.55,  3.50,  3.50],   // came back down
+    itm_chop:  [0.035, 0.035, 0.033, 0.033, 0.033, 0.033, 0.033],
+    itm_box:   [ 0.24,  0.22,  0.22,  0.22,  0.21,  0.21,  0.21],
+    itm_glove: [ 9.90,  9.90,  9.50,  9.50,  9.50,  9.20,  9.20],
+  };
+  // Who delivers what, on which weekday (0=Sun), how much lands each time, and
+  // roughly how much the kitchen gets through in a day. `every` is in weeks.
+  const PLAN = {
+    itm_beef:  {sup:'sup_meat', days:[1,4],           qty:12,   use:3.4},
+    itm_chick: {sup:'sup_meat', days:[1,4],           qty:10,   use:2.9},
+    itm_tom:   {sup:'sup_veg',  days:[2,5],           qty:9,    use:2.5},
+    itm_herb:  {sup:'sup_veg',  days:[2,5],           qty:7,    use:2.0},
+    itm_noodle:{sup:'sup_dry',  days:[3], every:2,    qty:26,   use:1.8},
+    itm_oil:   {sup:'sup_dry',  days:[3], every:2,    qty:20,   use:1.4},
+    itm_glove: {sup:'sup_dry',  days:[3], every:2,    qty:4,    use:0.28},
+    itm_chop:  {sup:'sup_dry',  days:[3], every:4,    qty:3000, use:95},
+    itm_box:   {sup:'sup_dry',  days:[3], every:4,    qty:1500, use:48},
+  };
+  // The one-off cash run, three weeks back — cheaper than the usual supplier,
+  // which is exactly the comparison the price page is there to make.
+  const MARKET_RUN = {weeks:3, dow:6, sup:'sup_mkt',
+    lines:[{id:'itm_tom', qty:8, price:4.90}, {id:'itm_herb', qty:6, price:2.10}]};
+
+  const INVOICE = {sup_veg:'VF-', sup_meat:'SBM-', sup_dry:'AW-', sup_mkt:'CASH-'};
+  const PAID    = {sup_veg:'Bank transfer', sup_meat:'Account · 14 days', sup_dry:'Bank transfer', sup_mkt:'Cash'};
+  // GST only where a docket really carries it: basic food is GST-free in
+  // Australia, packaging and consumables are not. This records what the docket
+  // says — the app still does no tax work of its own.
+  const GSTABLE = {itm_chop:1, itm_box:1, itm_glove:1, itm_oil:1};
+
+  // Deterministic wobble so quantities and counts don't come out suspiciously
+  // even, while the same device always rebuilds the same history.
+  function wobble(n){ const x = Math.sin(n*12.9898)*43758.5453; return x - Math.floor(x); }
+  const r2 = (n)=> Math.round(n*100)/100;
+
+  S.buildHistory = function(){
+    const end = new Date(); end.setHours(8,30,0,0);
+    const purchases = [], stocktakes = [], deliveries = [], priceHistory = {}, level = {}, seq = {};
+    // Opening shelf: enough of each thing to reach its first delivery, so the
+    // simulation doesn't start by running the venue out of chopsticks.
+    Object.keys(PLAN).forEach(id=>{
+      const p = PLAN[id];
+      level[id] = r2(Math.max(p.use*4, p.qty*0.6));
+      priceHistory[id] = [];
+    });
+
+    const priceAt = (id, wk)=> (PRICES[id]||[])[Math.min(wk, (PRICES[id]||[]).length-1)] || 0;
+    // Same rule as MKR.stock's own price log: only record an actual change.
+    function logPrice(id, price, ts, supplierId, note){
+      const h = priceHistory[id], last = h[h.length-1];
+      if(!last || r2(last.price)!==r2(price)) h.push({ts, price:r2(price), supplierId, note});
+    }
+
+    for(let ago=41; ago>=0; ago--){
+      const ts = end.getTime() - ago*DAYMS;
+      const day = new Date(ts), dow = day.getDay(), wk = Math.floor(ago/7);
+
+      // Monday morning count, before the day's delivery lands. The counted
+      // figure runs a touch under the book figure — trim, spillage, the odd
+      // portion nobody wrote down. That gap is real and the forecast should see it.
+      if(dow===1 && ago<35){
+        const lines = Object.keys(PLAN).map(id=>{
+          const counted = r2(Math.max(0, level[id] * (1 - wobble(ago+id.length)*0.04)));
+          const expected = r2(level[id]);
+          return {itemId:id, name:(S.INVENTORY.find(i=>i.id===id)||{}).name||'', counted, expected, diff:r2(counted-expected)};
+        });
+        lines.forEach(l=>{ level[l.itemId] = l.counted; });
+        stocktakes.push({id:'stk_seed_'+ago, ts: ts - 30*60e3, by:'Maria Lopez',
+          note:'Monday morning count', lines, kitchenId:'k_main'});
+      }
+
+      // Deliveries, grouped into one docket per supplier per day — which is how
+      // they arrive and how they get paid.
+      const bySup = {};
+      Object.entries(PLAN).forEach(([id, p])=>{
+        if(!p.days.includes(dow)) return;
+        if(p.every && (wk % p.every)!==0) return;
+        const qty = r2(p.qty * (0.9 + wobble(ago*7+id.length)*0.2));
+        (bySup[p.sup] = bySup[p.sup] || []).push({id, qty, price:priceAt(id, wk)});
+      });
+      if(wk===MARKET_RUN.weeks && dow===MARKET_RUN.dow)
+        bySup[MARKET_RUN.sup] = MARKET_RUN.lines.map(l=>({...l}));
+
+      Object.entries(bySup).forEach(([supId, ls])=>{
+        const lines = ls.map(l=>{
+          const it = S.INVENTORY.find(i=>i.id===l.id) || {};
+          level[l.id] = r2((level[l.id]||0) + l.qty);
+          logPrice(l.id, l.price, ts, supId, 'delivery');
+          return {itemId:l.id, name:it.name||'', unit:it.unit||'', qty:l.qty,
+                  unitPrice:r2(l.price), amount:r2(l.qty*l.price)};
+        });
+        const sub = r2(lines.reduce((t,l)=>t+l.amount, 0));
+        const gst = r2(lines.filter(l=>GSTABLE[l.itemId]).reduce((t,l)=>t+l.amount, 0) * 0.1);
+        const fee = supId==='sup_dry' ? 15 : 0;
+        seq[supId] = (seq[supId]||0) + 1;
+        const pid = 'pur_seed_'+ago+'_'+supId, did = 'dlv_seed_'+ago+'_'+supId;
+        const who = dow===1 || dow===4 ? 'Maria Lopez' : 'James Carter';
+        const invoiceNo = INVOICE[supId] + (supId==='sup_mkt' ? day.getDate() : (1000 + seq[supId]));
+
+        // Goods only ever enter through the back door, so every docket in the
+        // history has the delivery it was checked in on. Two of them came up
+        // short — that happens, and the app should look like it happens.
+        const shortOne = (ago===9 || ago===23) && lines.length>1;
+        purchases.push({
+          id:pid, ts, supplierId:supId, invoiceNo, payMethod: PAID[supId], fee, gst, sub,
+          total: r2(sub+gst+fee),
+          note: supId==='sup_mkt' ? 'Saturday market run — paid cash' : '',
+          by: who, deliveryId: did,
+          lines: lines.map((l,i)=>({...l, ordered: shortOne && i===1 ? r2(l.qty*1.25) : l.qty,
+                                    condition: shortOne && i===1 ? 'short' : 'ok'})),
+          kitchenId:'k_main',
+        });
+        deliveries.push({
+          id:did, ts: ts - 20*60e3, status:'confirmed', supplierId:supId,
+          supplierName:(S.SUPPLIERS.find(s=>s.id===supId)||{}).name||'',
+          docketNo:invoiceNo, payMethod:PAID[supId], fee, gst,
+          receivedBy:who, confirmedAt:ts, purchaseId:pid,
+          // A chilled delivery gets a probe reading; the dry run doesn't.
+          tempC: supId==='sup_meat' ? 2.5 : (supId==='sup_veg' ? 4 : null),
+          note: shortOne ? 'One line short — driver said it would come Friday' : '',
+          lines: lines.map((l,i)=>({itemId:l.itemId, name:l.name, unit:l.unit,
+            ordered: shortOne && i===1 ? r2(l.qty*1.25) : l.qty, received:l.qty,
+            unitPrice:l.unitPrice, condition: shortOne && i===1 ? 'short' : 'ok', note:''})),
+          kitchenId:'k_main',
+        });
+      });
+
+      // What the kitchen got through that day. Friday and Saturday are heavier.
+      const busy = (dow===5 || dow===6) ? 1.35 : 1;
+      Object.entries(PLAN).forEach(([id, p])=>{
+        const used = p.use * busy * (0.75 + wobble(ago*3+id.length*2)*0.5);
+        level[id] = r2(Math.max(0, (level[id]||0) - used));
+      });
+    }
+
+    // Opening price, so the first delivery reads as a change rather than as the
+    // beginning of time.
+    Object.keys(priceHistory).forEach(id=>{
+      const first = priceHistory[id][0];
+      if(first) priceHistory[id].unshift({ts: end.getTime()-45*DAYMS, price: r2(priceAt(id,6)*0.98), note:'opening price'});
+    });
+
+    const lastCount = stocktakes.length ? stocktakes[stocktakes.length-1].ts : null;
+    return {purchases, stocktakes, deliveries, priceHistory, level, lastCount};
+  };
 
   S.SOPS = [
     {id:'sop_fridge', title:'Fridge temperature check', category:'Food safety', version:1,
@@ -100,16 +282,49 @@ window.MKR = window.MKR || {};
     {id:'s10',staffId:'u_leo',   day:5, start:'12:00', end:'22:00', slot:'pm'},
   ];
 
+  /* A device seeded before the history existed has the demo shelf but no
+     dockets and no counts, so every derived page reads empty. Fill it in once —
+     and only for the demo venue: the guard is the demo item ids plus an empty
+     purchases table, neither of which can be true of a real kitchen. */
+  async function backfillHistory(){
+    if(await MKR.db.meta('seededHistory')) return;
+    const inv = await MKR.db.getAll('inventory');
+    const isDemo = inv.some(i=>i.id==='itm_beef') && inv.some(i=>i.id==='itm_chop');
+    const purch = await MKR.db.getAll('purchases');
+    if(!isDemo || purch.length){ await MKR.db.meta('seededHistory', true); return; }
+    const hist = S.buildHistory();
+    for(const s of S.SUPPLIERS) await MKR.db.put('suppliers', {...s, kitchenId:'k_main'});
+    for(const p of hist.purchases)  await MKR.db.put('purchases', p);
+    for(const t of hist.stocktakes) await MKR.db.put('stocktakes', t);
+    for(const v of hist.deliveries) await MKR.db.put('deliveries', v);
+    for(const x of S.INVENTORY){
+      const h = hist.priceHistory[x.id]||[];
+      await MKR.db.put('inventory', {id:x.id,
+        qty: hist.level[x.id] != null ? hist.level[x.id] : x.qty,
+        price: h.length ? h[h.length-1].price : x.price,
+        priceHistory: h.length ? h : undefined, lastCountAt: hist.lastCount});
+    }
+    await MKR.db.meta('seededHistory', true);
+  }
+
   S.ensure = async function(){
     const seeded = await MKR.db.meta('seeded');
-    if(seeded) return;                              // a device already seeded the cloud → skip
+    if(seeded) return await backfillHistory();      // already seeded → only top up what's missing
     const wk = thisWeek();
+    const hist = S.buildHistory();
     for(const k of S.KITCHENS) await MKR.db.put('kitchens', {...k});
     for(const u of S.USERS) await MKR.db.put('users', {...u, kitchenId:'k_main'});
     for(const s of S.SHIFTS) await MKR.db.put('shifts', {...s, week:wk});
     for(const x of S.SUPPLIERS) await MKR.db.put('suppliers', {...x, kitchenId:'k_main'});
-    for(const x of S.INVENTORY) await MKR.db.put('inventory',
-      {...x, priceHistory:[{ts:Date.now()-14*864e5, price:x.price, note:'opening price'}], kitchenId:'k_main'});
+    for(const x of S.INVENTORY) await MKR.db.put('inventory', {...x,
+      qty: hist.level[x.id] != null ? hist.level[x.id] : x.qty,
+      price: (hist.priceHistory[x.id]||[]).length ? hist.priceHistory[x.id].slice(-1)[0].price : x.price,
+      priceHistory: (hist.priceHistory[x.id]||[]).length ? hist.priceHistory[x.id]
+                    : [{ts:Date.now()-14*864e5, price:x.price, note:'opening price'}],
+      lastCountAt: hist.lastCount, kitchenId:'k_main'});
+    for(const p of hist.purchases)  await MKR.db.put('purchases', p);
+    for(const t of hist.stocktakes) await MKR.db.put('stocktakes', t);
+    for(const v of hist.deliveries) await MKR.db.put('deliveries', v);
     for(const x of S.SOPS) await MKR.db.put('sops', {...x, updatedAt:Date.now(), kitchenId:'k_main'});
     await MKR.db.meta('settings', S.SETTINGS);
     await MKR.db.meta('brand', {name:S.SETTINGS.shopName, avatar:null});
@@ -119,6 +334,7 @@ window.MKR = window.MKR || {};
     // One sample audit entry
     await MKR.db.put('audit', {id:'a0', ts:Date.now()-3600e3, action:'stock.count', desc:'Opening stocktake', actor:'Maria Lopez', actorRole:'manager', frozen:true});
     await MKR.db.meta('seeded', true);
+    await MKR.db.meta('seededHistory', true);
   };
 
   // One-tap reset (debug)

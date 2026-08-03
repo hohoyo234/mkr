@@ -33,8 +33,10 @@ a matching row in `profiles`.
 
 | Area | What it covers |
 |---|---|
+| **The restaurant floor** | The owner's home screen. Six rooms — cold room, back door, kitchen, staff area, training room, office — each with a live badge counting what's waiting in it, and each linking to the page that does the work. Counts come from the same modules the list dashboard reads. `☰ List` switches back to the old list, and the choice sticks. There is no front-of-house/takings room on purpose: no till, nothing honest to show. |
 | **AI rostering** | Asks the owner a preference questionnaire first, then plans from staff availability, skills and how many people were actually rostered in past weeks. Warnings only — never blocks. |
 | **Stock & costs** | Ingredients and non-perishable tools. Quantity, unit price, amount, total value, and a price history per item with ▲▼ movement. |
+| **Shelf view** | The default way the Stock tab draws that data: a cold room and a dry store with every item standing on a shelf, where how full the jar is *is* the quantity. Tap a jar to count it or drop it in the basket; the basket groups itself by supplier and becomes the order. `☰ List` switches back to the table, and the choice sticks. |
 | **Suppliers & purchases** | Who you buy from, who you actually ring, and every invoice. |
 | **Usage forecasting** | Derived from stocktakes, not sales: `last count + purchases since − this count`. Days of cover and a suggested order list. |
 | **Deliveries** | Back-door confirmation form: ordered vs received, condition, chilled temperature, photo, signature. |
@@ -72,6 +74,8 @@ js/
   auth.js features.js          sessions & roles; module on/off switches
   roster.js roster-view.js     rostering engine + page
   stock.js stock-view.js       stock/cost model + page
+  stock-game.js                shelf view — the same stock data drawn as the room
+  game-map.js                  the restaurant floor — the owner's home screen
   deliveries.js training.js    delivery confirmation; SOPs & training
   partners.js                  optional lawyer / VEVO referrals
   assistant.js                 in-app AI assistant
