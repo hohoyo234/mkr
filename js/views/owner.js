@@ -339,6 +339,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             </div>
           </div>
         </div>
+        <div class="section-title" style="margin-top:18px">🎨 Brand colour</div>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">Taken from your logo, then darkened if it has to be so the text on top can still be read. Change any of it by hand — you know your brand better than a colour histogram does.</p>
+        <div id="brandBox"></div>
       </div>`:''}
       <div class="card" style="padding:14px 18px;margin-bottom:16px"><div class="li" style="border:none;padding:0">
         <div class="meta"><b>System language</b><span>English / 简体中文</span></div>
@@ -451,8 +454,73 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const prev=U.qs('#rLogoPrev',c);
       // No size gate any more: the reader shrinks it, so a straight-off-the-phone
       // photo is accepted instead of bounced back at the owner.
-      U.qs('#rLogoFile',c).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{ rLogo=data; prev.innerHTML=`<img src="${rLogo}">`; });
+      U.qs('#rLogoFile',c).onchange=(e)=> U.readImage(e.target.files[0], async (data)=>{
+        rLogo=data; prev.innerHTML=`<img src="${rLogo}">`;
+        // Offer the colour straight away rather than after a save: the owner is
+        // looking at the logo right now, which is the only moment the question
+        // "should the app look like this?" makes any sense.
+        const b = await MKR.brand.fromLogo(data);
+        if(b){ brand = b; MKR.brand.apply(brand); drawBrand(); U.toast('Picked up the colour from your logo','green'); }
+      });
       U.qs('#rClear',c).onclick=()=>{ rLogo=null; prev.innerHTML='<span>📷 Tap to upload</span>'; };
+
+      // ---- Brand colour ----
+      // Kept in a local so the swatches, the preview and the app itself always
+      // show the same thing; only Save writes it to the venue.
+      let brand = kitchen.brand && kitchen.brand.accent ? {...kitchen.brand} : {...MKR.brand.DEFAULTS};
+      const box = U.qs('#brandBox',c);
+      function drawBrand(){
+        const ratio = (a,b)=> MKR.brand.contrast(a,b).toFixed(1);
+        const swatch = (key,label,hint)=>`<label class="li" style="gap:12px">
+            <input type="color" value="${brand[key]}" data-brand="${key}"
+              style="width:44px;height:34px;border:1px solid var(--line);border-radius:9px;background:none;padding:2px;cursor:pointer">
+            <div class="meta"><b>${label}</b><span class="faint">${hint}</span></div>
+            <code style="font-size:12px">${brand[key]}</code></label>`;
+        box.innerHTML = `
+          <div class="list">
+            ${swatch('accent','Main colour','buttons, links, the active menu item')}
+            ${swatch('accentSoft','Soft background','avatars and chips sit on this')}
+            ${swatch('accentInk','Text on the soft background','')}
+          </div>
+          <div class="row gap8 wrap mt12">
+            <button class="btn btn-accent btn-sm" type="button">Preview button</button>
+            <span class="pill ok">unchanged</span>
+            <span class="tag" style="align-self:center">TAG TEXT</span>
+          </div>
+          <div class="disclaimer mt12"><span>${MKR.brand.contrast(brand.accent,'#FFFFFF')>=4.5 && MKR.brand.contrast(brand.accent,MKR.brand.PAPER)>=4.5 ? '✅' : '⚠️'}</span><div>
+            White text on the main colour: <b>${ratio(brand.accent,'#FFFFFF')}:1</b> · the same colour as text on the page: <b>${ratio(brand.accent,MKR.brand.PAPER)}:1</b>.
+            ${MKR.brand.contrast(brand.accent,'#FFFFFF')>=4.5 && MKR.brand.contrast(brand.accent,MKR.brand.PAPER)>=4.5
+              ? 'Both clear the 4.5:1 readability standard.'
+              : 'Below the 4.5:1 standard — readable for you, hard work for someone else. Darken it a little.'}
+          </div></div>
+          <div class="row gap8 wrap mt12">
+            <button class="btn btn-dark btn-sm" id="brSave">Save colour</button>
+            <button class="btn btn-ghost btn-sm" id="brLogo" ${rLogo?'':'disabled'}>Re-read from logo</button>
+            <button class="btn btn-ghost btn-sm" id="brReset">Back to default</button>
+          </div>`;
+        U.qsa('[data-brand]',box).forEach(inp=> inp.oninput = ()=>{
+          brand[inp.dataset.brand] = inp.value.toUpperCase();
+          MKR.brand.apply(brand); drawBrand();
+        });
+        U.qs('#brSave',box).onclick = async()=>{
+          await MKR.brand.save(brand);
+          await MKR.audit.log({action:'settings.update', desc:'Updated brand colour'});
+          U.toast('Brand colour saved','green'); MKR.router.refresh();
+        };
+        const bl = U.qs('#brLogo',box);
+        if(bl) bl.onclick = async()=>{
+          const b = await MKR.brand.fromLogo(rLogo);
+          if(!b){ U.toast('No strong colour in that logo — pick one by hand','amber'); return; }
+          brand = b; MKR.brand.apply(brand); drawBrand();
+          U.toast(b.adjusted ? 'Darkened so the text on it stays readable' : 'Taken straight from your logo','green');
+        };
+        U.qs('#brReset',box).onclick = async()=>{
+          brand = {...MKR.brand.DEFAULTS};
+          await MKR.brand.save(null); MKR.brand.apply(brand); drawBrand();
+          U.toast('Back to the default colour','amber'); MKR.router.refresh();
+        };
+      }
+      drawBrand();
       U.qs('#rSave',c).onclick=async()=>{
         const name=U.qs('#rName',c).value.trim()||kitchen.name;
         await MKR.db.put('kitchens',{id:kitchen.id, name, logo:rLogo});

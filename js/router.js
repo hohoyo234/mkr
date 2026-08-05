@@ -9,6 +9,8 @@ window.MKR = window.MKR || {};
     return { role: role||'', section: section||'', arg: arg||'' };
   }
 
+  let _brandFor = null;   // kitchenId whose brand is currently applied
+
   async function render(){
     const root = document.getElementById('root');
     let { role, section, arg } = parse();
@@ -25,6 +27,15 @@ window.MKR = window.MKR || {};
       if(role!=='login' && sess){ /* keep */ } else { return MKR.portals.login.render(root); }
     }
     if(!sess){ return MKR.portals.login.render(root); }
+
+    // The venue's colour, applied once per venue rather than per navigation.
+    // app.js only loads it for a RESTORED session, which misses both a fresh
+    // sign-in and preview mode — so the app painted in the default orange for
+    // exactly the people seeing it for the first time.
+    if(_brandFor !== sess.kitchenId){
+      _brandFor = sess.kitchenId;
+      try{ await MKR.brand.load(); }catch(e){}
+    }
 
     // Role guard: non-owners must stay in their own portal; the owner (super admin) can view any portal
     const viewingRole = role || sess.role;

@@ -9,6 +9,9 @@
     await MKR.db.initSync();          // signed in → pull from cloud (authed) + subscribe to realtime
     try{ await MKR.seed.ensure(); }catch(e){}
     try{ await MKR.features.load(); }catch(e){}   // load feature switches / permissions
+    // Applied before the first render, so the app never paints in the default
+    // orange and then snaps to the venue's colour a beat later.
+    try{ await MKR.brand.load(); }catch(e){}
     MKR.notify.start(sess.role);      // notifications / shift nudges
   }
 
