@@ -7,10 +7,16 @@ window.MKR = window.MKR || {};
   const URL  = 'https://gopluilwaltawempixeg.supabase.co';
   const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvcGx1aWx3YWx0YXdlbXBpeGVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzODEwMzAsImV4cCI6MjA5Njk1NzAzMH0.hTH-YuxWjPKmJukq4hBo4NySMuxsRV7yWs86y6DhsqI';
 
+  // Every table the app writes has to be on this list. A table that is missing
+  // still works — it just never leaves the device, which is the worst possible
+  // failure: the owner records a week of waste on their phone, the manager's
+  // laptop shows none of it, and nobody finds out until someone reinstalls.
+  // If you add a db.put('newtable', …) anywhere, add it here in the same commit.
   const TABLES = ['kitchens','users','shifts','tasks','swaps','sos','alerts','clockins','onboarding','audit',
                   'customer_feedback','reservations','waitlist','verifications',
                   // Stock & supply chain
                   'inventory','suppliers','purchases','stocktakes','deliveries',
+                  'claims','waste','reconciliations',
                   // Training / SOP
                   'sops','trainings'];
 

@@ -63,7 +63,23 @@ window.MKR = window.MKR || {};
   }
 
   // ---------- cloud push ----------
+  // A table the app writes but that is missing from supa.TABLES is the quietest
+  // bug in the system: pull() and the realtime subscription both iterate that
+  // list, so the rows go up and never come back down — and if the Supabase table
+  // doesn't exist either, every write fails into the outbox and retries forever.
+  // Nothing visibly breaks, which is why `claims` and `waste` stayed local-only.
+  // Say it out loud, once per table, rather than waiting for a reinstall.
+  const _warned = new Set();
+  function warnUnsynced(t){
+    if(_warned.has(t) || !sb()) return;
+    const known = (MKR.supa && MKR.supa.TABLES) || [];
+    if(known.length && !known.includes(t)){
+      _warned.add(t);
+      console.warn(`[mkr.db] "${t}" is written but not in MKR.supa.TABLES — it will never sync back down. Add it there and create the table in supabase/.`);
+    }
+  }
   async function pushUpsert(t,obj){
+    warnUnsynced(t);
     if(sb() && navigator.onLine){
       const {error}=await sb().from(t).upsert({id:obj.id,data:obj,updated_at:new Date().toISOString()});
       if(error){ await outAdd({type:'upsert',t,obj}); }

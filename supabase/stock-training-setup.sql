@@ -5,6 +5,8 @@
 --   purchases   every invoice: what, from whom, at what unit price
 --   stocktakes  what you physically counted (the only source of usage data)
 --   deliveries  the back-door confirmation form
+--   claims      money owed back on a short or damaged delivery
+--   waste       what got binned, so usage stays honest
 --   sops        the venue's written procedures
 --   trainings   one SOP assigned to one person, with a sign-off
 --
@@ -18,7 +20,7 @@
 do $$
 declare t text;
 begin
-  foreach t in array array['suppliers','purchases','stocktakes','deliveries','sops','trainings']
+  foreach t in array array['suppliers','purchases','stocktakes','deliveries','claims','waste','sops','trainings']
   loop
     execute format('create table if not exists public.%I(
       id text primary key, data jsonb, updated_at timestamptz default now())', t);
@@ -41,17 +43,23 @@ begin
   end loop;
 end $$;
 
--- Handy indexes for the two tables that get scanned by time.
+-- Handy indexes for the tables that get scanned by time.
 create index if not exists purchases_ts_idx  on public.purchases  ((data->>'ts'));
 create index if not exists stocktakes_ts_idx on public.stocktakes ((data->>'ts'));
+create index if not exists waste_ts_idx      on public.waste      ((data->>'ts'));
+create index if not exists claims_ts_idx     on public.claims     ((data->>'ts'));
 
 -- ------------------------------------------------------------
 -- Tables retired with the POS / payroll / customer removal. They are NOT dropped
 -- here: dropping is irreversible and you may want the history. Uncomment only if
 -- you are certain you want that data gone for good.
+--
+-- `reconciliations` used to be on this list and must NOT go back on it. The name
+-- was reused: it no longer holds the old till reconciliation, it holds supplier
+-- statement checks, which js/stock.js reads and writes today. Uncommenting a
+-- drop for it would delete live data.
 -- ------------------------------------------------------------
 -- drop table if exists public.menu cascade;
 -- drop table if exists public.orders cascade;
--- drop table if exists public.reconciliations cascade;
 -- drop table if exists public.members cascade;
 -- drop table if exists public.coupons cascade;

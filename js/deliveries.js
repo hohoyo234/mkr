@@ -292,7 +292,8 @@ window.MKR = window.MKR || {};
       ${hasPerishable?`<div class="field"><label>Chilled/frozen temperature on arrival (°C)</label><input class="input" id="d_temp" type="number" step="0.1" placeholder="e.g. 3.5"></div>`:''}
       <div class="field"><label>Received by</label><input class="input" id="d_by" value="${U.esc(me())}"></div>
       <div class="field"><label>Note (optional)</label><input class="input" id="d_note" placeholder="e.g. 2 boxes short, driver to redeliver Friday"></div>
-      <label class="img-drop"><div class="img-preview" id="d_prev"><span>📷 Photo of the docket or the problem (optional)</span></div><input type="file" id="d_photo" accept="image/*" hidden></label>
+      <label class="img-drop" id="d_drop"><div class="img-preview" id="d_prev"><span id="d_photoLabel">📷 Photo of the docket or the problem</span></div><input type="file" id="d_photo" accept="image/*" hidden></label>
+      <div class="disclaimer" id="d_photoWhy" hidden><span>📸</span>A short or damaged line needs the photo. Suppliers refuse claims they can't see, and by the time anyone chases it the crate has been thrown out.</div>
       <div class="disclaimer mt12"><span>🧾</span>Signing here files the docket as well: received quantities go into stock at the prices above, and the whole thing lands in Purchases. You never type it twice.</div>
     </div>`);
     let photo=null;
@@ -358,7 +359,27 @@ window.MKR = window.MKR || {};
     ['#d_fee','#d_gst'].forEach(sel=> U.qs(sel,wrap).oninput = recalc);
     recalc();
     U.qs('#d_photo',wrap).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{
-      photo=data; U.qs('#d_prev',wrap).innerHTML=`<img src="${photo}">`; });
+      photo=data; U.qs('#d_prev',wrap).innerHTML=`<img src="${photo}">`; syncPhotoReq(); });
+
+    // The photo stays optional for a clean delivery — nobody needs a picture of
+    // three good crates, and a form that demands one gets worked around. It
+    // becomes required the moment a line is marked short, damaged or wrong,
+    // because that is the moment it turns into money someone has to chase.
+    const photoNeeded = ()=> U.qsa('.dc-row',wrap).some(tr=> U.qs('.dc-cond',tr).value!=='ok');
+    function syncPhotoReq(){
+      const need = photoNeeded();
+      U.qs('#d_photoWhy',wrap).hidden = !need;
+      // The label lives inside the preview box, which is replaced wholesale by
+      // the <img> once a photo is chosen — so by then there is nothing to
+      // relabel, and looking for it must not take the rest of this function
+      // down with it. The red outline is cleared below either way.
+      const lbl = U.qs('#d_photoLabel',wrap);
+      if(lbl) lbl.textContent = need
+        ? '📷 Photo of the problem — required'
+        : '📷 Photo of the docket or the problem (optional)';
+      U.qs('#d_drop',wrap).classList.toggle('needs', need && !photo);
+    }
+
     // Receiving less than ordered is the usual reason for a problem — pre-flag
     // it. Compared in the item's own unit, because the box on screen may be
     // counting cartons while `ordered` has always been in kilos.
@@ -366,8 +387,11 @@ window.MKR = window.MKR || {};
       U.qs('.dc-rec',tr).addEventListener('input', ()=>{
         const sel=U.qs('.dc-cond',tr);
         if(sel.value==='ok' && rowState(tr).units < (+d.lines[i].ordered||0)) sel.value='short';
+        syncPhotoReq();
       });
+      U.qs('.dc-cond',tr).addEventListener('change', syncPhotoReq);
     });
+    syncPhotoReq();
 
     U.modal('Confirm delivery', wrap, {actions:[
       {label:'Reject whole delivery', class:'btn-ghost', onClick:async(close)=>{
@@ -395,6 +419,14 @@ window.MKR = window.MKR || {};
         });
         const by = U.qs('#d_by',wrap).value.trim();
         if(!by){ U.toast('Sign it — who received this?','red'); return; }
+        // Checked against the lines being saved, not the form state, so this
+        // can't be slipped past by changing a condition after the last redraw.
+        if(lines.some(l=>l.condition && l.condition!=='ok') && !photo){
+          U.toast('Add a photo of the problem — the claim needs it','red');
+          U.qs('#d_drop',wrap).classList.add('needs');
+          U.qs('#d_drop',wrap).scrollIntoView({block:'center', behavior:'smooth'});
+          return;
+        }
         const tempEl = U.qs('#d_temp',wrap);
         await confirm(d, {lines, receivedBy:by, tempC:tempEl?tempEl.value:'',
           note:U.qs('#d_note',wrap).value.trim(), photo,

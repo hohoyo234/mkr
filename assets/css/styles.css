@@ -334,6 +334,9 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
   background:var(--paper-2);color:var(--ink-soft);font-size:13.5px;overflow:hidden;text-align:center;padding:10px}
 .img-preview img{width:100%;max-height:200px;object-fit:contain;border-radius:10px}
 .img-drop:hover .img-preview{border-color:var(--accent)}
+/* A photo the delivery can't be signed without. The border alone would be a
+   colour-only signal, so the label above it says "required" in words too. */
+.img-drop.needs .img-preview{border-color:var(--red);border-style:solid;background:var(--red-soft)}
 
 /* ---------- onboarding checklist ---------- */
 .onb-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-2)}
