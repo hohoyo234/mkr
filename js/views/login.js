@@ -99,9 +99,19 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
       // ----- Sign in -----
       const pick=U.qs('#rolePick',root), lu=U.qs('#lu',root), lp=U.qs('#lp',root), err=U.qs('#lerr',root), btn=U.qs('#lbtn',root);
+      // Picking a role prefills the DEMO username for that role — a shortcut for
+      // showing the app, not a thing that should overwrite a real account
+      // somebody has already typed. It used to do exactly that: type
+      // test_boss1, tap Owner to be helpful, and the field silently became
+      // `boss`, so the next sign-in failed with "wrong username or password"
+      // about an account you never meant to use.
+      let uTouched = false;
+      lu.addEventListener('input', ()=>{ uTouched = lu.value.trim() !== ''; });
       U.qsa('button[data-r]',pick).forEach(b=> b.onclick=()=>{
         U.qsa('button[data-r]',pick).forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
-        const role=b.dataset.r; lu.value=QUICK[role].u; lp.value=''; lp.focus(); err.classList.add('hidden');
+        const role=b.dataset.r;
+        if(!uTouched){ lu.value=QUICK[role].u; lp.value=''; }
+        lp.focus(); err.classList.add('hidden');
       });
       function showErr(msg){ err.textContent='⚠️ '+msg; err.classList.remove('hidden'); }
       async function doLogin(){
