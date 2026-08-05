@@ -46,6 +46,10 @@ window.MKR = window.MKR || {};
     {id:'k_main', name:'My Kitchen · Melbourne', location:'Melbourne, VIC', status:'active',
      ownerId:'u_boss', primary:true, setupComplete:true, logo:null,
      phone:'03 9000 0000', email:'hello@mykitchen.au', website:'https://mykitchen.au',
+     // The shelves a small venue actually walks past, in that order — not an
+     // alphabetised taxonomy. Sample data has to look like someone's real list
+     // or the feature reads as a spreadsheet column.
+     stockCategories:['Meat','Veg','Dry store','Packaging'],
      operatingHours:{open:'09:00', close:'22:00'}, createdAt:Date.now()-90*24*3600e3},
   ];
 
@@ -77,15 +81,15 @@ window.MKR = window.MKR || {};
     // run comes in crates, the dry store in cartons, and the butcher weighs to
     // order — so beef, chicken and herbs deliberately have no pack, which is
     // what makes this sample show both routes through the back door.
-    {id:'itm_beef',   name:'Beef brisket',  kind:'perishable', unit:'kg',    qty:12,   safety:4,   price:18.90, shelfLifeDays:4,  leadTimeDays:1, supplierId:'sup_meat'},
-    {id:'itm_chick',  name:'Chicken thigh', kind:'perishable', unit:'kg',    qty:9,    safety:4,   price:11.50, shelfLifeDays:3,  leadTimeDays:1, supplierId:'sup_meat'},
-    {id:'itm_noodle', name:'Rice noodles',  kind:'perishable', unit:'kg',    qty:15,   safety:5,   price:4.20,  shelfLifeDays:14, leadTimeDays:2, supplierId:'sup_dry', packLabel:'carton', packSize:13},
-    {id:'itm_tom',    name:'Tomatoes',      kind:'perishable', unit:'kg',    qty:6,    safety:3,   price:5.80,  shelfLifeDays:5,  leadTimeDays:2, supplierId:'sup_veg', packLabel:'crate',  packSize:3},
-    {id:'itm_herb',   name:'Fresh herbs',   kind:'perishable', unit:'bunch', qty:10,   safety:6,   price:2.40,  shelfLifeDays:3,  leadTimeDays:2, supplierId:'sup_veg'},
-    {id:'itm_oil',    name:'Cooking oil',   kind:'durable',    unit:'L',     qty:22,   safety:8,   price:3.60,  leadTimeDays:3, supplierId:'sup_dry', packLabel:'drum',   packSize:20},
-    {id:'itm_chop',   name:'Chopsticks',    kind:'durable',    unit:'pairs', qty:1400, safety:500, price:0.035, leadTimeDays:5, supplierId:'sup_dry', packLabel:'carton', packSize:3000},
-    {id:'itm_box',    name:'Takeaway containers', kind:'durable', unit:'pcs', qty:320, safety:150, price:0.22,  leadTimeDays:5, supplierId:'sup_dry', packLabel:'carton', packSize:500},
-    {id:'itm_glove',  name:'Food-prep gloves',    kind:'durable', unit:'box', qty:4,   safety:3,   price:9.90,  leadTimeDays:3, supplierId:'sup_dry', packLabel:'carton', packSize:4},
+    {id:'itm_beef',   name:'Beef brisket',  kind:'perishable', unit:'kg',    qty:12,   safety:4,   price:18.90, shelfLifeDays:4,  leadTimeDays:1, supplierId:'sup_meat', category:'Meat'},
+    {id:'itm_chick',  name:'Chicken thigh', kind:'perishable', unit:'kg',    qty:9,    safety:4,   price:11.50, shelfLifeDays:3,  leadTimeDays:1, supplierId:'sup_meat', category:'Meat'},
+    {id:'itm_noodle', name:'Rice noodles',  kind:'perishable', unit:'kg',    qty:15,   safety:5,   price:4.20,  shelfLifeDays:14, leadTimeDays:2, supplierId:'sup_dry', category:'Dry store', packLabel:'carton', packSize:13},
+    {id:'itm_tom',    name:'Tomatoes',      kind:'perishable', unit:'kg',    qty:6,    safety:3,   price:5.80,  shelfLifeDays:5,  leadTimeDays:2, supplierId:'sup_veg', category:'Veg', packLabel:'crate',  packSize:3},
+    {id:'itm_herb',   name:'Fresh herbs',   kind:'perishable', unit:'bunch', qty:10,   safety:6,   price:2.40,  shelfLifeDays:3,  leadTimeDays:2, supplierId:'sup_veg', category:'Veg'},
+    {id:'itm_oil',    name:'Cooking oil',   kind:'durable',    unit:'L',     qty:22,   safety:8,   price:3.60,  leadTimeDays:3, supplierId:'sup_dry', category:'Dry store', packLabel:'drum',   packSize:20},
+    {id:'itm_chop',   name:'Chopsticks',    kind:'durable',    unit:'pairs', qty:1400, safety:500, price:0.035, leadTimeDays:5, supplierId:'sup_dry', category:'Packaging', packLabel:'carton', packSize:3000},
+    {id:'itm_box',    name:'Takeaway containers', kind:'durable', unit:'pcs', qty:320, safety:150, price:0.22,  leadTimeDays:5, supplierId:'sup_dry', category:'Packaging', packLabel:'carton', packSize:500},
+    {id:'itm_glove',  name:'Food-prep gloves',    kind:'durable', unit:'box', qty:4,   safety:3,   price:9.90,  leadTimeDays:3, supplierId:'sup_dry', category:'Dry store', packLabel:'carton', packSize:4},
   ];
 
   /* ---------- six weeks of trading, simulated once ----------

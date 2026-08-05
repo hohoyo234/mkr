@@ -338,6 +338,18 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
    colour-only signal, so the label above it says "required" in words too. */
 .img-drop.needs .img-preview{border-color:var(--red);border-style:solid;background:var(--red-soft)}
 
+/* Category shelves. A horizontal strip that scrolls on its own rather than
+   wrapping into three rows on a phone and pushing the stock off the screen. */
+.catbar{display:flex;gap:6px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+.catbar::-webkit-scrollbar{display:none}
+.catchip{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
+  background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:13px;
+  font-weight:600;cursor:pointer;white-space:nowrap}
+.catchip:hover{border-color:var(--accent)}
+.catchip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.catchip.ghost{font-weight:500;color:var(--ink-soft);border-style:dashed}
+.catchip-n{font-size:11.5px;font-weight:600;opacity:.65}
+
 /* ---------- onboarding checklist ---------- */
 .onb-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line-2)}
 .onb-item:last-of-type{border-bottom:none}

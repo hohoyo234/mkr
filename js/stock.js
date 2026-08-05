@@ -53,12 +53,67 @@ window.MKR = window.MKR || {};
     const row = {
       kind:'perishable', unit:'kg', qty:0, safety:0, price:0, priceHistory:[],
       supplierId:null, shelfLifeDays:null, leadTimeDays:2,
-      packLabel:'', packSize:null, kitchenId:kid(), ...p
+      packLabel:'', packSize:null, category:'', kitchenId:kid(), ...p
     };
     if(!row.id) row.id = U.uid('itm');
     return MKR.db.put('inventory', row);
   }
   async function removeItem(id){ await MKR.db.put('inventory',{id, archived:true}); }
+
+  // ---------- categories: the owner's own shelves ----------
+  // Perishable / non-perishable is the APP's rule — it decides whether a shelf
+  // life applies and whether an expiry warning can exist. A category is the
+  // owner's own word for where a thing lives: "Meat", "Veg", "Dry store",
+  // "Packaging". The two are independent and an item is always both, so neither
+  // list can be derived from the other and neither replaces the other.
+  //
+  // The list lives on the kitchen record rather than being inferred from the
+  // items, for two reasons: a category has to exist before anything is in it
+  // (you make "Seafood" on Monday and stock it on Tuesday), and the order the
+  // owner dragged them into is the order they expect to see.
+  async function categories(){
+    try{
+      const k = await MKR.db.get('kitchens', kid());
+      const list = (k && k.stockCategories) || [];
+      return list.filter(x=>typeof x==='string' && x.trim()).map(x=>x.trim());
+    }catch(e){ return []; }
+  }
+  async function saveCategories(list){
+    // De-duplicated case-insensitively: "Veg" and "veg" as two shelves is a
+    // typo every time, never an intention.
+    const seen = new Set(), out = [];
+    (list||[]).forEach(x=>{
+      const s = String(x||'').trim(); if(!s) return;
+      const k = s.toLowerCase(); if(seen.has(k)) return;
+      seen.add(k); out.push(s);
+    });
+    await MKR.db.put('kitchens', {id:kid(), stockCategories:out});
+    return out;
+  }
+  // Renaming a shelf has to carry its items with it, and removing one must not
+  // take the stock with it — the items fall back to uncategorised, which is a
+  // state the UI already has to draw anyway.
+  async function renameCategory(from, to){
+    const f = String(from||'').trim(), t = String(to||'').trim();
+    if(!f) return;
+    const its = await items();
+    for(const it of its){
+      if((it.category||'').trim().toLowerCase() === f.toLowerCase()){
+        await MKR.db.put('inventory', {id:it.id, category:t});
+      }
+    }
+    const list = await categories();
+    await saveCategories(t ? list.map(x=>x.toLowerCase()===f.toLowerCase()?t:x)
+                           : list.filter(x=>x.toLowerCase()!==f.toLowerCase()));
+  }
+  async function moveToCategory(itemIds, category){
+    const cat = String(category||'').trim();
+    for(const id of (itemIds||[])) await MKR.db.put('inventory', {id, category:cat});
+    if(cat){
+      const list = await categories();
+      if(!list.some(x=>x.toLowerCase()===cat.toLowerCase())) await saveCategories([...list, cat]);
+    }
+  }
 
   // ---------- packs: what the supplier sells vs what the kitchen counts ----------
   // A venue counts tomatoes in kg, but the supplier sells them by the 10 kg
@@ -487,6 +542,7 @@ window.MKR = window.MKR || {};
     saveItem, removeItem, savePurchase, saveStocktake, priceWatch, previousPrice,
     priceMove, moveBadge, itemValue, lineAmount, totalValue, scanWarnings,
     packSizeOf, packLabelOf, packHint, packLine, unitOf,
+    categories, saveCategories, renameCategory, moveToCategory,
     render: (c, opts)=> MKR.stockView.render(c, opts),
   };
 })();

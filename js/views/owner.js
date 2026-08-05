@@ -612,12 +612,12 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   // ---------- Audit log ----------
   async function audit(c){
     const logs=await MKR.audit.all();
-    c.innerHTML=`<div class="section-head"><div><h2>Sensitive-action audit</h2><p>Roster changes, stock counts, deliveries, ID reveals · append-only, tamper-proof</p></div>
+    c.innerHTML=`<div class="section-head"><div><h2>Sensitive-action audit</h2><p>Roster changes, stock counts, deliveries and record access · who did it and when, never what it said</p></div>
       <span class="pill ghost">🔒 Append-only · ${logs.length} entries</span></div>
       <div class="card" style="padding:14px 18px;margin-bottom:14px"><input class="input" id="auditSearch" placeholder="Search actions, people, details…"></div>
       <div class="card" style="padding:8px 18px"><div class="list" id="auditList"></div></div>
       <div class="disclaimer mt16"><span>🔒</span>The audit log is append-only — there is no delete or edit path anywhere in the system.</div>`;
-    function iconOf(a){ return ({'staff.offboard':'🔒','staff.hire':'➕','tfn.view':'🪪','login':'🔑','shift.create':'📅','shift.remove':'🗑️','sos.post':'🆘','swap.approve':'🔁','settings.update':'⚙️','kitchen.create':'🏢','kitchen.approve':'✅','booking.create':'📅','booking.update':'📖','reward':'🎁','export':'⬇️','stock.purchase':'🧾','stock.count':'🔢','delivery.confirm':'✅','delivery.reject':'⛔','training.assign':'📘','training.complete':'🎓','partner.lawyer':'⚖️','partner.vevo':'🛂'})[a]||'•'; }
+    function iconOf(a){ return ({'staff.offboard':'🔒','staff.hire':'➕','id.view':'🪪','tfn.view':'🪪','login':'🔑','shift.create':'📅','shift.remove':'🗑️','sos.post':'🆘','swap.approve':'🔁','settings.update':'⚙️','kitchen.create':'🏢','kitchen.approve':'✅','booking.create':'📅','booking.update':'📖','reward':'🎁','export':'⬇️','stock.purchase':'🧾','stock.count':'🔢','stock.waste':'🗑️','stock.statement':'📑','delivery.confirm':'✅','delivery.reject':'⛔','delivery.claim':'📌','training.assign':'📘','training.complete':'🎓','partner.lawyer':'⚖️','partner.vevo':'🛂'})[a]||'•'; }
     const list=U.qs('#auditList',c);
     function draw(q){
       const ql=(q||'').trim().toLowerCase();
@@ -925,8 +925,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const reB=U.qs('#restoreBtn',c); if(reB) reB.onclick=async()=>{ await MKR.db.put('users',{id,offboarded:false,archivedAt:null,retentionUntil:null}); if(MKR.supa.client) await MKR.supa.client.from('profiles').update({active:true}).eq('staff_id',id); U.toast(u.name+' reactivated','green'); staffPage(c,id); };
       // Document viewers
       U.qsa('[data-doc]',c).forEach(b=>b.onclick=()=>{ const img=ob[b.dataset.doc]; if(img) U.modal('Document', `<img src="${img}" style="width:100%;border-radius:12px">`); });
-      // TFN / passport reveal
-      const pb=U.qs('#ppBtn',c); if(pb) pb.onclick=async()=>{ const v=await MKR.crypto.dec(ob.passportEnc, ob.userId); await MKR.audit.log({action:'tfn.view',desc:`Revealed ${u.name}'s ID number`}); U.qs('#ppSlot',c).textContent=v; pb.remove(); };
+      // Reveal the stored ID. The audit row names the person and the fact it was
+      // opened — never the value, and never the document type: "TFN" in a log
+      // line is a claim about what is stored, and this app stores no TFN.
+      const pb=U.qs('#ppBtn',c); if(pb) pb.onclick=async()=>{ const v=await MKR.crypto.dec(ob.passportEnc, ob.userId); await MKR.audit.log({action:'id.view',desc:`Viewed the stored ID for ${u.name}`, target:ob.userId}); U.qs('#ppSlot',c).textContent=v; pb.remove(); };
     }
 
     // ---- Edit mode ----
