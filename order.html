@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order sheet</title>
+<!--
+  A supplier's view of one order, and nothing else.
+
+  This page is deliberately standalone: no app, no sign-in, no database, no
+  network call of any kind. The whole order travels in the URL FRAGMENT, which
+  browsers never send to the server — so the venue can text this link to their
+  greengrocer without the order passing through anything, and there is no link
+  to expire, revoke or leak later because there is nothing stored at the far end.
+
+  The trade-off, stated plainly on the page: anyone holding the link can read
+  the order. It carries quantities and a venue name, never prices, never staff
+  and never a customer.
+-->
+<style>
+  :root{ --ink:#211E1B; --soft:#6B6560; --line:#E4DED6; --paper:#FBF8F4; --card:#fff; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:15px/1.55 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    padding:24px 16px}
+  .sheet{max-width:640px;margin:0 auto;background:var(--card);border:1px solid var(--line);
+    border-radius:18px;padding:28px}
+  h1{font-size:20px;margin:0 0 2px}
+  .sub{color:var(--soft);font-size:13.5px;margin-bottom:20px}
+  .meta{display:flex;flex-wrap:wrap;gap:18px;padding:14px 0;border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);margin-bottom:18px}
+  .meta div{min-width:120px}
+  .meta span{display:block;color:var(--soft);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  .meta b{font-size:14.5px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--soft);padding:0 0 8px;border-bottom:1px solid var(--line)}
+  td{padding:11px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  td.q{text-align:right;font-weight:700;white-space:nowrap}
+  .pack{color:var(--soft);font-size:12.5px;font-weight:500}
+  .note{margin-top:18px;padding:12px 14px;background:var(--paper);border-radius:12px;font-size:13.5px}
+  .foot{margin-top:22px;color:var(--soft);font-size:12px}
+  .err{max-width:640px;margin:40px auto;text-align:center;color:var(--soft)}
+  @media print{
+    body{background:#fff;padding:0}
+    .sheet{border:none;border-radius:0;padding:0;max-width:none}
+    .foot{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="root"><div class="err">Loading the order…</div></div>
+<script>
+(function(){
+  var esc = function(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+
+  function decode(frag){
+    // base64url in the fragment → UTF-8 JSON. Hand-rolled because this page
+    // loads no libraries; a supplier on a two-bar connection should get one file.
+    var b64 = frag.replace(/-/g,'+').replace(/_/g,'/');
+    while(b64.length % 4) b64 += '=';
+    var bin = atob(b64), bytes = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function render(d){
+    var lines = (d.l||[]).map(function(x){
+      // A quantity the supplier can act on: cartons if that is how they sell it,
+      // with the underlying amount alongside so nobody has to do the sum twice.
+      var main = x.pq != null && x.pl
+        ? esc(x.pq) + ' ' + esc(x.pl) + (Number(x.pq)===1?'':'s')
+        : esc(x.q) + ' ' + esc(x.u||'');
+      var sub  = x.pq != null && x.pl ? '<div class="pack">' + esc(x.q) + ' ' + esc(x.u||'') + '</div>' : '';
+      return '<tr><td><b>' + esc(x.n) + '</b></td><td class="q">' + main + sub + '</td></tr>';
+    }).join('');
+
+    return '<div class="sheet">' +
+      '<h1>Order' + (d.v ? ' from ' + esc(d.v) : '') + '</h1>' +
+      '<div class="sub">' + (d.s ? 'For ' + esc(d.s) : '') + '</div>' +
+      '<div class="meta">' +
+        (d.d   ? '<div><span>Ordered</span><b>' + esc(d.d) + '</b></div>' : '') +
+        (d.acc ? '<div><span>Account</span><b>' + esc(d.acc) + '</b></div>' : '') +
+        (d.ph  ? '<div><span>Call us on</span><b>' + esc(d.ph) + '</b></div>' : '') +
+      '</div>' +
+      '<table><thead><tr><th>Item</th><th style="text-align:right">Quantity</th></tr></thead>' +
+      '<tbody>' + lines + '</tbody></table>' +
+      (d.n ? '<div class="note">' + esc(d.n) + '</div>' : '') +
+      '<div class="foot">Sent from My Kitchen Rules. This page is the whole order — it is not stored anywhere and there is nothing to sign in to.</div>' +
+      '</div>';
+  }
+
+  var frag = location.hash.replace(/^#d=/, '');
+  var root = document.getElementById('root');
+  if(!frag){ root.innerHTML = '<div class="err">This link has no order on it.</div>'; return; }
+  try{
+    var data = decode(frag);
+    root.innerHTML = render(data);
+    document.title = 'Order' + (data.s ? ' · ' + data.s : '');
+  }catch(e){
+    root.innerHTML = '<div class="err">This link looks incomplete — some apps cut long links in half. Ask them to send it again.</div>';
+  }
+})();
+</script>
+</body>
+</html>
