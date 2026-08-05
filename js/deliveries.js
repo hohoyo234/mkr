@@ -112,8 +112,13 @@ window.MKR = window.MKR || {};
         // in the database for nothing.
         fee: +fee||0, gst: +gst||0, deliveryId: d.id,
         // Received, never ordered — a short delivery must not inflate stock.
+        // The pack figures are carried through rather than recomputed: the
+        // docket's own arithmetic (3 cartons at $60 = $180) is what the invoice
+        // will be checked against, and a re-derived figure can land cents out.
         lines: got.map(l=>({itemId:l.itemId, name:l.name, unit:l.unit, qty:+l.received,
-                            unitPrice:+l.unitPrice||0, ordered:+l.ordered||0, condition:l.condition||'ok'})),
+                            unitPrice:+l.unitPrice||0, ordered:+l.ordered||0, condition:l.condition||'ok',
+                            ...(l.packSize>0 ? {packSize:l.packSize, packLabel:l.packLabel||'pack',
+                                                packQty:l.packQty, packPrice:l.packPrice} : {})})),
       });
       purchaseId = p.id;
     }
@@ -242,16 +247,38 @@ window.MKR = window.MKR || {};
   function confirmModal(d, its, after){
     const condOpts = (sel)=> Object.entries(COND).map(([k,v])=>`<option value="${k}" ${sel===k?'selected':''}>${v.label}</option>`).join('');
     const hasPerishable = (d.lines||[]).some(l=>{ const it=its.find(i=>i.id===l.itemId); return it && it.kind==='perishable'; });
+
+    // What the driver actually hands over is cartons, and the docket prices them
+    // by the carton — so that is what this form lets you type. Items set up with
+    // a pack default to counting in packs; everything is converted back to the
+    // item's own unit before it reaches stock, so nothing downstream changes.
+    const S = MKR.stock;
+    const packOf = (l)=>{
+      const it = its.find(i=>i.id===l.itemId);
+      const n = S.packSizeOf(it);
+      return n ? {size:n, label:S.packLabelOf(it), unit:S.unitOf(it)} : null;
+    };
     const wrap = U.el(`<div>
       <div class="faint" style="font-size:12.5px;margin-bottom:10px">${U.esc(d.supplierName||'Supplier')}${d.docketNo?' · docket '+U.esc(d.docketNo):''} · raised ${U.fmtDateTime(d.ts)}</div>
       <div class="tablewrap"><table class="dtable">
-        <thead><tr><th>Item</th><th class="num" style="width:82px">Ordered</th><th class="num" style="width:96px">Received</th><th class="num" style="width:104px">Unit price</th><th style="width:140px">Condition</th></tr></thead>
-        <tbody>${(d.lines||[]).map((l,i)=>`<tr class="dc-row" data-i="${i}">
+        <thead><tr><th>Item</th><th class="num" style="width:78px">Ordered</th><th class="num" style="width:96px">Received</th><th class="num" style="width:104px">Price</th><th style="width:140px">Condition</th></tr></thead>
+        <tbody>${(d.lines||[]).map((l,i)=>{
+          const pk = packOf(l);
+          const ord = +l.ordered||0;
+          const rec0 = l.received!=null ? +l.received||0 : ord;              // always in the item's unit
+          const recShown = pk ? U.round2(rec0/pk.size) : rec0;
+          const prShown  = pk ? U.round2((+l.unitPrice||0)*pk.size) : (+l.unitPrice||0);
+          return `<tr class="dc-row" data-i="${i}" data-pack="${pk?pk.size:''}" data-packlabel="${pk?U.esc(pk.label):''}" data-unit="${U.esc(pk?pk.unit:(l.unit||''))}" data-ord="${ord}">
           <td><b>${U.esc(l.name)}</b><div class="faint" style="font-size:11.5px">${U.esc(l.unit||'')}</div></td>
-          <td class="num faint">${l.ordered}</td>
-          <td class="num"><input class="input dc-rec" type="number" step="0.01" value="${l.received!=null?l.received:l.ordered}" style="text-align:right"></td>
-          <td class="num"><input class="input dc-price" type="number" step="0.01" value="${l.unitPrice||0}" style="text-align:right"></td>
-          <td><select class="input dc-cond">${condOpts(l.condition||'ok')}</select></td></tr>`).join('')}</tbody>
+          <td class="num faint"><span class="dc-ord">${ord}</span></td>
+          <td class="num"><input class="input dc-rec" type="number" step="0.01" value="${recShown}" style="text-align:right">
+            ${pk?`<select class="input dc-basis" data-prev="pack" style="display:block;width:100%;margin-top:4px;font-size:11.5px;padding:2px 4px" aria-label="Count in packs or in ${U.esc(pk.unit)}">
+              <option value="pack" selected>${U.esc(pk.label)}s</option>
+              <option value="unit">${U.esc(pk.unit)}</option></select>`:''}</td>
+          <td class="num"><input class="input dc-price" type="number" step="0.01" value="${prShown}" style="text-align:right">
+            ${pk?`<div class="faint dc-conv" style="font-size:11px;margin-top:4px;text-align:right"></div>`:''}</td>
+          <td><select class="input dc-cond">${condOpts(l.condition||'ok')}</select></td></tr>`;
+        }).join('')}</tbody>
       </table></div>
       <div class="dkt-runtotal"><span>Docket total</span><b id="d_total">${U.money(0)}</b></div>
 
@@ -270,12 +297,41 @@ window.MKR = window.MKR || {};
     </div>`);
     let photo=null;
 
+    // One reading of a row, in both currencies at once: what was typed, and what
+    // that means in the item's own unit. Everything else on this form — the
+    // running total, the short-delivery flag, what gets saved — goes through it,
+    // so there is exactly one place the pack conversion can be wrong.
+    function rowState(tr){
+      const size   = Number(tr.dataset.pack)||0;
+      const bs     = U.qs('.dc-basis',tr);
+      const isPack = size>0 && (!bs || bs.value==='pack');
+      const n = Number(U.qs('.dc-rec',tr).value)||0;
+      const p = Number(U.qs('.dc-price',tr).value)||0;
+      return { size, isPack, n, p,
+        units:     isPack ? U.round2(n*size) : n,
+        unitPrice: isPack ? U.round2(p/size) : p,
+        // Packs × price-per-pack, or units × price-per-unit — the same product
+        // either way, which is why the docket total needs no special case.
+        amount: U.round2(n*p) };
+    }
+
     // The total moves as they check the lines off, so what gets signed for is
     // what lands in the books.
     function recalc(){
       let sub = 0;
       U.qsa('.dc-row',wrap).forEach(tr=>{
-        sub += (Number(U.qs('.dc-rec',tr).value)||0) * (Number(U.qs('.dc-price',tr).value)||0);
+        const st = rowState(tr);
+        sub += st.amount;
+        const unit = tr.dataset.unit||'';
+        const conv = U.qs('.dc-conv',tr);
+        // Spell the conversion out on the row. An owner signing for "3 × $60"
+        // should be able to see it is $6.00/kg without doing it in their head.
+        if(conv) conv.textContent = st.isPack
+          ? `= ${st.units} ${unit} · ${U.money(st.unitPrice)}/${unit}`
+          : `${U.money(st.unitPrice)}/${unit}`;
+        const ordEl = U.qs('.dc-ord',tr);
+        const ord = Number(tr.dataset.ord)||0;
+        if(ordEl) ordEl.textContent = (st.isPack && st.size>0) ? U.round2(ord/st.size) : ord;
       });
       const total = sub + (Number(U.qs('#d_fee',wrap).value)||0) + (Number(U.qs('#d_gst',wrap).value)||0);
       U.qs('#d_total',wrap).textContent = U.money(total);
@@ -283,17 +339,34 @@ window.MKR = window.MKR || {};
     U.qsa('.dc-row',wrap).forEach(tr=>{
       U.qs('.dc-rec',tr).addEventListener('input', recalc);
       U.qs('.dc-price',tr).addEventListener('input', recalc);
+      // Switching basis converts what is already typed rather than clearing it —
+      // someone who typed 3 cartons and then realised they want kilos meant 30,
+      // not 3, and retyping is where a wrong figure gets signed for.
+      const bs = U.qs('.dc-basis',tr);
+      if(bs) bs.onchange = ()=>{
+        const size = Number(tr.dataset.pack)||0;
+        const rec = U.qs('.dc-rec',tr), pr = U.qs('.dc-price',tr);
+        if(size>0 && bs.dataset.prev!==bs.value){
+          const toUnit = bs.value==='unit';
+          rec.value = U.round2((Number(rec.value)||0) * (toUnit ? size : 1/size));
+          pr.value  = U.round2((Number(pr.value)||0)  * (toUnit ? 1/size : size));
+        }
+        bs.dataset.prev = bs.value;
+        recalc();
+      };
     });
     ['#d_fee','#d_gst'].forEach(sel=> U.qs(sel,wrap).oninput = recalc);
     recalc();
     U.qs('#d_photo',wrap).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{
       photo=data; U.qs('#d_prev',wrap).innerHTML=`<img src="${photo}">`; });
-    // Receiving less than ordered is the usual reason for a problem — pre-flag it.
+    // Receiving less than ordered is the usual reason for a problem — pre-flag
+    // it. Compared in the item's own unit, because the box on screen may be
+    // counting cartons while `ordered` has always been in kilos.
     U.qsa('.dc-row',wrap).forEach((tr,i)=>{
-      U.qs('.dc-rec',tr).oninput = ()=>{
+      U.qs('.dc-rec',tr).addEventListener('input', ()=>{
         const sel=U.qs('.dc-cond',tr);
-        if(sel.value==='ok' && Number(U.qs('.dc-rec',tr).value) < (d.lines[i].ordered||0)) sel.value='short';
-      };
+        if(sel.value==='ok' && rowState(tr).units < (+d.lines[i].ordered||0)) sel.value='short';
+      });
     });
 
     U.modal('Confirm delivery', wrap, {actions:[
@@ -302,12 +375,24 @@ window.MKR = window.MKR || {};
         await reject(d, why.trim()); close(); U.toast('Delivery rejected','amber'); after();
       }},
       {label:'✍️ Confirm', class:'btn-dark', onClick:async(close)=>{
-        const lines = U.qsa('.dc-row',wrap).map((tr,i)=>({
-          ...d.lines[i],
-          received: Number(U.qs('.dc-rec',tr).value)||0,
-          unitPrice: Number(U.qs('.dc-price',tr).value)||0,
-          condition: U.qs('.dc-cond',tr).value,
-        }));
+        const lines = U.qsa('.dc-row',wrap).map((tr,i)=>{
+          const st = rowState(tr);
+          // `received` and `unitPrice` are always the item's own unit, whichever
+          // way the row was typed. The pack figures ride along beside them so
+          // the docket can be shown back exactly as the paper was written.
+          const out = { ...d.lines[i], received: st.units, unitPrice: st.unitPrice,
+                        condition: U.qs('.dc-cond',tr).value };
+          // Only when it was actually counted in packs. A line switched to the
+          // item's own unit was weighed, not counted, and saying "2.67 crates"
+          // on the docket would be inventing a sentence the supplier never wrote.
+          if(st.size>0 && st.isPack){
+            out.packSize  = st.size;
+            out.packLabel = tr.dataset.packlabel||'pack';
+            out.packQty   = st.n;
+            out.packPrice = st.p;
+          }
+          return out;
+        });
         const by = U.qs('#d_by',wrap).value.trim();
         if(!by){ U.toast('Sign it — who received this?','red'); return; }
         const tempEl = U.qs('#d_temp',wrap);

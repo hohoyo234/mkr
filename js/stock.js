@@ -52,12 +52,57 @@ window.MKR = window.MKR || {};
   async function saveItem(p){
     const row = {
       kind:'perishable', unit:'kg', qty:0, safety:0, price:0, priceHistory:[],
-      supplierId:null, shelfLifeDays:null, leadTimeDays:2, kitchenId:kid(), ...p
+      supplierId:null, shelfLifeDays:null, leadTimeDays:2,
+      packLabel:'', packSize:null, kitchenId:kid(), ...p
     };
     if(!row.id) row.id = U.uid('itm');
     return MKR.db.put('inventory', row);
   }
   async function removeItem(id){ await MKR.db.put('inventory',{id, archived:true}); }
+
+  // ---------- packs: what the supplier sells vs what the kitchen counts ----------
+  // A venue counts tomatoes in kg, but the supplier sells them by the 10 kg
+  // carton and the docket only ever quotes the carton price. Typing that carton
+  // figure into a per-kg field is the quiet way to corrupt everything downstream:
+  // stock goes up by 2 instead of 20, and the price page reads $60 against last
+  // week's $6 and calls it a 900% rise — a wrong answer that looks reasonable,
+  // which is the worst kind.
+  //
+  // So a pack is a DATA-ENTRY convenience and never a second unit of account.
+  // `qty` and `unitPrice` on a line stay in the item's own unit, always, and
+  // packLine() below is the single place a pack figure becomes one of them.
+  const packSizeOf  = (it)=>{ const n = +(it && it.packSize) || 0; return n>0 ? n : null; };
+  const packLabelOf = (it)=> ((it && it.packLabel) || '').trim() || 'pack';
+  const unitOf      = (it)=> ((it && it.unit) || '').trim() || 'units';
+
+  // "1 carton = 10 kg" — the sentence every pack input needs sitting under it.
+  function packHint(it){
+    const n = packSizeOf(it);
+    return n ? `1 ${packLabelOf(it)} = ${U.round2(n)} ${unitOf(it)}` : '';
+  }
+
+  // A line typed in packs carries packQty/packPrice; this turns them into the
+  // qty/unitPrice everything downstream reads, and keeps the pack pair beside
+  // them so the docket can be shown back exactly as the paper was written.
+  //
+  // The conversion is deliberately ONE-WAY. Back-deriving a pack figure from a
+  // unit figure would put "2.67 crates" on a docket for tomatoes bought loose at
+  // the market — a sentence no supplier ever wrote. The pack pair being present
+  // means the paper was written that way; absent means it wasn't.
+  //
+  // The pack size is SNAPSHOTTED onto the line. A supplier who moves from 10 kg
+  // to 12 kg cartons next month must not silently rewrite what last month cost.
+  function packLine(l, item){
+    const has  = (v)=> v!=null && v!=='';
+    if(!has(l.packQty) && !has(l.packPrice)) return {...l};
+    const size = +l.packSize>0 ? +l.packSize : packSizeOf(item);
+    if(!(size>0)) return {...l};
+    const out = {...l, packSize:size,
+      packLabel: (l.packLabel || (item && item.packLabel) || '').trim() || 'pack'};
+    if(has(l.packQty))   out.qty       = U.round2((+l.packQty||0) * size);
+    if(has(l.packPrice)) out.unitPrice = U.round2((+l.packPrice||0) / size);
+    return out;
+  }
 
   // Record a new unit price, keeping an audit trail of every change so the price
   // trend (▲ / ▼) is real history rather than a guess.
@@ -281,11 +326,22 @@ window.MKR = window.MKR || {};
   // Saving a purchase moves stock in, updates each item's unit price and appends
   // to its price history — that's where the ▲▼ trend comes from.
   async function savePurchase(p){
-    const lines = (p.lines||[]).filter(l=>l.itemId && (+l.qty||0)>0);
+    // Normalise BEFORE filtering: a line typed in cartons carries no `qty` yet,
+    // so filtering first would silently drop the whole delivery.
+    const all = await items();
+    const lines = (p.lines||[])
+      .map(l=> packLine(l, all.find(x=>x.id===l.itemId)))
+      .filter(l=> l.itemId && (+l.qty||0)>0);
+    // When the paper was written in packs, the paper's own arithmetic wins:
+    // 3 cartons at $60 is $180 exactly, where 30 kg × a rounded $6.00/kg can
+    // land a few cents out and leave the docket disagreeing with the invoice.
+    const amountOf = (l)=> (l.packQty!=null && l.packPrice!=null)
+      ? U.round2((+l.packQty||0) * (+l.packPrice||0))
+      : lineAmount(l.qty, l.unitPrice);
     // A docket has more on it than the goods: freight, the GST the supplier
     // charged, how it was paid. Record what the piece of paper says — the app
     // still works nothing out for tax, it just keeps your own copy.
-    const sub = U.round2(lines.reduce((t,l)=>t+lineAmount(l.qty,l.unitPrice),0));
+    const sub = U.round2(lines.reduce((t,l)=>t+amountOf(l),0));
     const gst = U.round2(p.gst||0), fee = U.round2(p.fee||0);
     const row = await MKR.db.put('purchases', {
       id:p.id||U.uid('pur'), ts:p.ts||Date.now(), supplierId:p.supplierId||null,
@@ -294,10 +350,9 @@ window.MKR = window.MKR || {};
       // Set when the docket came in through the back door rather than being
       // typed up afterwards — the receipt shows the check that was done.
       deliveryId:p.deliveryId||null,
-      lines: lines.map(l=>({...l, qty:+l.qty, unitPrice:U.round2(l.unitPrice), amount:lineAmount(l.qty,l.unitPrice)})),
+      lines: lines.map(l=>({...l, qty:+l.qty, unitPrice:U.round2(l.unitPrice), amount:amountOf(l)})),
       sub, gst, fee, total: U.round2(sub+gst+fee), kitchenId:kid()
     });
-    const all = await items();
     for(const l of row.lines){
       const it = all.find(x=>x.id===l.itemId); if(!it) continue;
       await MKR.db.put('inventory', {
@@ -431,6 +486,7 @@ window.MKR = window.MKR || {};
     reconciliations, statementFor, statementPeriods, saveReconciliation, periodOf,
     saveItem, removeItem, savePurchase, saveStocktake, priceWatch, previousPrice,
     priceMove, moveBadge, itemValue, lineAmount, totalValue, scanWarnings,
+    packSizeOf, packLabelOf, packHint, packLine, unitOf,
     render: (c, opts)=> MKR.stockView.render(c, opts),
   };
 })();

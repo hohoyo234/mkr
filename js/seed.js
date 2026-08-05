@@ -73,15 +73,19 @@ window.MKR = window.MKR || {};
   // Raw materials plus the tools that quietly run out. Two kinds: perishable
   // (goes off, has a shelf life) and non-perishable (doesn't).
   S.INVENTORY = [
+    // Pack sizes are the ones an Australian venue actually gets quoted: the veg
+    // run comes in crates, the dry store in cartons, and the butcher weighs to
+    // order — so beef, chicken and herbs deliberately have no pack, which is
+    // what makes this sample show both routes through the back door.
     {id:'itm_beef',   name:'Beef brisket',  kind:'perishable', unit:'kg',    qty:12,   safety:4,   price:18.90, shelfLifeDays:4,  leadTimeDays:1, supplierId:'sup_meat'},
     {id:'itm_chick',  name:'Chicken thigh', kind:'perishable', unit:'kg',    qty:9,    safety:4,   price:11.50, shelfLifeDays:3,  leadTimeDays:1, supplierId:'sup_meat'},
-    {id:'itm_noodle', name:'Rice noodles',  kind:'perishable', unit:'kg',    qty:15,   safety:5,   price:4.20,  shelfLifeDays:14, leadTimeDays:2, supplierId:'sup_dry'},
-    {id:'itm_tom',    name:'Tomatoes',      kind:'perishable', unit:'kg',    qty:6,    safety:3,   price:5.80,  shelfLifeDays:5,  leadTimeDays:2, supplierId:'sup_veg'},
+    {id:'itm_noodle', name:'Rice noodles',  kind:'perishable', unit:'kg',    qty:15,   safety:5,   price:4.20,  shelfLifeDays:14, leadTimeDays:2, supplierId:'sup_dry', packLabel:'carton', packSize:13},
+    {id:'itm_tom',    name:'Tomatoes',      kind:'perishable', unit:'kg',    qty:6,    safety:3,   price:5.80,  shelfLifeDays:5,  leadTimeDays:2, supplierId:'sup_veg', packLabel:'crate',  packSize:3},
     {id:'itm_herb',   name:'Fresh herbs',   kind:'perishable', unit:'bunch', qty:10,   safety:6,   price:2.40,  shelfLifeDays:3,  leadTimeDays:2, supplierId:'sup_veg'},
-    {id:'itm_oil',    name:'Cooking oil',   kind:'durable',    unit:'L',     qty:22,   safety:8,   price:3.60,  leadTimeDays:3, supplierId:'sup_dry'},
-    {id:'itm_chop',   name:'Chopsticks',    kind:'durable',    unit:'pairs', qty:1400, safety:500, price:0.035, leadTimeDays:5, supplierId:'sup_dry'},
-    {id:'itm_box',    name:'Takeaway containers', kind:'durable', unit:'pcs', qty:320, safety:150, price:0.22,  leadTimeDays:5, supplierId:'sup_dry'},
-    {id:'itm_glove',  name:'Food-prep gloves',    kind:'durable', unit:'box', qty:4,   safety:3,   price:9.90,  leadTimeDays:3, supplierId:'sup_dry'},
+    {id:'itm_oil',    name:'Cooking oil',   kind:'durable',    unit:'L',     qty:22,   safety:8,   price:3.60,  leadTimeDays:3, supplierId:'sup_dry', packLabel:'drum',   packSize:20},
+    {id:'itm_chop',   name:'Chopsticks',    kind:'durable',    unit:'pairs', qty:1400, safety:500, price:0.035, leadTimeDays:5, supplierId:'sup_dry', packLabel:'carton', packSize:3000},
+    {id:'itm_box',    name:'Takeaway containers', kind:'durable', unit:'pcs', qty:320, safety:150, price:0.22,  leadTimeDays:5, supplierId:'sup_dry', packLabel:'carton', packSize:500},
+    {id:'itm_glove',  name:'Food-prep gloves',    kind:'durable', unit:'box', qty:4,   safety:3,   price:9.90,  leadTimeDays:3, supplierId:'sup_dry', packLabel:'carton', packSize:4},
   ];
 
   /* ---------- six weeks of trading, simulated once ----------
@@ -182,7 +186,14 @@ window.MKR = window.MKR || {};
       Object.entries(PLAN).forEach(([id, p])=>{
         if(!p.days.includes(dow)) return;
         if(p.every && (wk % p.every)!==0) return;
-        const qty = r2(p.qty * (0.9 + wobble(ago*7+id.length)*0.2));
+        // Order sizes wobble week to week, but an item sold by the carton can
+        // only wobble in whole cartons — nobody was ever delivered 2.19 of one.
+        // Rounding to the pack is what makes the sample dockets read like paper.
+        const it = S.INVENTORY.find(i=>i.id===id) || {};
+        const raw = p.qty * (0.9 + wobble(ago*7+id.length)*0.2);
+        const qty = it.packSize > 0
+          ? r2(Math.max(1, Math.round(raw / it.packSize)) * it.packSize)
+          : r2(raw);
         (bySup[p.sup] = bySup[p.sup] || []).push({id, qty, price:priceAt(id, wk)});
       });
       if(wk===MARKET_RUN.weeks && dow===MARKET_RUN.dow)
@@ -193,8 +204,19 @@ window.MKR = window.MKR || {};
           const it = S.INVENTORY.find(i=>i.id===l.id) || {};
           level[l.id] = r2((level[l.id]||0) + l.qty);
           logPrice(l.id, l.price, ts, supId, 'delivery');
-          return {itemId:l.id, name:it.name||'', unit:it.unit||'', qty:l.qty,
-                  unitPrice:r2(l.price), amount:r2(l.qty*l.price)};
+          const row = {itemId:l.id, name:it.name||'', unit:it.unit||'', qty:l.qty,
+                       unitPrice:r2(l.price), amount:r2(l.qty*l.price)};
+          // A regular supplier delivery arrives in the packs they quote, and the
+          // docket prices it that way. The Saturday market run doesn't — that is
+          // loose produce paid for in cash, so it carries no pack figures and
+          // the receipt shows it in kilos, which is how the paper really read.
+          if(it.packSize > 0 && supId !== MARKET_RUN.sup){
+            row.packSize  = it.packSize;
+            row.packLabel = it.packLabel || 'pack';
+            row.packQty   = r2(l.qty / it.packSize);
+            row.packPrice = r2(l.price * it.packSize);
+          }
+          return row;
         });
         const sub = r2(lines.reduce((t,l)=>t+l.amount, 0));
         const gst = r2(lines.filter(l=>GSTABLE[l.itemId]).reduce((t,l)=>t+l.amount, 0) * 0.1);
@@ -227,7 +249,9 @@ window.MKR = window.MKR || {};
           note: shortOne ? 'One line short — driver said it would come Friday' : '',
           lines: lines.map((l,i)=>({itemId:l.itemId, name:l.name, unit:l.unit,
             ordered: shortOne && i===1 ? r2(l.qty*1.25) : l.qty, received:l.qty,
-            unitPrice:l.unitPrice, condition: shortOne && i===1 ? 'short' : 'ok', note:''})),
+            unitPrice:l.unitPrice, condition: shortOne && i===1 ? 'short' : 'ok', note:'',
+            ...(l.packSize>0 ? {packSize:l.packSize, packLabel:l.packLabel,
+                                packQty:l.packQty, packPrice:l.packPrice} : {})})),
           kitchenId:'k_main',
         });
       });

@@ -50,9 +50,17 @@ window.MKR = window.MKR || {};
       }
       const short = (+l.ordered||0) > 0 && U.round2(+l.ordered) !== U.round2(+l.qty);
       const flag = (l.condition && l.condition!=='ok') ? COND[l.condition] || l.condition : '';
+      // A docket bought by the carton is read back the way the paper reads —
+      // "3 cartons × $60.00" — with the per-unit figure underneath, because that
+      // is the number the ▲▼ against last time is actually comparing.
+      const pk = +l.packSize>0 && l.packQty!=null;
+      const sub = pk
+        ? `${U.round2(l.packQty)} ${U.esc((l.packLabel||'pack')+(U.round2(l.packQty)===1?'':'s'))} × ${U.money(l.packPrice)}`
+        : `${l.qty} ${U.esc(l.unit||'')} × ${U.money(l.unitPrice)}`;
       return `<div class="dkt-line">
         <div class="dkt-line-top"><span class="dkt-name">${U.esc(l.name||'')}</span><b>${U.money(l.amount)}</b></div>
-        <div class="dkt-line-sub"><span>${l.qty} ${U.esc(l.unit||'')} × ${U.money(l.unitPrice)}</span>${move}</div>
+        <div class="dkt-line-sub"><span>${sub}</span>${move}</div>
+        ${pk?`<div class="dkt-line-sub"><span class="faint">= ${l.qty} ${U.esc(l.unit||'')} · ${U.money(l.unitPrice)}/${U.esc(l.unit||'unit')}</span></div>`:''}
         ${short||flag ? `<div class="dkt-flag">⚠ ${short?`ordered ${l.ordered} ${U.esc(l.unit||'')}, took ${l.qty}`:''}${short&&flag?' · ':''}${flag?U.esc(flag):''}</div>`:''}
       </div>`;
     };
@@ -171,9 +179,15 @@ window.MKR = window.MKR || {};
       purchaseModal(sups, its, purch, reload, dlvs.filter(d=>d.status==='expected'));
     };
     U.qs('#purCsv',actions).onclick = ()=>{
-      const out=[['Date','Supplier','Docket','Item','Qty','Unit','Unit price','Amount','Goods','Freight','GST','Docket total','Paid by','Taken in by']];
+      // Both readings of every line: what the paper said (packs) and what the
+      // kitchen counts (units). An accountant reconciling against the supplier's
+      // invoice needs the first; anyone checking a price needs the second.
+      const out=[['Date','Supplier','Docket','Item','Packs','Pack','Pack size','Price per pack','Qty','Unit','Unit price','Amount','Goods','Freight','GST','Docket total','Paid by','Taken in by']];
       purch.forEach(p=>(p.lines||[]).forEach((l,i)=>out.push([U.fmtDateTime(p.ts), (supOf(p.supplierId)||{}).name||'', p.invoiceNo||'',
-        l.name, l.qty, l.unit||'', (+l.unitPrice||0).toFixed(2), (+l.amount||0).toFixed(2),
+        l.name,
+        l.packSize>0 && l.packQty!=null ? l.packQty : '', l.packSize>0 ? (l.packLabel||'pack') : '',
+        l.packSize>0 ? l.packSize : '', l.packSize>0 && l.packPrice!=null ? (+l.packPrice).toFixed(2) : '',
+        l.qty, l.unit||'', (+l.unitPrice||0).toFixed(2), (+l.amount||0).toFixed(2),
         i===0?subOf(p).toFixed(2):'', i===0?(+p.fee||0).toFixed(2):'', i===0?(+p.gst||0).toFixed(2):'',
         i===0?totalOf(p).toFixed(2):'', i===0?(p.payMethod||''):'', i===0?(p.by||''):''])));
       if(out.length===1){ U.toast('Nothing to export','amber'); return; }
@@ -228,7 +242,8 @@ window.MKR = window.MKR || {};
 
     const lineHtml = ()=>`<tr class="pl-row">
       <td><select class="input pl-item">${opt}</select></td>
-      <td class="num"><input class="input pl-qty" type="number" step="0.01" value="1" style="text-align:right"></td>
+      <td class="num"><input class="input pl-qty" type="number" step="0.01" value="1" style="text-align:right">
+        <div class="faint pl-hint" style="font-size:11px;margin-top:4px;text-align:right"></div></td>
       <td class="num"><input class="input pl-price" type="number" step="0.01" value="0" style="text-align:right"></td>
       <td class="num pl-amt">${U.money(0)}</td>
       <td class="num"><button class="btn btn-ghost btn-sm pl-del" aria-label="remove line">×</button></td></tr>`;
@@ -271,14 +286,28 @@ window.MKR = window.MKR || {};
       const total = sub + (Number(U.qs('#p_fee',wrap).value)||0) + (Number(U.qs('#p_gst',wrap).value)||0);
       U.qs('#p_total',wrap).textContent = U.money(total);
     }
+    // This form takes the item's own unit, not the supplier's pack — it has no
+    // per-line basis switch, so the row has to say which one it wants. Typing a
+    // carton figure here is exactly the mistake the pack field exists to stop,
+    // and it is silent: the number looks plausible and only the price page ever
+    // notices. The back door is the right route when the paper is in cartons.
+    function packHintOf(it){
+      const n = S().packSizeOf(it);
+      return n ? `in ${S().unitOf(it)} — 1 ${S().packLabelOf(it)} = ${U.round2(n)}` : '';
+    }
     function bindRow(tr){
+      const syncHint = ()=>{
+        const it = its.find(i=>i.id===U.qs('.pl-item',tr).value);
+        U.qs('.pl-hint',tr).textContent = packHintOf(it);
+      };
       U.qs('.pl-qty',tr).oninput = recalc;
       U.qs('.pl-price',tr).oninput = recalc;
       U.qs('.pl-item',tr).onchange = ()=>{
         const it = its.find(i=>i.id===U.qs('.pl-item',tr).value);
         if(it && Number(U.qs('.pl-price',tr).value)===0) U.qs('.pl-price',tr).value = it.price||0;
-        recalc();
+        syncHint(); recalc();
       };
+      syncHint();
       U.qs('.pl-del',tr).onclick = ()=>{ if(U.qsa('.pl-row',body).length>1){ tr.remove(); recalc(); } };
     }
     U.qsa('.pl-row',body).forEach(bindRow);

@@ -151,6 +151,9 @@ window.MKR = window.MKR || {};
         <div class="field grow"><label>Unit</label><input class="input" id="i_u" value="${U.esc(r.unit||'')}" placeholder="kg / box / pcs"></div></div>
       <div class="row"><div class="field grow"><label>Unit price paid (AUD)</label><input class="input" id="i_p" type="number" step="0.01" value="${r.price||0}"></div>
         <div class="field grow"><label>Reorder at</label><input class="input" id="i_s" type="number" step="0.01" value="${r.safety||0}"></div></div>
+      <div class="row"><div class="field grow"><label>Supplier sells it by the…</label><input class="input" id="i_pl" value="${U.esc(r.packLabel||'')}" placeholder="carton / box / bag — leave blank if none"></div>
+        <div class="field grow"><label>How much is in one</label><input class="input" id="i_ps" type="number" step="0.01" min="0" value="${r.packSize||''}" placeholder="e.g. 10"></div></div>
+      <div class="disclaimer"><span>📦</span><span id="i_packTxt"></span></div>
       <div class="row"><div class="field grow"><label>Usual supplier</label><select class="input" id="i_sup">
           <option value="">— none —</option>
           ${sups.map(s=>`<option value="${s.id}" ${r.supplierId===s.id?'selected':''}>${U.esc(s.name)}</option>`).join('')}
@@ -161,6 +164,20 @@ window.MKR = window.MKR || {};
     </div>`);
     const syncKind=()=>{ U.qs('#i_slWrap',wrap).style.display = U.qs('#i_k',wrap).value==='perishable'?'':'none'; };
     U.qs('#i_k',wrap).onchange=syncKind; syncKind();
+
+    // The pack never becomes a second unit of account — it only changes what the
+    // back door is allowed to type. Say that in the form, because an owner who
+    // thinks the pack replaces the unit will enter carton prices everywhere.
+    const syncPack=()=>{
+      const size  = Number(U.qs('#i_ps',wrap).value)||0;
+      const label = U.qs('#i_pl',wrap).value.trim() || 'pack';
+      const unit  = U.qs('#i_u',wrap).value.trim() || 'units';
+      U.qs('#i_packTxt',wrap).innerHTML = size>0
+        ? `1 ${U.esc(label)} = <b>${U.round2(size)} ${U.esc(unit)}</b>. Deliveries can be counted in ${U.esc(label)}s and the app converts — stock, price history and the price page all stay in ${U.esc(unit)}.`
+        : `Leave this blank if you buy in ${U.esc(unit)}. Fill it in and the back door counts ${U.esc(label)}s instead of weighing every delivery.`;
+    };
+    ['#i_ps','#i_pl','#i_u'].forEach(s=>{ U.qs(s,wrap).oninput = syncPack; });
+    syncPack();
 
     const actions = [{label:'Save', class:'btn-dark', onClick:async(close)=>{
       const name=U.qs('#i_n',wrap).value.trim();
@@ -173,6 +190,10 @@ window.MKR = window.MKR || {};
         price, supplierId:U.qs('#i_sup',wrap).value||null,
         leadTimeDays:Number(U.qs('#i_lt',wrap).value)||2,
         shelfLifeDays: kind==='perishable' ? (Number(U.qs('#i_sl',wrap).value)||null) : null,
+        // A label with no size is meaningless and a size with no label reads as
+        // "10 of what?" — an incomplete pair is stored as no pack at all.
+        packSize: (Number(U.qs('#i_ps',wrap).value)||0) > 0 ? U.round2(Number(U.qs('#i_ps',wrap).value)) : null,
+        packLabel: (Number(U.qs('#i_ps',wrap).value)||0) > 0 ? (U.qs('#i_pl',wrap).value.trim()||'pack') : '',
       };
       if(!r.id || U.round2(r.price)!==U.round2(price)) patch.priceHistory = pushPriceLocal(r, price);
       await S().saveItem(patch);

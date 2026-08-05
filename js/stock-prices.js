@@ -82,7 +82,7 @@ window.MKR = window.MKR || {};
         ${r.cheapest?`<div class="pw-cheap">↩ ${r.cheapest.sameSupplier?'they charged':'was'} ${U.money(r.cheapest.price)}${r.cheapest.sameSupplier?'':` at ${U.esc(r.cheapest.supplier?r.cheapest.supplier.name:'another supplier')}`} on ${U.fmtDate(r.cheapest.ts)}${r.cheapest.saving>0.5?` · ${U.money(r.cheapest.saving)} on this ${label}'s quantity`:''}</div>`:''}
       </td>
       <td class="num">${r.prevAvg==null?'<span class="faint">—</span>':U.money(r.prevAvg)}</td>
-      <td class="num"><b>${r.thisAvg==null?'—':U.money(r.thisAvg)}</b></td>
+      <td class="num"><b>${r.thisAvg==null?'—':U.money(r.thisAvg)}</b>${r.thisAvg==null||!r.unit?'':`<small class="faint">/${U.esc(r.unit)}</small>`}</td>
       <td>${pctBadge(r.pct, r.dir)}</td>
       <td class="num ${r.impact>0?'pw-worse':(r.impact<0?'pw-better':'')}">${r.impact?`<b>${r.impact>0?'+':'−'}${U.money(Math.abs(r.impact))}</b>`:'<span class="faint">—</span>'}</td>
       <td class="pw-spark">${spark(r.item)}</td>
@@ -110,6 +110,7 @@ window.MKR = window.MKR || {};
       ${!w.rows.length?`<div class="empty mt16"><div class="em">🏷️</div><p>No purchases in the last ${days*2} days. Record your dockets and prices start comparing themselves.</p></div>`:''}
       <div class="disclaimer mt16"><span>ℹ️</span><div>
         <div>Every figure is the price you actually paid, weighted by quantity, taken straight off your dockets. Nothing here is a market rate or a forecast of one.</div>
+        <div>Prices are per unit, never per carton. A docket booked in packs is converted first, so a supplier changing their pack size cannot show up here as a price rise.</div>
         <div>Comparing ${U.fmtDate(w.from)} – ${U.fmtDate(w.to)} against ${U.fmtDate(w.prevFrom)} – ${U.fmtDate(w.prevTo)}.</div>
       </div></div>`;
 
