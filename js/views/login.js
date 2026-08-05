@@ -118,11 +118,29 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         err.classList.add('hidden'); btn.disabled=true; btn.textContent='Signing in…';
         const res = await MKR.auth.login(lu.value, lp.value);
         if(!res.ok){ showErr(res.msg); btn.disabled=false; btn.textContent='Sign in'; return; }
-        btn.textContent='Loading…';
-        try{ await MKR.db.initSync(); await MKR.seed.ensure(); }catch(e){}
+        // Everything below used to be awaited before the portal appeared, which
+        // made signing in feel broken on a slow connection: a full pull of every
+        // table, and then a browser permission prompt that blocks until the
+        // person answers it.
+        //
+        // The app is local-first — every screen reads IndexedDB — so the cloud
+        // pull does not belong in front of the door. It still runs first when it
+        // is quick, because a fresh device genuinely has nothing to show; if it
+        // is slow, we go in anyway and it finishes behind us.
+        btn.textContent='Syncing your venue…';
+        const synced = await Promise.race([
+          (async()=>{ try{ await MKR.db.initSync(); await MKR.seed.ensure(); }catch(e){} return true; })(),
+          new Promise(r=>setTimeout(()=>r(false), 3000)),
+        ]);
+        if(!synced) MKR.util.toast('Still catching up with the cloud — carry on, it will fill in','amber');
         try{ await MKR.features.load(); }catch(e){}
-        try{ await MKR.notify.enable(); MKR.notify.start(res.user.role); }catch(e){}
         location.hash = `#/${res.user.role}/${MKR.portals[res.user.role].home}`;
+        // Asked for after the portal is on screen, never in front of it. The
+        // permission dialog is a question about the future, not a step in
+        // signing in, and it stops the redirect dead until it is answered.
+        setTimeout(()=>{
+          try{ MKR.notify.enable().then(()=>MKR.notify.start(res.user.role)).catch(()=>{}); }catch(e){}
+        }, 1200);
       }
       btn.onclick=doLogin;
       lp.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });

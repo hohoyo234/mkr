@@ -6,8 +6,13 @@
   // Restore the login session (real Supabase session)
   const sess = await MKR.auth.restore();
   if(sess){
-    await MKR.db.initSync();          // signed in → pull from cloud (authed) + subscribe to realtime
-    try{ await MKR.seed.ensure(); }catch(e){}
+    // Same reasoning as the sign-in path: the shell reads local data, so a slow
+    // cloud pull must not hold the first paint. Wait briefly for it — a device
+    // that has been away needs the catch-up — then carry on and let it finish.
+    await Promise.race([
+      (async()=>{ try{ await MKR.db.initSync(); await MKR.seed.ensure(); }catch(e){} })(),
+      new Promise(r=>setTimeout(r, 3000)),
+    ]);
     try{ await MKR.features.load(); }catch(e){}   // load feature switches / permissions
     // Applied before the first render, so the app never paints in the default
     // orange and then snaps to the venue's colour a beat later.
