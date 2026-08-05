@@ -87,6 +87,18 @@ window.MKR = window.MKR || {};
     if(sess.kitchenId && viewingRole!=='superadmin'){
       try{ const k=await MKR.db.get('kitchens', sess.kitchenId); if(k){ brandName=k.name||brandName; brandLogo=k.logo||null; } }catch(e){}
     }
+    // Every branch this owner can look at. Switching is a thing you do from
+    // wherever you happen to be — noticing on the stock page that you're in the
+    // wrong venue and having to walk back through Branches to fix it is how
+    // someone ends up ordering Sydney's tomatoes for Melbourne.
+    let branches = [];
+    if(sess.role==='owner' && sess.kitchenId){
+      try{
+        branches = (await MKR.db.getAll('kitchens'))
+          .filter(k=> k.ownerId===sess.id || k.id===sess.kitchenId);
+      }catch(e){}
+    }
+
     const brandLetter=(brandName||'M').trim().charAt(0).toUpperCase()||'M';
     const logoHtml = brandLogo
       ? `<div class="logo" style="overflow:hidden;padding:0"><img src="${brandLogo}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`
@@ -103,7 +115,12 @@ window.MKR = window.MKR || {};
     root.innerHTML = `
       <div class="shell">
         <aside class="sidebar">
-          <div class="side-brand">${logoHtml}<div><b>${MKR.util.esc(brandName)}</b><small>${MKR.auth.roleName(viewingRole)}</small></div>
+          <div class="side-brand">${logoHtml}<div class="grow" style="min-width:0"><b>${MKR.util.esc(brandName)}</b>
+              ${branches.length>1
+                ? `<select class="branch-pick" id="branchPick" aria-label="Which branch you are looking at">
+                     ${branches.map(k=>`<option value="${MKR.util.esc(k.id)}" ${k.id===sess.kitchenId?'selected':''}>${MKR.util.esc(k.name)}</option>`).join('')}
+                   </select>`
+                : `<small>${MKR.auth.roleName(viewingRole)}</small>`}</div>
             <button class="side-toggle" id="sideToggle" aria-label="${sidePref==='mini'?'Open the menu':'Fold the menu'}" title="${sidePref==='mini'?'Open the menu':'Fold the menu'}"></button>
           </div>
           ${nav}
@@ -141,6 +158,25 @@ window.MKR = window.MKR || {};
       sideToggle.setAttribute('aria-label', label);
       sideToggle.title = label;
       try{ localStorage.setItem('mkr_side', mini?'mini':'full'); }catch(e){}
+    };
+
+    const branchPick = document.getElementById('branchPick');
+    if(branchPick) branchPick.onchange = async ()=>{
+      const id = branchPick.value;
+      const k = branches.find(x=>x.id===id);
+      MKR.auth.switchKitchen(id);
+      // Feature switches, brand colour and the sign-in mark are all per-venue,
+      // so all three have to follow the switch or the shell keeps showing the
+      // branch you just left.
+      try{ await MKR.features.load(); }catch(e){}
+      // The brand colour is not reloaded here: render() below already reloads it
+      // whenever the kitchen changes, and doing it twice is two reads for one
+      // repaint. Feature switches have no such hook, so they stay.
+      if(k){ try{ await MKR.db.meta('brand', {name:k.name, avatar:k.logo||null}); }catch(e){} }
+      MKR.util.toast('Now looking at '+(k?k.name:'another branch'), 'green');
+      // Back to the same page in the new branch, not to the dashboard: the
+      // reason you switched is almost always to see this page over there.
+      render();
     };
 
     document.getElementById('logoutBtn').onclick = ()=>{

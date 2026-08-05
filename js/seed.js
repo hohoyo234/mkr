@@ -51,6 +51,14 @@ window.MKR = window.MKR || {};
      // or the feature reads as a spreadsheet column.
      stockCategories:['Meat','Veg','Dry store','Packaging'],
      operatingHours:{open:'09:00', close:'22:00'}, createdAt:Date.now()-90*24*3600e3},
+    // A second venue, so the branch switcher exists in the sample data at all.
+    // Deliberately quieter than the first — the point of looking at two branches
+    // is that they are not the same, and a clone teaches the owner nothing.
+    {id:'k_south', name:'My Kitchen · Southbank', location:'Southbank, VIC', status:'active',
+     ownerId:'u_boss', primary:false, setupComplete:true, logo:null,
+     phone:'03 9000 1111', email:'southbank@mykitchen.au', website:'https://mykitchen.au',
+     stockCategories:['Meat','Veg','Dry store','Packaging'],
+     operatingHours:{open:'11:00', close:'23:00'}, createdAt:Date.now()-30*24*3600e3},
   ];
 
   S.SUPPLIERS = [
