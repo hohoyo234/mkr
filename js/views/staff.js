@@ -235,21 +235,62 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     async function patchOb(patch){ ob = await MKR.db.put('onboarding', {...ob, ...patch}); }
 
     // Staff can see their OWN sensitive info in full (no masking for one's own data).
-    let passPlain='';
+    let passPlain='', tfnPlain='';
     try{ if(ob.passportEnc) passPlain = await MKR.crypto.dec(ob.passportEnc, sess.id); }catch(e){}
+    try{ if(ob.tfnEnc)      tfnPlain  = await MKR.crypto.dec(ob.tfnEnc, sess.id); }catch(e){}
 
-    // This app collects employment records only. It does not handle pay, tax,
-    // super or bank details — that stays with the venue's own payroll process.
+    // Even to its owner, a TFN is shown as the last three on a summary line that
+    // sits open on a bench phone. The full number is one tap away in the modal.
+    const maskTfn = (v)=> v ? '••• ••• '+String(v).replace(/\D/g,'').slice(-3) : '';
+
+    // The ATO's own check digit: weight each digit, and the total must divide by
+    // 11. It catches a transposed pair, which is the mistake people actually
+    // make — it says nothing about whether the number belongs to this person,
+    // and the app makes no claim that it does.
+    const TFN_W = [1,4,3,7,5,8,6,9,10];
+    function tfnLooksValid(v){
+      const d = String(v||'').replace(/\D/g,'');
+      if(d.length!==8 && d.length!==9) return false;
+      // 000000000 divides by 11 and so passes the check digit — as does any
+      // all-same-digit run that happens to. They are placeholder typing, never
+      // a real TFN, and the checksum alone will wave them through.
+      if(/^(\d)\1+$/.test(d)) return false;
+      let sum=0; for(let i=0;i<d.length;i++) sum += Number(d[i]) * TFN_W[i];
+      return sum % 11 === 0;
+    }
+
+    // Employment records. Pay, super and bank details are still not collected —
+    // those stay with the venue's payroll. A TFN and work-rights status are held
+    // because payroll needs them to exist somewhere the owner can retrieve them,
+    // and the app makes no judgement about either: it never checks a visa
+    // against its conditions and never counts hours against one.
     function docStatus(){
       return {
         passport:  !!ob.passportDoc || !!ob.passportEnc,
         emergency: !!user.emergency,
+        tfn:       !!ob.tfnEnc || ob.tfnDeclined===true,
+        // Satisfied by saying you're a citizen or PR just as much as by entering
+        // a visa — most staff have no visa to enter and must not be stuck here.
+        workrights: !!ob.workRights,
       };
+    }
+
+    const WORK_RIGHTS = {
+      citizen: 'Australian citizen',
+      pr:      'Permanent resident',
+      visa:    'Visa holder',
+    };
+    function workRightsLine(){
+      const w = ob.workRights; if(!w) return '';
+      if(w!=='visa') return WORK_RIGHTS[w] || w;
+      const bits = [ob.visaSubclass ? 'Subclass '+ob.visaSubclass : 'Visa holder'];
+      if(ob.visaExpiry) bits.push('expires '+U.fmtDate(new Date(ob.visaExpiry).getTime()));
+      return bits.join(' · ');
     }
 
     function draw(){
       const st = docStatus();
-      const required = ['passport','emergency'];
+      const required = ['passport','emergency','tfn','workrights'];
       const doneCount = required.filter(k=>st[k]).length;
       const allDone = doneCount===required.length;
 
@@ -271,9 +312,11 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <div class="section-title">Onboarding checklist <span class="faint" style="font-size:12px">${doneCount}/${required.length} required</span></div>
             <div class="bar" style="margin:0 0 14px"><i style="width:${doneCount/required.length*100}%;background:var(--green)"></i></div>
             ${item('passport','🛂','Passport / ID', st.passport?('ID'+(passPlain?' '+U.esc(passPlain):'')+(ob.passportDoc?' · document on file':'')):'Upload a photo of your passport or ID', st.passport, 'Upload')}
+            ${item('tfn','🧾','Tax file number', st.tfn?(ob.tfnDeclined?'You chose not to provide one':U.esc(maskTfn(tfnPlain))+' · encrypted'):'Your TFN, for the venue\'s payroll', st.tfn, 'Add')}
+            ${item('workrights','🛫','Work rights', st.workrights?U.esc(workRightsLine()):'Citizen, permanent resident, or the visa you work on', st.workrights, 'Add')}
             ${item('emergency','🚑','Emergency contact', st.emergency?U.esc(user.emergency):'Who should we call if something happens on shift', st.emergency, 'Add')}
-            ${!user.onboarded?`<button class="btn btn-green btn-block mt16" id="finishBtn" ${allDone?'':'disabled'}>${allDone?'✅ Submit onboarding':'Complete both items first'}</button>`:'<div class="alert green mt16"><span>✅</span><div>All set. Tap any item above to view or update it.</div></div>'}
-            <div class="disclaimer mt12"><span>🔒</span>Your ID number is encrypted at rest (${MKR.crypto.available?'AES-GCM':'local cipher'}) and only you and the owner can see it. <b>This app never asks for your TFN, super fund or bank details</b> — pay is handled outside it.</div>
+            ${!user.onboarded?`<button class="btn btn-green btn-block mt16" id="finishBtn" ${allDone?'':'disabled'}>${allDone?'✅ Submit onboarding':`Complete all ${required.length} items first`}</button>`:'<div class="alert green mt16"><span>✅</span><div>All set. Tap any item above to view or update it.</div></div>'}
+            <div class="disclaimer mt12"><span>🔒</span>Your ID and tax file number are encrypted at rest (${MKR.crypto.available?'AES-GCM':'local cipher'}) and only you and the owner can open them — never your manager, and never another staff member. Every time the owner opens one it is written to the audit log. <b>The app still never asks for your super fund or bank details</b>, and it never checks your visa or counts your hours against it.</div>
           </div>
 
           <div class="card" style="padding:20px">
@@ -321,6 +364,81 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           const patch={ passportDoc: img };
           if(no){ patch.passportEnc = await MKR.crypto.enc(no, sess.id); passPlain=no; }
           await patchOb(patch); cl(); U.toast('Passport saved','green'); draw();
+        }}]});
+      }
+      else if(key==='tfn'){
+        // Quoting a TFN is not compulsory in Australia — declining is a lawful
+        // choice with a tax consequence, not a refusal to onboard. A form that
+        // only accepts a number would push people into typing a wrong one, so
+        // "I'd rather not" is a first-class answer that still ticks the item.
+        const wrap=U.el(`<div>
+          <div class="field"><label>Tax file number</label>
+            <input class="input" id="tfn_no" inputmode="numeric" autocomplete="off" value="${U.esc(tfnPlain)}" placeholder="9 digits">
+            <div class="faint" id="tfn_msg" style="font-size:12px;margin-top:6px"></div></div>
+          <label class="row gap6" style="align-items:center;margin:10px 0">
+            <input type="checkbox" id="tfn_no_thanks" ${ob.tfnDeclined?'checked':''}>
+            <span style="font-size:13px">I'd rather not provide it</span></label>
+          <div class="disclaimer"><span>🔒</span>Encrypted before it is stored, readable only by you and the owner, and never included in any export or report. You are not required by law to quote it — if you don't, tax is withheld at the top rate.</div>
+        </div>`);
+        const msg=U.qs('#tfn_msg',wrap), inp=U.qs('#tfn_no',wrap), skip=U.qs('#tfn_no_thanks',wrap);
+        const check=()=>{
+          const d=inp.value.replace(/\D/g,'');
+          inp.disabled = skip.checked;
+          if(skip.checked){ msg.textContent=''; return; }
+          msg.textContent = !d ? '' : (tfnLooksValid(d) ? '✓ Checks out' : '⚠ That doesn\'t look right — check the digits');
+          msg.style.color = !d ? '' : (tfnLooksValid(d) ? 'var(--green)' : 'var(--red)');
+        };
+        inp.oninput=check; skip.onchange=check; check();
+        U.modal('🧾 Tax file number',wrap,{actions:[{label:'Save',class:'btn-dark',onClick:async(cl)=>{
+          if(skip.checked){
+            await patchOb({tfnDeclined:true, tfnEnc:null}); tfnPlain='';
+            cl(); U.toast('Noted','green'); draw(); return;
+          }
+          const d=inp.value.replace(/\D/g,'');
+          if(!d){ U.toast('Enter your TFN, or tick the box','red'); return; }
+          if(!tfnLooksValid(d)){ U.toast('That TFN doesn\'t check out — please re-read it','red'); return; }
+          await patchOb({tfnEnc: await MKR.crypto.enc(d, sess.id), tfnDeclined:false});
+          tfnPlain=d; cl(); U.toast('Tax file number saved','green'); draw();
+        }}]});
+      }
+      else if(key==='workrights'){
+        let img = ob.visaDoc||null;
+        const wrap=U.el(`<div>
+          <div class="field"><label>Your work rights</label>
+            <select class="input" id="wr_kind">
+              <option value="">— choose —</option>
+              ${Object.entries(WORK_RIGHTS).map(([k,v])=>`<option value="${k}" ${ob.workRights===k?'selected':''}>${v}</option>`).join('')}
+            </select></div>
+          <div id="wr_visa" style="display:none">
+            <div class="row"><div class="field grow"><label>Visa subclass</label>
+                <input class="input" id="wr_sub" value="${U.esc(ob.visaSubclass||'')}" placeholder="e.g. 500, 482, 417"></div>
+              <div class="field grow"><label>Expires</label>
+                <input class="input" id="wr_exp" type="date" value="${U.esc(ob.visaExpiry||'')}"></div></div>
+            <div class="field"><label>Visa grant notice (optional)</label>
+              <label class="img-drop"><div class="img-preview" id="wr_prev">${img?`<img src="${img}">`:'<span>📷 Tap to upload</span>'}</div><input type="file" id="wr_file" accept="image/*" hidden></label></div>
+          </div>
+          <div class="disclaimer"><span>ℹ️</span>Recorded, not judged. The app never checks a visa against its conditions and never counts your hours against one — if the venue needs that checked, they use VEVO themselves.</div>
+        </div>`);
+        const kind=U.qs('#wr_kind',wrap);
+        const syncKind=()=>{ U.qs('#wr_visa',wrap).style.display = kind.value==='visa' ? '' : 'none'; };
+        kind.onchange=syncKind; syncKind();
+        U.qs('#wr_file',wrap).onchange=(e)=>fileToData(e.target,(d)=>{ img=d; U.qs('#wr_prev',wrap).innerHTML=`<img src="${d}">`; });
+        U.modal('🛫 Work rights',wrap,{actions:[{label:'Save',class:'btn-dark',onClick:async(cl)=>{
+          const k=kind.value;
+          if(!k){ U.toast('Choose one','red'); return; }
+          const patch={workRights:k};
+          if(k==='visa'){
+            patch.visaSubclass = U.qs('#wr_sub',wrap).value.trim();
+            patch.visaExpiry   = U.qs('#wr_exp',wrap).value || '';
+            patch.visaDoc      = img;
+            if(!patch.visaSubclass){ U.toast('Which visa subclass?','red'); return; }
+          } else {
+            // Switching off "visa holder" clears what was only ever there to
+            // describe a visa — leaving a stale subclass on a citizen's record
+            // is worse than having none.
+            patch.visaSubclass=''; patch.visaExpiry=''; patch.visaDoc=null;
+          }
+          await patchOb(patch); cl(); U.toast('Work rights saved','green'); draw();
         }}]});
       }
       else if(key==='emergency'){

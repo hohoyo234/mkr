@@ -900,6 +900,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           ${row('Skills', MKR.roster.skillsOf(u).map(k=>`${(MKR.roster.SKILLS[k]||{}).em||''} ${(MKR.roster.SKILLS[k]||{}).label||k}`).join(' · ') || '<span class="faint">None set — add them in Rostering → Preferences</span>')}
           ${row('Training', myTraining.length?`${myTraining.filter(t=>t.status==='done').length}/${myTraining.length} signed off`:'<span class="faint">None assigned</span>')}
           ${row('ID / passport no.', ob&&ob.passportEnc?'<span id="ppSlot">'+MKR.crypto.mask()+'</span> <button class="btn btn-ghost btn-sm" id="ppBtn" style="margin-left:6px;min-height:32px;padding:0 12px">Reveal</button>':'')}
+          ${row('Tax file number', ob&&ob.tfnEnc
+            ? '<span id="tfnSlot">'+MKR.crypto.mask()+'</span> <button class="btn btn-ghost btn-sm" id="tfnBtn" style="margin-left:6px;min-height:32px;padding:0 12px">Reveal</button>'
+            : (ob&&ob.tfnDeclined ? '<span class="faint">Chose not to provide one</span>' : ''))}
+          ${row('Work rights', ob&&ob.workRights ? U.esc(wrLine(ob)) : '')}
         </div></div>
         <div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Onboarding</div><div class="list">
           ${docRow('Passport / ID document', ob&&ob.passportDoc, 'passportDoc')}
@@ -929,6 +933,25 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       // opened — never the value, and never the document type: "TFN" in a log
       // line is a claim about what is stored, and this app stores no TFN.
       const pb=U.qs('#ppBtn',c); if(pb) pb.onclick=async()=>{ const v=await MKR.crypto.dec(ob.passportEnc, ob.userId); await MKR.audit.log({action:'id.view',desc:`Viewed the stored ID for ${u.name}`, target:ob.userId}); U.qs('#ppSlot',c).textContent=v; pb.remove(); };
+      // Same rule for the TFN, and it is the reason the reveal is a button at
+      // all: an audit row is only worth anything if opening the value is a
+      // deliberate act that leaves a trace, rather than something that happens
+      // to everyone who loads the page.
+      const tb=U.qs('#tfnBtn',c); if(tb) tb.onclick=async()=>{ const v=await MKR.crypto.dec(ob.tfnEnc, ob.userId); await MKR.audit.log({action:'tfn.view',desc:`Viewed the stored tax file number for ${u.name}`, target:ob.userId}); U.qs('#tfnSlot',c).textContent=v; tb.remove(); };
+    }
+
+    // Work rights read back as one line. Not sensitive the way a TFN is — it is
+    // a status, not an identifier — so it shows without a reveal, and the app
+    // still makes no judgement about what the visa permits.
+    function wrLine(ob){
+      const NAMES={citizen:'Australian citizen', pr:'Permanent resident', visa:'Visa holder'};
+      if(ob.workRights!=='visa') return NAMES[ob.workRights] || ob.workRights || '';
+      const bits=[ob.visaSubclass?('Subclass '+ob.visaSubclass):'Visa holder'];
+      if(ob.visaExpiry){
+        const ts=new Date(ob.visaExpiry).getTime();
+        bits.push((ts < Date.now() ? 'EXPIRED ' : 'expires ') + U.fmtDate(ts));
+      }
+      return bits.join(' · ');
     }
 
     // ---- Edit mode ----

@@ -35,11 +35,12 @@ window.MKR = window.MKR || {};
     // People
     'staff.hire':'Hire / onboard', 'staff.offboard':'Offboard staff',
     'reward':'Staff reward',
-    // An access record, deliberately kept: knowing who opened someone's stored
-    // ID is a protection, and it is the only trace that it happened at all.
-    // Renamed off `tfn.view` — this app stores no TFN, and a label claiming
-    // otherwise is a compliance claim it cannot back.
+    // Access records. Knowing who opened someone's stored ID or TFN is a
+    // protection, and this row is the only trace that it happened at all —
+    // which is why the reveal is a button rather than something the page does
+    // for anyone who loads it.
     'id.view':'Viewed a stored ID',
+    'tfn.view':'Viewed a tax file number',
     // Stock & supply chain
     'stock.purchase':'Record purchase', 'stock.count':'Stocktake',
     'stock.waste':'Record waste', 'stock.statement':'Supplier statement check',
@@ -70,12 +71,7 @@ window.MKR = window.MKR || {};
       });
     },
     async all(){ const rows = await MKR.db.getAll('audit'); return rows.sort((a,b)=>b.ts-a.ts); },
-    // Rows written before an action was renamed still carry the old key, and an
-    // audit log that cannot render its own history is worse than one with an
-    // ugly label — so the retired names resolve rather than falling through.
-    label(action){
-      return LABELS[action] || ({'tfn.view':'Viewed a stored ID'})[action] || action;
-    },
+    label(action){ return LABELS[action] || action; },
     LABELS,
   };
   MKR.audit = A;

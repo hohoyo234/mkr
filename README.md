@@ -50,10 +50,30 @@ These are omissions by design, not gaps in the roadmap:
 - **No point of sale.** No orders, no sales figures, no cash reconciliation.
 - **No pay.** No wage rates, no award or penalty-rate calculations, no payslips,
   no labour-cost ratios.
-- **No TFN, super or bank details** are collected anywhere.
+- **No super or bank details** are collected anywhere.
 - **No government integration.** No STP, no ATO, no filing of any kind.
-- **No compliance judgements** and no visa hour limits. No visa data is stored.
+- **No compliance judgements.** No visa hour limits, and nothing is ever checked
+  against a visa's conditions.
 - **No customer-facing role.** No QR ordering, loyalty, points or coupons.
+
+### Employment records the app does hold
+
+A venue's payroll needs the staff member's TFN and work-rights status to exist
+somewhere the owner can retrieve them, so the app holds both — recorded, never
+interpreted:
+
+- **Staff enter their own.** Nobody types them on someone else's behalf.
+- **Quoting a TFN is optional**, as it is in law. "I'd rather not" is a
+  first-class answer that still completes onboarding.
+- **Encrypted at rest** (`tfnEnc`, `passportEnc`) and readable only by the staff
+  member and the owner — never a manager, never another staff member. That is
+  enforced by Row Level Security on `onboarding`, not by the browser.
+- **Masked until deliberately revealed**, and every reveal writes an audit row
+  naming who opened whose record — never the value.
+- **Never exported.** No CSV or report path touches the `onboarding` table.
+- **Work rights are a status, not a judgement.** The app stores "citizen / PR /
+  subclass 500 expiring March" and does nothing with it. It does not count hours
+  against a visa and does not decide whether someone may work.
 
 Two optional add-ons exist, **off by default**, and both are referrals only:
 *Awards help* opens the venue's partner employment lawyer, and *Check work rights*
