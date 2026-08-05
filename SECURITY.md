@@ -94,3 +94,26 @@
 - **provisioning（申请/加入/招人）**：目前由前端 `signUp` + 审批时写 `profiles` 完成（已接 RLS）。更稳的做法是用一个 service-role 的 Edge Function 统一发号，避免依赖客户端逐步写库——列为下一步增强。
 - **邮箱确认**：Supabase 默认可能要求邮箱确认。用合成邮箱 `username@mkr.app` 时，去 Authentication → Providers → Email 关掉 "Confirm email"，或改用真实邮箱。
 - **Google 登录**：仍是"仅邀请"——必须先有 `profiles` 行，否则登录被拒并提示。
+
+
+---
+
+## 测试账号（test_boss1 / test_manager1 / test_staff1 / test_staff2）
+
+四个用来同时体验不同角色的账号，跟出现在截图和示例数据里的 demo 五人组分开。
+
+**怎么建**（浏览器控制台跑，不需要 service key）：
+
+```js
+await MKR.setup.createTestAccounts()
+```
+
+它会做两件事：
+1. 用公开的 anon key 调 `signUp` 建 Auth 用户，并写好 app 侧的 `users` 记录（姓名、角色、可用时段、技能）——只建 Auth 用户的话，人能登进去但门户里查无此人。
+2. 打印一段 `insert into public.profiles ...` 的 SQL。
+
+**再把打印出来的 SQL 贴到 Supabase SQL Editor 跑一次**。`profiles` 才是角色的服务端真相来源，而且它自己受 RLS 保护，浏览器写不进去 —— SQL Editor 用的是 service role，可以绕过。
+
+登录时用**用户名**（不是邮箱）：`test_boss1` / `threepandas`。
+
+⚠️ 四个账号共用一个好猜的密码，其中一个是 **owner**。测试店无所谓，真店绝对不行 —— 项目开始承载真实数据前，去 Supabase 的 Authentication → Users 把这四个删掉。
