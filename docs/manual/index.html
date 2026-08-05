@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Kitchen Rules 使用说明书</title>
+<style>
+:root{
+  --ink:#1c1a17; --mid:#5d574e; --faint:#8b8378; --line:#e6e0d6;
+  --paper:#faf7f2; --card:#fff; --accent:#c2571f; --accent-soft:#fdeee3;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:16px/1.75 -apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 22px 96px}
+header.top{padding:64px 0 28px;border-bottom:1px solid var(--line);margin-bottom:34px}
+.logo{width:52px;height:52px;border-radius:14px;background:var(--accent);color:#fff;display:flex;
+  align-items:center;justify-content:center;font:700 26px/1 Georgia,serif;margin-bottom:18px}
+h1{font-size:38px;line-height:1.2;margin:0 0 10px;letter-spacing:-.5px}
+.sub{color:var(--mid);font-size:17px;margin:0}
+nav.toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:28px 0 0}
+nav.toc a{display:block;padding:12px 14px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;text-decoration:none;color:var(--ink);font-size:14.5px;font-weight:600}
+nav.toc a b{display:block;color:var(--accent);font-size:12px;margin-bottom:2px}
+nav.toc a:hover{border-color:var(--accent);background:var(--accent-soft)}
+section{margin:0 0 60px;scroll-margin-top:20px}
+h2{font-size:27px;margin:52px 0 18px;display:flex;align-items:baseline;gap:12px}
+.sn{color:#fff;background:var(--ink);border-radius:9px;font-size:15px;padding:3px 11px}
+h3{font-size:20px;margin:44px 0 14px;padding-top:8px}
+h4{margin:0 0 6px;font-size:15.5px}
+p{margin:0 0 14px}
+code{background:#f0ece4;border-radius:5px;padding:2px 6px;font-size:14px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--ink);color:#f5efe6;padding:14px 18px;border-radius:12px;overflow-x:auto}
+pre code{background:none;color:inherit;padding:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0 26px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.c p{margin:0;font-size:14.5px;color:var(--mid)}
+.tip{background:var(--accent-soft);border:1px solid #f0d6c0;border-radius:12px;padding:12px 16px;font-size:14.5px}
+/* ---- figures with annotation boxes ---- */
+.fig{margin:0 0 40px}
+.shot{position:relative;line-height:0;border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;background:#fff;box-shadow:0 6px 24px rgba(60,40,20,.07)}
+.shot img{width:100%;height:auto;display:block}
+.box{position:absolute;border:2.5px solid var(--accent);border-radius:9px;
+  box-shadow:0 0 0 3px rgba(194,87,31,.16)}
+.box i{position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;
+  background:var(--accent);color:#fff;font:700 14px/26px system-ui,sans-serif;
+  font-style:normal;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.box.up i{top:auto;bottom:-13px}
+.box.inl i{left:7px;top:7px}
+figcaption{font-size:14px;color:var(--faint);margin:10px 2px 14px;line-height:1.6}
+.legend{list-style:none;margin:0;padding:0;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px 22px}
+.legend li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;line-height:1.6;color:var(--mid)}
+.legend .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;
+  font:700 13px/22px system-ui,sans-serif;text-align:center;margin-top:3px}
+.note{margin:16px 0 0;padding:12px 16px;background:#fff;border:1px dashed var(--line);
+  border-radius:12px;font-size:14.5px;color:var(--mid)}
+.faq dt{font-weight:700;margin:20px 0 4px}
+.faq dd{margin:0;color:var(--mid);font-size:15px}
+footer{border-top:1px solid var(--line);padding-top:20px;color:var(--faint);font-size:13.5px}
+@media (max-width:640px){
+  h1{font-size:29px} h2{font-size:22px} h3{font-size:18px}
+  header.top{padding-top:40px} .box i{width:20px;height:20px;line-height:20px;font-size:11px;left:-9px;top:-9px}
+}
+@media print{
+  body{background:#fff} nav.toc{display:none} .shot{box-shadow:none}
+  section{break-inside:avoid-page} .fig{break-inside:avoid-page}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="logo">M</div>
+  <h1>My Kitchen Rules 使用说明书</h1>
+  <p class="sub">给老板 · 经理 · 员工的图解操作手册 —— 每张图上的橙色框，对应下面同号的说明</p>
+  <nav class="toc"><a href="#start"><b>0</b>一分钟看懂这个系统</a><a href="#login"><b>1</b>第一步：登录（或先试用）</a><a href="#owner"><b>2</b>老板篇</a><a href="#manager"><b>3</b>经理篇</a><a href="#staff"><b>4</b>员工篇（手机上最常用的四页）</a><a href="#faq"><b>5</b>常见问题</a></nav>
+</header>
+<section id="start"><h2><span class="sn">0</span>一分钟看懂这个系统</h2>
+<div class="cards">
+  <div class="c"><h4>它帮你做什么</h4><p>排班、库存与成本、收货确认、培训签名、每天的清洁与测温任务 —— 全部在一个网页里，手机也能用。</p></div>
+  <div class="c"><h4>它<b>不</b>做什么</h4><p>不点单收银、不算工资、不解读 Award、不收 TFN 和银行卡、不和任何政府系统对接。它只记录你自己店里的运营数据。</p></div>
+  <div class="c"><h4>三种身份</h4><p><b>老板</b>看全局、开关功能；<b>经理</b>排班、管库存收货；<b>员工</b>看班次、报可用时间、做任务、签培训。</p></div>
+</div>
+<h3>怎么打开</h3>
+<p>已经装好的门店，直接在浏览器打开你们的网址即可。自己在电脑上跑一份的话：</p>
+<pre><code>python3 -m http.server 8899</code></pre>
+<p>然后浏览器打开 <code>http://localhost:8899/index.html</code>。直接双击 <code>index.html</code> 也能用。</p>
+<p class="tip"><b>装到手机桌面：</b>用手机浏览器打开同一个网址 → 分享 → 「添加到主屏幕」，之后就像一个 App，断网也能先用，来网了自动同步。</p>
+</section><section id="login"><h2><span class="sn">1</span>第一步：登录（或先试用）</h2><figure class="fig">
+  <div class="shot">
+    <img src="img/login.png" alt="登录页：先选身份，再输入用户名密码" loading="lazy">
+    <div class="box" style="left:56.33%;top:3.80%;width:10.23%;height:4.40%"><i>1</i></div><div class="box" style="left:49.53%;top:14.34%;width:15.54%;height:3.97%"><i>2</i></div><div class="box" style="left:34.53%;top:19.62%;width:30.93%;height:8.77%"><i>3</i></div><div class="box" style="left:34.53%;top:31.66%;width:30.93%;height:5.32%"><i>4</i></div><div class="box" style="left:34.53%;top:39.88%;width:30.93%;height:5.32%"><i>5</i></div><div class="box" style="left:34.53%;top:48.54%;width:30.93%;height:5.32%"><i>6</i></div><div class="box" style="left:34.53%;top:77.21%;width:30.93%;height:14.87%"><i>7</i></div>
+  </div>
+  <figcaption>登录页：先选身份，再输入用户名密码</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>右上角可以换语言：简体中文 / 繁體 / English / Tiếng Việt / 한국어 / ไทย</span></li><li><span class="n">2</span><span>还没有系统？点「申请开通新餐厅系统」提交申请</span></li><li><span class="n">3</span><span>① 先选身份：老板 / 经理 / 员工</span></li><li><span class="n">4</span><span>② 填用户名（示例：老板 boss、经理 mgr、员工 amy）</span></li><li><span class="n">5</span><span>③ 填密码。密码存在云端账号系统里，本程序不保存密码</span></li><li><span class="n">6</span><span>④ 点「登录」。忘记密码点上方 Forgot password? 发重置邮件</span></li><li><span class="n">7</span><span>没有账号？点这里选个身份直接试用，用的是本机示例数据，不会写进真实门店</span></li></ol>
+  <p class="note">试用（预览）用的是这台设备上的示例数据，做什么都不会影响真实门店；想退出试用，点顶部橙色条上的「退出预览 →」。</p>
+</figure></section><section id="owner"><h2><span class="sn">2</span>老板篇</h2>
+<h3 id="o-dash">2.1　工作台：每天先看这一页</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-dashboard.png" alt="老板工作台：没事就安静，有事才提醒你" loading="lazy">
+    <div class="box up" style="left:18.68%;top:0.00%;width:81.33%;height:5.02%"><i>1</i></div><div class="box inl" style="left:0.00%;top:0.00%;width:20.77%;height:100.84%"><i>2</i></div><div class="box" style="left:20.70%;top:27.98%;width:78.00%;height:9.54%"><i>3</i></div><div class="box" style="left:20.70%;top:56.58%;width:32.90%;height:8.84%"><i>4</i></div><div class="box" style="left:93.52%;top:91.25%;width:5.78%;height:7.15%"><i>5</i></div>
+  </div>
+  <figcaption>老板工作台：没事就安静，有事才提醒你</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>这条橙色提示 = 你现在在「预览」，看到的都是示例数据</span></li><li><span class="n">2</span><span>左边是全部功能，点一下就切过去。手机上会变成底部图标栏</span></li><li><span class="n">3</span><span>「现在需要你处理」：真的要你出手才会出现，点右边箭头进去处理</span></li><li><span class="n">4</span><span>四个数字：库存金额 · 本周工时 · 培训待办 · 今天在岗人数</span></li><li><span class="n">5</span><span>右下角气泡：随时叫「全能助手」，用说话的方式问</span></li></ol>
+  
+</figure>
+
+<h3 id="o-stock">2.2　库存与成本：有多少、花了多少、从谁那买的</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-stock.png" alt="库存页：易腐（会坏的）和耐用（工具耗材）分开管" loading="lazy">
+    <div class="box" style="left:20.71%;top:16.10%;width:77.96%;height:4.44%"><i>1</i></div><div class="box" style="left:71.10%;top:10.77%;width:8.14%;height:4.52%"><i>2</i></div><div class="box" style="left:78.46%;top:10.77%;width:10.79%;height:4.52%"><i>3</i></div><div class="box" style="left:88.47%;top:10.77%;width:10.19%;height:4.52%"><i>4</i></div><div class="box" style="left:20.70%;top:20.18%;width:35.90%;height:5.04%"><i>5</i></div><div class="box" style="left:64.35%;top:30.10%;width:11.28%;height:3.87%"><i>6</i></div><div class="box" style="left:89.82%;top:33.90%;width:6.27%;height:4.52%"><i>7</i></div>
+  </div>
+  <figcaption>库存页：易腐（会坏的）和耐用（工具耗材）分开管</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>四个页签：库存 / 采购 / 供应商 / 预测（预测＝还能撑几天、该订什么）</span></li><li><span class="n">2</span><span>「盘点」：按现有数量逐项点数，盘完自动更新</span></li><li><span class="n">3</span><span>导出 CSV，给会计或自己存档</span></li><li><span class="n">4</span><span>「+ 添加物品」：新增原料（会坏的）或工具耗材（不会坏的）</span></li><li><span class="n">5</span><span>总库存价值、易腐、耐用、需要关注的项数</span></li><li><span class="n">6</span><span>「价格涨跌」= 拿最近两次采购价对比，涨价了会直接标出来</span></li><li><span class="n">7</span><span>点「编辑」改数量、单价、补货线和保质期</span></li></ol>
+  <p class="note">金额 = 数量 × 最近一次实际采购单价。「预测」页会用盘点差额算出每样还能撑几天，并给出建议订货清单 —— 它看的是盘点，不是销售数据。</p>
+</figure>
+
+<h3 id="o-deliv">2.3　送货：在后门就点清楚</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-deliveries.png" alt="送货确认：订了多少 vs 实际到了多少" loading="lazy">
+    <div class="box" style="left:88.47%;top:16.02%;width:10.19%;height:6.25%"><i>1</i></div><div class="box" style="left:20.71%;top:23.85%;width:77.96%;height:7.21%"><i>2</i></div><div class="box" style="left:20.71%;top:32.25%;width:77.96%;height:29.11%"><i>3</i></div>
+  </div>
+  <figcaption>送货确认：订了多少 vs 实际到了多少</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>「新建送货」：司机到门口就建一张，或提前建好让当班的人打勾</span></li><li><span class="n">2</span><span>待确认 / 已确认 / 有问题，一眼看到哪单没收完</span></li><li><span class="n">3</span><span>收货表要点清楚：订了多少 · 实际到了多少 · 有没有破损 · 冷藏温度 · 拍照 · 签名。确认后，实收数量自动进库存，短少和损坏会被标出来让你去追供应商</span></li></ol>
+  
+</figure>
+
+<h3 id="o-train">2.4　培训与 SOP：写一次，派下去，看谁真读了</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-training.png" alt="培训与 SOP：左边是流程库，右边是每个人的进度" loading="lazy">
+    <div class="box" style="left:88.11%;top:14.71%;width:10.56%;height:5.81%"><i>1</i></div><div class="box" style="left:79.64%;top:14.71%;width:9.25%;height:5.81%"><i>2</i></div><div class="box" style="left:20.71%;top:29.65%;width:39.06%;height:31.92%"><i>3</i></div><div class="box" style="left:59.61%;top:29.65%;width:39.06%;height:39.62%"><i>4</i></div>
+  </div>
+  <figcaption>培训与 SOP：左边是流程库，右边是每个人的进度</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>「+ 新建 SOP」：把一件事写成分步骤的标准流程，写一次就够</span></li><li><span class="n">2</span><span>「派培训」：指派给谁、什么时候要完成</span></li><li><span class="n">3</span><span>SOP 库：所有写好的流程，老员工忘了也能随时翻</span></li><li><span class="n">4</span><span>培训进度：谁签了名、谁还没看，一目了然</span></li></ol>
+  
+</figure>
+
+<h3 id="o-team">2.5　团队：谁在店里、他会做什么</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-team.png" alt="团队页：技能设置直接决定 AI 怎么排班" loading="lazy">
+    <div class="box" style="left:86.45%;top:15.37%;width:12.22%;height:6.03%"><i>1</i></div><div class="box" style="left:74.22%;top:24.93%;width:22.81%;height:2.93%"><i>2</i></div><div class="box" style="left:26.96%;top:61.19%;width:67.93%;height:6.91%"><i>3</i></div><div class="box" style="left:20.71%;top:89.13%;width:77.96%;height:7.62%"><i>4</i></div>
+  </div>
+  <figcaption>团队页：技能设置直接决定 AI 怎么排班</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>「经理加入链接」：把链接发给经理，他自己点开加入，不用你录入</span></li><li><span class="n">2</span><span>经理 / 员工 / 总人数</span></li><li><span class="n">3</span><span>点任意成员：看资料、调整身份、设技能（🔑开店 🌙关店 🍳后厨 🍽️前厅…）</span></li><li><span class="n">4</span><span>AI 排班就是按这些技能来的，所以技能一定要设对</span></li></ol>
+  
+</figure>
+
+<h3 id="o-ai">2.6　全能助手：用说话的方式办事</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-assistant.png" alt="全能助手：查库存、看今天谁上班、加预订、写今日总结" loading="lazy">
+    <div class="box" style="left:79.91%;top:14.55%;width:10.16%;height:6.07%"><i>1</i></div><div class="box" style="left:29.30%;top:23.04%;width:60.77%;height:64.24%"><i>2</i></div><div class="box" style="left:29.30%;top:87.53%;width:10.70%;height:4.77%"><i>3</i></div><div class="box" style="left:28.80%;top:92.08%;width:61.90%;height:5.84%"><i>4</i></div>
+  </div>
+  <figcaption>全能助手：查库存、看今天谁上班、加预订、写今日总结</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>不想用 AI？点「手动模式」，改用表单一步步来</span></li><li><span class="n">2</span><span>用大白话直接问：「今天运营怎么样」「什么要订货了」「明天 7 点 4 人订位」</span></li><li><span class="n">3</span><span>不知道问什么，就点这几个例子</span></li><li><span class="n">4</span><span>在最下面输入框打字，回车发送</span></li></ol>
+  
+</figure>
+
+<h3 id="o-set">2.7　设置：把用不上的功能关掉</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/o-settings.png" alt="设置页：品牌、语言、导出，以及每个模块对谁开放" loading="lazy">
+    <div class="box" style="left:90.35%;top:5.94%;width:8.32%;height:3.02%"><i>1</i></div><div class="box" style="left:20.71%;top:9.10%;width:77.96%;height:11.86%"><i>2</i></div><div class="box" style="left:20.71%;top:20.85%;width:77.96%;height:4.35%"><i>3</i></div><div class="box" style="left:20.71%;top:25.09%;width:77.96%;height:15.10%"><i>4</i></div><div class="box" style="left:20.71%;top:40.08%;width:77.96%;height:15.46%"><i>5</i></div><div class="box" style="left:18.30%;top:55.58%;width:80.40%;height:42.84%"><i>6</i></div>
+  </div>
+  <figcaption>设置页：品牌、语言、导出，以及每个模块对谁开放</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>改完一定要点「保存设置」</span></li><li><span class="n">2</span><span>上传 Logo、改餐厅名字 —— 侧边栏和登录页都会跟着变</span></li><li><span class="n">3</span><span>系统语言（也可以在任意页面右上角改）</span></li><li><span class="n">4</span><span>澳洲可选附加功能：默认关闭。打开也只是帮你转给合作律师 / VEVO，系统自己不做判断</span></li><li><span class="n">5</span><span>数据导出：选内容和时间范围，导 CSV 或打印 PDF。只给你自己用，不会申报给任何人</span></li><li><span class="n">6</span><span>功能开关：每一行是一个模块，右边勾选它对老板 / 经理 / 员工中的谁开放。用不上的直接关掉，界面立刻变简单</span></li></ol>
+  <p class="note">关掉的模块会直接从对应角色的菜单里消失 —— 员工端越干净，越不用培训。</p>
+</figure>
+</section><section id="manager"><h2><span class="sn">3</span>经理篇</h2>
+<h3 id="m-roster">3.1　排班：一键排好整周</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/m-schedule.png" alt="排班页：AI 排 + 你确认，提醒从不拦你" loading="lazy">
+    <div class="box" style="left:87.06%;top:9.07%;width:11.61%;height:3.96%"><i>1</i></div><div class="box" style="left:70.12%;top:9.07%;width:10.35%;height:3.96%"><i>2</i></div><div class="box" style="left:79.69%;top:9.07%;width:8.14%;height:3.96%"><i>3</i></div><div class="box" style="left:20.70%;top:13.78%;width:78.00%;height:5.24%"><i>4</i></div><div class="box" style="left:20.71%;top:18.41%;width:77.96%;height:4.52%"><i>5</i></div><div class="box" style="left:20.71%;top:23.26%;width:77.96%;height:40.05%"><i>6</i></div><div class="box" style="left:20.71%;top:63.51%;width:77.96%;height:33.65%"><i>7</i></div><div class="box" style="left:21.88%;top:93.67%;width:75.62%;height:3.04%"><i>8</i></div>
+  </div>
+  <figcaption>排班页：AI 排 + 你确认，提醒从不拦你</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>① 点「AI 自动排班」，整周一次排好（排完还能自己改）</span></li><li><span class="n">2</span><span>先去「偏好设置」回答几个问题：每天要几个人、谁能开店关店 —— AI 按你的答案排</span></li><li><span class="n">3</span><span>导出班表（CSV / 打印）</span></li><li><span class="n">4</span><span>上一周 / 下一周。过去的班表都留着，AI 会参考往周实际排了多少人</span></li><li><span class="n">5</span><span>本周概况：已排人数 · 班次数 · 总工时 · 提醒条数</span></li><li><span class="n">6</span><span>提醒区：只提醒，绝不拦你。例如「周四没人会开店」「Maria 报了空闲却没排班」</span></li><li><span class="n">7</span><span>团队排班表：点空格加班次 · 拖动班次改日期或换人 · 点 × 删除</span></li><li><span class="n">8</span><span>表格下面一直写着当前能做的操作，忘了就看这行</span></li></ol>
+  <p class="note">排班流程：① 先在「偏好设置」里回答问卷（每天几个人、谁能开关店）→ ② 点「AI 自动排班」→ ③ 看提醒区有没有要调整的 → ④ 在表格里手动微调 → 完成。AI 参考的是：员工报的可用时间、技能，以及过去几周你实际排了多少人。</p>
+</figure>
+
+<h3 id="m-hire">3.2　添加员工：一个手机号就能加人</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/m-hire.png" alt="添加员工：也可以直接审批员工用手机发来的加入申请" loading="lazy">
+    <div class="box" style="left:22.50%;top:26.44%;width:35.46%;height:9.19%"><i>1</i></div><div class="box" style="left:22.50%;top:46.29%;width:17.88%;height:9.19%"><i>2</i></div><div class="box" style="left:40.08%;top:46.29%;width:17.88%;height:9.19%"><i>3</i></div><div class="box" style="left:22.50%;top:56.22%;width:35.46%;height:17.30%"><i>4</i></div>
+  </div>
+  <figcaption>添加员工：也可以直接审批员工用手机发来的加入申请</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>① 输入新员工手机号（姓名可以先不填）</span></li><li><span class="n">2</span><span>② 雇佣类型：临时工 / 兼职 / 全职</span></li><li><span class="n">3</span><span>③ 岗位：后厨 / 前厅 / 收银 / 洗碗 / 主厨</span></li><li><span class="n">4</span><span>④ 技能 —— 决定他能被排到哪些班，AI 排班只认这里</span></li></ol>
+  
+</figure>
+</section><section id="staff"><h2><span class="sn">4</span>员工篇（手机上最常用的四页）</h2>
+<h3 id="s-my">4.1　我的班次</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/s-my.png" alt="我的班次：今天上不上班、本周排了哪些" loading="lazy">
+    <div class="box" style="left:89.57%;top:16.96%;width:9.10%;height:4.37%"><i>1</i></div><div class="box" style="left:20.71%;top:23.85%;width:77.96%;height:23.77%"><i>2</i></div><div class="box" style="left:20.70%;top:52.08%;width:78.00%;height:37.84%"><i>3</i></div><div class="box" style="left:90.29%;top:55.49%;width:6.27%;height:6.25%"><i>4</i></div>
+  </div>
+  <figcaption>我的班次：今天上不上班、本周排了哪些</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>本周一共多少小时</span></li><li><span class="n">2</span><span>今天有没有班，一打开就知道。有班时这里可以一键打卡</span></li><li><span class="n">3</span><span>本周全部班次，日期和时段写得清清楚楚</span></li><li><span class="n">4</span><span>有事去不了？点「放班」，班次会进换班市场，让同事认领</span></li></ol>
+  
+</figure>
+
+<h3 id="s-av">4.2　可用时间：告诉经理你哪天能上</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/s-availability.png" alt="可用时间：点快捷时段最快，也可以自定义" loading="lazy">
+    <div class="box" style="left:54.34%;top:26.36%;width:8.05%;height:3.88%"><i>1</i></div><div class="box" style="left:21.20%;top:52.38%;width:77.00%;height:7.24%"><i>2</i></div><div class="box" style="left:20.71%;top:73.34%;width:77.96%;height:5.72%"><i>3</i></div>
+  </div>
+  <figcaption>可用时间：点快捷时段最快，也可以自定义</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>最快的填法：直接点「早班 / 晚班 / 全天」这些快捷时段</span></li><li><span class="n">2</span><span>一周七天，每天一行；要精确到几点几分就点「自定义」</span></li><li><span class="n">3</span><span>填完经理排班时就能看到。这是「我可以上班的时间」，最终班表还是经理定</span></li></ol>
+  
+</figure>
+
+<h3 id="s-task">4.3　今日任务：勾一下就好</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/s-tasks.png" alt="今日任务：清洁、备料、测温，完成打勾＋拍照" loading="lazy">
+    <div class="box" style="left:22.35%;top:25.99%;width:74.68%;height:3.02%"><i>1</i></div><div class="box" style="left:25.24%;top:42.00%;width:64.69%;height:5.73%"><i>2</i></div><div class="box" style="left:89.54%;top:41.74%;width:7.95%;height:6.25%"><i>3</i></div>
+  </div>
+  <figcaption>今日任务：清洁、备料、测温，完成打勾＋拍照</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>今天一共几项、已经完成几项</span></li><li><span class="n">2</span><span>点左边的方框就算完成（测温这类任务要填具体数值）</span></li><li><span class="n">3</span><span>需要留证据的，点「📷 照片」当场拍一张</span></li></ol>
+  
+</figure>
+
+<h3 id="s-train">4.4　我的培训</h3>
+<figure class="fig">
+  <div class="shot">
+    <img src="img/s-training.png" alt="我的培训：读完签名，随时可回看全部 SOP" loading="lazy">
+    <div class="box" style="left:20.71%;top:19.46%;width:77.96%;height:24.00%"><i>1</i></div><div class="box" style="left:20.71%;top:68.74%;width:77.96%;height:28.51%"><i>2</i></div>
+  </div>
+  <figcaption>我的培训：读完签名，随时可回看全部 SOP</figcaption>
+  <ol class="legend"><li><span class="n">1</span><span>「待完成」：读完签个名，一般两分钟</span></li><li><span class="n">2</span><span>「全部 SOP」：做事忘了步骤，随时来这里翻</span></li></ol>
+  
+</figure>
+</section><section id="faq"><h2><span class="sn">5</span>常见问题</h2>
+<dl class="faq">
+  <dt>怎么换语言？</dt>
+  <dd>任意页面右上角的下拉框，或者老板端「设置 → 系统语言」。支持简体中文、繁體中文、English、Tiếng Việt、한국어、ไทย。</dd>
+
+  <dt>店里网络不好，能用吗？</dt>
+  <dd>能。数据先写在这台设备上，界面立刻有反应；等网络恢复，排队的改动会自动同步到云端。右上角会显示「云端已连接 / Syncing」。</dd>
+
+  <dt>忘记密码了？</dt>
+  <dd>登录页点「Forgot password?」，填账号邮箱，系统发一封重置邮件。密码不保存在本程序里，改密码只在云端账号系统生效。</dd>
+
+  <dt>试用（预览）里的数据是真的吗？</dt>
+  <dd>不是。预览只是本机的示例数据，没有云端登录，看不到也改不了任何真实门店的数据。想回到登录页，点顶部橙色条上的「退出预览 →」。</dd>
+
+  <dt>员工看得到别人的工资、证件吗？</dt>
+  <dd>系统根本不记工资，也不收 TFN、护照号、银行卡。少数敏感字段只有老板能查看，而且每次查看都会写进「审计日志」。</dd>
+
+  <dt>菜单里少了某个功能？</dt>
+  <dd>多半是老板在「设置」里把这个模块对你这个角色关掉了，让老板打开即可。</dd>
+
+  <dt>怎么把数据拿出来？</dt>
+  <dd>「设置 → 数据导出」选内容和时间范围，导 CSV 或打印成 PDF；库存页也有单独的「导出 CSV」，排班页有「导出」。</dd>
+</dl>
+</section>
+<footer>截图取自系统的「预览」模式（示例数据）。界面上的数字和名字会和你店里的不一样，位置和按钮是一致的。</footer>
+</div>
+</body>
+</html>
