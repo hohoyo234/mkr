@@ -8,8 +8,13 @@ window.MKR = window.MKR || {};
 (function(){
   const DEFAULTS = {
     schedule: {label:'AI rostering',        on:true, roles:['manager']},
-    hire:     {label:'One-Click Add Users', on:true, roles:['manager']},
-    tasks:    {label:'Daily tasks & cleaning', on:true, roles:['manager','staff']},
+    // The owner is on these two by default. An owner who cannot see today's
+    // checklist has to ring the manager to find out whether the fridges were
+    // checked, and an owner who cannot add a starter has to wait for someone
+    // else to be free on the morning that starter turns up. Both are still
+    // switchable off per venue, like everything else here.
+    hire:     {label:'One-Click Add Users', on:true, roles:['owner','manager']},
+    tasks:    {label:'Daily tasks & cleaning', on:true, roles:['owner','manager','staff']},
     swaps:    {label:'Swap / SOS approval', on:true, roles:['manager']},
     market:   {label:'Staff swap market',   on:true, roles:['staff']},
     availability:{label:'Availability (staff & manager)',on:true, roles:['staff','manager']},

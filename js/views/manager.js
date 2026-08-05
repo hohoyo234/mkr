@@ -40,7 +40,14 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='stock') return MKR.stock.render(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
       if(section==='training') return MKR.training.renderManage(c);
-    }
+    },
+    // The owner portal renders these two as its own pages. Exported rather than
+    // copied: the task checklist and the add-user flow each write to tables with
+    // their own rules, and a second implementation drifting out of step with
+    // this one is how two portals end up disagreeing about what a staff record
+    // needs. One page, two places it can be shown.
+    renderTasks: (c)=> tasks(c),
+    renderHire:  (c)=> hire(c),
   };
 
   // ---------- My availability (manager fills their own, like staff) ----------
@@ -277,7 +284,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <div class="row gap6 wrap">${Object.entries(MKR.roster.SKILLS).map(([k,v])=>`
               <label class="skill-chip"><input type="checkbox" data-hsk="${k}">${v.em} ${v.label}</label>`).join('')}</div></div>
           <button class="btn btn-accent btn-block" id="hbtn">📩 Create account &amp; send link</button>
-          <div class="disclaimer mt12"><span>📋</span>They'll be asked for an ID and an emergency contact — nothing else. This app doesn't collect TFN, super or bank details.${MKR.features.can('au_workrights','manager')?' Check work rights separately on VEVO.':''}</div>
+          <div class="disclaimer mt12"><span>📋</span>They'll be asked for an ID, their tax file number, their work-rights status and an emergency contact. They enter all of it themselves. This app doesn't collect TFN, super or bank details.${MKR.features.can('au_workrights','manager')?' Check work rights separately on VEVO.':''}</div>
         </div>
         <div class="card" style="padding:22px">
           <div class="section-title">Pending / onboarding</div>

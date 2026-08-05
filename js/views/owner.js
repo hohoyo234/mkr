@@ -67,8 +67,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       {id:'stock',     label:'Stock & costs',em:'📦', short:'Stock',     feature:'stock'},
       {id:'deliveries',label:'Deliveries',   em:'🚚', short:'Delivery',  feature:'deliveries'},
       {id:'training',  label:'Training & SOP',em:'📘',short:'Training',  feature:'training'},
+      {id:'tasks',     label:'Daily tasks',  em:'✅', short:'Tasks',     feature:'tasks'},
       {id:'alerts',    label:'Alerts',       em:'🚨', short:'Alerts'},
       {id:'team',      label:'Team',         em:'👥', short:'Team',      feature:'o_team'},
+      {id:'hire',      label:'Add people',   em:'➕', short:'Add',       feature:'hire'},
       {id:'performance',label:'Performance', em:'🏅', short:'Perform',   feature:'o_performance'},
       {id:'branches',  label:'Branches',     em:'🏢', short:'Branches',  feature:'o_branches'},
       {id:'feedback',  label:'Feedback',     em:'⭐', short:'Reviews',   feature:'o_feedback'},
@@ -101,6 +103,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='stock') return MKR.stock.render(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
       if(section==='training') return MKR.training.renderManage(c);
+      // Rendered by the manager module, not reimplemented here — see the note
+      // on MKR.portals.manager.renderTasks.
+      if(section==='tasks') return MKR.portals.manager.renderTasks(c);
+      if(section==='hire')  return MKR.portals.manager.renderHire(c);
       if(section==='feedback') return feedback(c);
       if(section==='switch') return switchView(c);
       if(section==='settings') return settings(c);
