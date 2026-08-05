@@ -153,14 +153,123 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   }
 
   // ---------- Customer feedback (bad-review interception) ----------
+  // A complaint and a review are different objects: a review is a rating left
+  // afterwards, a complaint is a person standing at the counter owed an answer
+  // before they leave. Same page, separate tabs — merging them buries the one
+  // that needs acting on today under the ones that don't.
+  let fbTab = 'complaints';
   async function feedback(c){
+    c.innerHTML = `
+      <div class="section-head"><div><h2>Customer feedback</h2><p>Complaints taken at the counter, and reviews left afterwards</p></div>
+        <div class="row gap8" id="fbActions"></div></div>
+      <div class="tabbar" id="fbTabs">
+        <button class="tab ${fbTab==='complaints'?'active':''}" data-fbtab="complaints">📝 Complaints</button>
+        <button class="tab ${fbTab==='reviews'?'active':''}" data-fbtab="reviews">⭐ Reviews</button>
+      </div>
+      <div id="fbBody"></div>`;
+    U.qsa('[data-fbtab]',c).forEach(b=> b.onclick=()=>{ fbTab=b.dataset.fbtab; feedback(c); });
+    const body=U.qs('#fbBody',c), acts=U.qs('#fbActions',c);
+    return fbTab==='complaints' ? complaintsTab(body, acts, ()=>feedback(c))
+                                : reviewsTab(body, acts);
+  }
+
+  async function complaintsTab(c, actions, reload){
+    const S=MKR.complaints;
+    const rows=await S.all();
+    const open=rows.filter(r=>r.status!=='resolved');
+    const esc=rows.filter(r=>String(r.level)==='3');
+    const wk=rows.filter(r=>Date.now()-r.ts < 7*864e5);
+    actions.innerHTML=`<button class="btn btn-ghost btn-sm" id="cmpPolicy">⚙️ Policy</button>
+      <button class="btn btn-dark btn-sm" id="cmpAdd">＋ Take a complaint</button>`;
+    U.qs('#cmpAdd',actions).onclick=()=> S.form(null, reload);
+    U.qs('#cmpPolicy',actions).onclick=()=> policyModal(reload);
+
+    c.innerHTML=`
+      <div class="statline">
+        <span class="statcell"><b>${rows.length}</b><i>on record</i></span>
+        <span class="statcell"${open.length?' style="color:#8a6410"':''}><b>${open.length}</b><i>still open</i></span>
+        <span class="statcell"${esc.length?' style="color:var(--red)"':''}><b>${esc.length}</b><i>level 3</i></span>
+        <span class="statcell"><b>${wk.length}</b><i>this week</i></span>
+      </div>
+      <div class="card" style="padding:8px 18px;margin-top:16px"><div class="list">
+        ${rows.length? rows.map(r=>{
+          const st=S.STATUS[r.status]||S.STATUS.open;
+          return `<div class="li clickable" data-cmp="${r.id}">
+            <div class="ava" style="background:var(--red-soft);color:var(--red)">L${U.esc(String(r.level||'?'))}</div>
+            <div class="meta"><b>${U.esc(r.customerName||'Someone')}${r.table?' · '+U.esc(r.table):''}</b>
+              <span>${U.esc((r.reason||'').slice(0,90))}${(r.reason||'').length>90?'…':''}</span>
+              <span class="faint">${U.fmtDateTime(r.ts)} · taken by ${U.esc(r.staffName||'—')}${r.signature?' · signed':''}</span></div>
+            <span class="pill ${st.pill}">${st.em} ${st.label}</span></div>`;
+        }).join('')
+        :`<div class="empty"><div class="em">📝</div><p>No complaints recorded. When one comes in, taking it here means it reaches you instead of staying at the counter.</p></div>`}
+      </div></div>
+      <div class="disclaimer mt16"><span>🔒</span>Kept for the venue only — nothing is posted anywhere. A level 3 also raises an alert, so it reaches you the same day rather than on Friday.</div>`;
+    U.qsa('[data-cmp]',c).forEach(b=> b.onclick=()=> detailModal(rows.find(x=>x.id===b.dataset.cmp), reload));
+  }
+
+  function detailModal(r, reload){
+    const S=MKR.complaints;
+    const wrap=U.el(`<div>
+      <div class="li"><div class="meta"><span>Customer</span><b>${U.esc(r.customerName||'—')}</b></div></div>
+      <div class="li"><div class="meta"><span>Contact</span><b>${U.esc(r.contact||'—')}</b></div></div>
+      <div class="li"><div class="meta"><span>When it happened</span><b>${U.esc(r.incidentAt||U.fmtDateTime(r.ts))}</b></div></div>
+      <div class="li"><div class="meta"><span>What went wrong</span><b style="font-weight:500">${U.esc(r.reason||'')}</b></div></div>
+      <div class="li"><div class="meta"><span>Level</span><b>${U.esc(String(r.level||'—'))}</b></div></div>
+      <div class="li"><div class="meta"><span>What was done</span><b style="font-weight:500">${U.esc(r.actionTaken||'—')}</b></div></div>
+      <div class="li"><div class="meta"><span>Taken by</span><b>${U.esc(r.staffName||'—')}</b></div></div>
+      <div class="li"><div class="meta"><span>Handled with enough care?</span><b>${r.care?U.esc(r.care.toUpperCase()):'they didn\'t say'}</b></div></div>
+      ${r.signature?`<div class="field mt12"><label>Signature</label><div class="sigpad"><img src="${r.signature}" alt="signature"></div></div>`:''}
+      <div class="field mt12"><label>Status</label><select class="input" id="cd_status">
+        ${Object.entries(S.STATUS).map(([k,v])=>`<option value="${k}" ${(r.status||'open')===k?'selected':''}>${v.label}</option>`).join('')}
+      </select></div>
+    </div>`);
+    U.modal('Complaint', wrap, {wide:true, actions:[
+      {label:'Edit', class:'btn-ghost', onClick:(close)=>{ close(); S.form(r, reload); }},
+      {label:'Save status', class:'btn-dark', onClick:async(close)=>{
+        await S.save({...r, status:U.qs('#cd_status',wrap).value});
+        close(); U.toast('Updated','green'); reload();
+      }},
+    ]});
+  }
+
+  async function policyModal(reload){
+    const S=MKR.complaints;
+    const p=await S.policy();
+    const wrap=U.el(`<div>
+      <div class="field"><label>What the form says at the top</label>
+        <textarea class="input" id="cp_intro" rows="3">${U.esc(p.intro)}</textarea></div>
+      <div class="section-title mt16">The three levels</div>
+      <div class="faint" style="font-size:12.5px;margin-bottom:8px">This is what staff read out at the counter, so it is a promise the venue makes. Word it the way you would say it.</div>
+      ${p.levels.map((l,i)=>`<div class="card pad20" style="margin-bottom:10px">
+        <div class="section-title" style="padding-top:0">Level ${l.id}</div>
+        <div class="field"><label>When it applies</label><input class="input" data-lv="label" data-i="${i}" value="${U.esc(l.label)}"></div>
+        <div class="field"><label>For example</label><input class="input" data-lv="examples" data-i="${i}" value="${U.esc(l.examples)}"></div>
+        <div class="field"><label>What we do</label><textarea class="input" data-lv="remedy" data-i="${i}" rows="2">${U.esc(l.remedy)}</textarea></div>
+      </div>`).join('')}
+      <div class="disclaimer"><span>⚠️</span>The form this was built from promised no refunds at the top and a full refund at every level. Whatever you write here is what staff will follow — make the two agree.</div>
+    </div>`);
+    U.modal('Complaint policy', wrap, {wide:true, actions:[
+      {label:'Reset to default', class:'btn-ghost', onClick:async(close)=>{
+        await S.savePolicy({intro:S.DEFAULT_INTRO, levels:S.DEFAULT_LEVELS});
+        close(); U.toast('Reset','amber'); reload();
+      }},
+      {label:'Save', class:'btn-dark', onClick:async(close)=>{
+        const levels=p.levels.map((l,i)=>({...l}));
+        U.qsa('[data-lv]',wrap).forEach(inp=>{ levels[+inp.dataset.i][inp.dataset.lv]=inp.value.trim(); });
+        await S.savePolicy({intro:U.qs('#cp_intro',wrap).value.trim()||S.DEFAULT_INTRO, levels});
+        close(); U.toast('Policy saved','green'); reload();
+      }},
+    ]});
+  }
+
+  async function reviewsTab(c, actions){
+    actions.innerHTML='';
     const all=await MKR.db.getAll('customer_feedback');
     const fbs=all.filter(f=>f.type==='review').sort((a,b)=>b.ts-a.ts);
     const bad=fbs.filter(f=>f.rating<=3);
     const todayUrge=all.filter(f=>f.type==='urge' && dayOf(f.ts)===U.todayISO()).length;
     const avg=fbs.length?(fbs.reduce((s,f)=>s+f.rating,0)/fbs.length).toFixed(1):'—';
     c.innerHTML=`
-      <div class="section-head"><div><h2>Customer feedback</h2><p>Reviews you log or receive — 1-3★ stay internal for you to handle</p></div></div>
       <div class="grid g3" style="margin-bottom:18px">
         <div class="card stat"><div class="k">⭐ Average rating</div><div class="v">${avg}</div><div class="delta flat">${fbs.length} reviews</div></div>
         <div class="card stat"><div class="k">😟 Bad (1-3★)</div><div class="v" style="color:${bad.length?'var(--red)':'inherit'}">${bad.length}</div><div class="delta flat">kept internal</div></div>

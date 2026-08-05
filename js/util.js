@@ -57,6 +57,9 @@ window.MKR = window.MKR || {};
       <div class="modal-head"><h3>${U.esc(title)}</h3><button class="x" aria-label="Close">×</button></div>
       <div class="modal-body"></div></div>`);
     const bodyEl = U.qs('.modal-body', m);
+    // Long forms (a complaint, a delivery docket) need the room; everything else
+    // reads better narrow, so this is opt-in rather than a width for all of them.
+    if(opts.wide) m.classList.add('wide');
     if(typeof body==='string') bodyEl.innerHTML = body; else bodyEl.appendChild(body);
     if(opts.actions){
       const row = U.el(`<div class="row mt16" style="justify-content:flex-end"></div>`);
