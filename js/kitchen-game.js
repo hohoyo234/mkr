@@ -16,17 +16,17 @@ window.MKR = window.MKR || {};
   // above the general ones ("deep clean the fridge" is a fridge job, not a
   // cleaning job). Names are typed by the venue, in English or Chinese.
   const STATIONS = [
-    {id:'fridge', em:'🧊', name:'Fridges & cold room', note:'Temperatures and stock',
+    {id:'fridge', ic:'inbox', tone:'blue', name:'Fridges & cold room', note:'Temperatures and stock',
      re:/fridge|freezer|chiller|cold\s*room|冰箱|冷藏|冷冻|冷庫|冷凍/i},
-    {id:'range',  em:'🔥', name:'Range & hood',        note:'Stove, oven, fryer, filters',
+    {id:'range',  ic:'pan', tone:'red', name:'Range & hood',        note:'Stove, oven, fryer, filters',
      re:/stove|range|hood|oven|grill|fryer|burner|filter|灶|炉|爐|烤箱|油烟|抽油煙|炸/i},
-    {id:'prep',   em:'🔪', name:'Prep bench',          note:'Prep, portioning, labels',
+    {id:'prep',   ic:'utensils', tone:'amber', name:'Prep bench',          note:'Prep, portioning, labels',
      re:/prep|chop|cut|portion|marinat|dough|label|备料|備料|切配|分装|分裝|贴标|貼標/i},
-    {id:'sink',   em:'🚰', name:'Sink & dishes',       note:'Washing up and glassware',
+    {id:'sink',   ic:'refresh', tone:'teal', name:'Sink & dishes',       note:'Washing up and glassware',
      re:/sink|dish|wash|glass|sanitis|sanitiz|洗|水槽|消毒/i},
-    {id:'floor',  em:'🧹', name:'Floor & bins',        note:'Mopping, rubbish, deep clean',
+    {id:'floor',  ic:'checksq', tone:'green', name:'Floor & bins',        note:'Mopping, rubbish, deep clean',
      re:/floor|mop|sweep|bin|rubbish|waste|trash|clean|地|拖|扫|掃|垃圾|清洁|清潔/i},
-    {id:'pass',   em:'🍽️', name:'Pass & everything else', note:'Whatever is left on the list',
+    {id:'pass',   ic:'utensils', tone:'violet', name:'Pass & everything else', note:'Whatever is left on the list',
      re:null},
   ];
 
@@ -45,10 +45,10 @@ window.MKR = window.MKR || {};
     const clear = !open;
     // One dot per job, so the size of the pile is visible without reading a number.
     const dots = list.slice(0,8).map(t=>`<i class="kv-dot${t.done?' done':''}"></i>`).join('');
-    return `<button class="kv-st ${clear?'clear':'live'}" data-st="${s.id}"
-        aria-label="${U.esc(s.name)} — ${open} still to do">
-      <span class="kv-st-badge${clear?' ok':''}">${clear?'✓':open}</span>
-      <span class="kv-st-em">${s.em}</span>
+    return `<button class="kv-st t-${s.tone} is-${MKR.ui.tier(open, false)} ${clear?'clear':'live'}" data-st="${s.id}"
+        aria-label="${U.esc(s.name)} — ${clear?'all clear':open+' still to do'}">
+      <span class="kv-st-badge${clear?' ok':''}">${clear?MKR.ui.icon('check'):open}</span>
+      <span class="kv-st-ic">${MKR.ui.icon(s.ic)}</span>
       <b>${s.name}</b>
       <small>${s.note}</small>
       <span class="kv-dots">${dots}</span>
@@ -93,13 +93,13 @@ window.MKR = window.MKR || {};
   // ---------- one station ----------
   function stationSheet(s, list, reload){
     const wrap = U.el(`<div><div class="list kv-list" id="kvList"></div>
-      <div class="disclaimer mt12"><span>📋</span>Ticking here is the same action as ticking on the phone — it records who did it and when.</div>
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('checksq')}</span>Ticking here is the same action as ticking on the phone — it records who did it and when.</div>
     </div>`);
     const el = U.qs('#kvList', wrap);
 
     function draw(){
       el.innerHTML = list.map(t=>`<div class="li" data-row="${t.id}">
-        <div class="kv-tick${t.done?' on':''}">✓</div>
+        <div class="kv-tick${t.done?' on':''}">${t.done?MKR.ui.icon('check'):''}</div>
         <div class="meta"><b>${U.esc(t.name)}</b>
           <span>${t.done ? `${U.esc(t.by||'someone')}${t.value?' · '+U.esc(t.value):''} · done` : 'Not done yet'}</span></div>
         ${t.photo?`<img class="thumb" src="${t.photo}" alt="">`:''}
@@ -133,7 +133,7 @@ window.MKR = window.MKR || {};
     }
 
     draw();
-    U.modal(`${s.em} ${s.name}`, wrap, {actions:[
+    U.modal(s.name, wrap, {actions:[
       {label:'Done', class:'btn-dark', onClick:(close)=>{ close(); }},
     ]});
   }

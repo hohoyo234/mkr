@@ -1,13 +1,20 @@
 /* ===== My Kitchen Rules — 应用样式 ===== */
 :root{
   --paper:#F6F2EC; --paper-2:#FBF8F3; --card:#FFFFFF;
-  --ink:#211E1B; --ink-soft:#6F655B; --ink-faint:#9A8F84;
+  /* --ink-faint was #9A8F84 — 2.85:1 on paper, under the 4.5:1 AA floor, and it
+     is used on interactive text ("Forgot password?"). #7C7168 clears it. */
+  --ink:#211E1B; --ink-soft:#6F655B; --ink-faint:#7C7168;
   --line:rgba(33,30,27,.10); --line-2:rgba(33,30,27,.06);
   --accent:#C9612E; --accent-soft:#F4E2D5; --accent-ink:#9A4516;
-  --green:#2F8F5B; --green-soft:#E9F6EE;
-  --red:#D8453C; --red-soft:#FDECEA;
-  --amber:#E0A11B; --amber-soft:#FBF2DA;
-  --blue:#2B5BB5; --blue-soft:#E7EEFB;
+  /* -ink is the readable text colour ON the matching -soft tint. It exists so
+     no rule has to hardcode "the dark version of amber" — that is precisely the
+     value that has to flip when the tint goes dark. */
+  --green:#2F8F5B; --green-soft:#E9F6EE; --green-ink:#1D6A40;
+  --red:#D8453C; --red-soft:#FDECEA; --red-ink:#922019;
+  --amber:#E0A11B; --amber-soft:#FBF2DA; --amber-ink:#8A6410;
+  --blue:#2B5BB5; --blue-soft:#E7EEFB; --blue-ink:#234A8F;
+  --violet:#5B45A8; --violet-soft:#ECE7F9;
+  --teal:#0F6F6C; --teal-soft:#DDEFEE;
   --radius:18px; --radius-lg:26px;
   --shadow:0 1px 2px rgba(33,30,27,.05), 0 16px 36px -20px rgba(33,30,27,.22);
   --shadow-soft:0 1px 2px rgba(33,30,27,.04), 0 8px 22px -16px rgba(33,30,27,.18);
@@ -16,8 +23,57 @@
   --ease-out:cubic-bezier(0.23,1,0.32,1);
   --ease-in-out:cubic-bezier(0.77,0,0.175,1);
 }
+
+/* ---------- dark mode ----------
+   Every colour in this file already goes through a token, so the dark theme is
+   the token block again with different values — no per-component overrides.
+
+   One rule, keyed on an attribute, rather than a @media copy plus an override
+   copy: the tiny script in index.html resolves "auto" against the OS before
+   first paint and writes the attribute, so there is exactly one place a colour
+   is defined. (No JS, no app at all — this file is never the fallback.)
+
+   Three things are deliberately not just "inverted":
+   · The -soft tints are re-mixed rather than darkened. A pale tint darkened by
+     a filter goes muddy and the status colours stop being distinguishable,
+     which is the one thing they exist to do.
+   · The accent lightens (#C9612E -> #E08050). Terracotta at its light-mode
+     value is 3.1:1 on a dark ground; it carries the primary button and the
+     active nav item, so it has to clear 4.5:1.
+   · --ink-grad inverts outright. It paints the primary button and the active
+     nav pill, so leaving it near-black hides the main action on a dark page. */
+:root[data-theme="dark"]{
+  --paper:#17161A; --paper-2:#1E1D22; --card:#25242A;
+  --ink:#F0EDE8; --ink-soft:#B0A9A1; --ink-faint:#8E877F;
+  --line:rgba(240,237,232,.14); --line-2:rgba(240,237,232,.08);
+  --accent:#E08050; --accent-soft:#3A2A21; --accent-ink:#F0A87E;
+  --green:#5FC489; --green-soft:#1C3226; --green-ink:#7FD6A3;
+  --red:#F0736A; --red-soft:#3A2220; --red-ink:#FF9B93;
+  --amber:#E8B44A; --amber-soft:#332812; --amber-ink:#F0C868;
+  --blue:#7BA3E8; --blue-soft:#1E2739; --blue-ink:#9FBEF2;
+  --violet:#A392E0; --violet-soft:#272138;
+  --teal:#5FBFB9; --teal-soft:#12302F;
+  --fp-floor:#221F1B; --fp-floor-2:#2C2823; --fp-wall:#4A5A4C;
+  --gv-wood:#6B563A; --gv-wood-dk:#4E3F2A;
+  --gv-cold:#1F2A33; --gv-cold-2:#26333D;
+  --gv-dry:#2A2620;  --gv-dry-2:#332E26;
+  /* Deepened a little so a full jar isn't a glaring slab against the dark room,
+     but still mid-tone: the quantity label on top of it is dark in both themes. */
+  --fill-ok:#4FA876; --fill-warn:#D2A343; --fill-low:#D45F56;
+  --gloss:.26; --gloss-2:.14;
+  --ink-grad:linear-gradient(152deg,#F5F2ED,#DCD7CE);
+  --green-grad:linear-gradient(140deg,#6FD199,#4FB37B);
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 36px -20px rgba(0,0,0,.7);
+  --shadow-soft:0 1px 2px rgba(0,0,0,.3), 0 8px 22px -16px rgba(0,0,0,.55);
+  color-scheme:dark;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+/* The document element stays the scroll container. Putting height:100% on the
+   body as well (with overflow-x:hidden further down) made the BODY the scroller,
+   which on iOS means the URL bar never collapses and the scroll position is not
+   restored on back. min-height keeps the full-height login page working. */
+html{height:100%}
+body{min-height:100%}
 body{
   font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   background:var(--paper); color:var(--ink); line-height:1.55;
@@ -77,7 +133,7 @@ img{max-width:100%;display:block}
 
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;white-space:nowrap}
 .pill.ok{background:var(--green-soft);color:var(--green)}
-.pill.warn{background:var(--amber-soft);color:#8a6410}
+.pill.warn{background:var(--amber-soft);color:var(--amber-ink)}
 .pill.danger{background:var(--red-soft);color:var(--red)}
 .pill.info{background:var(--blue-soft);color:var(--blue)}
 .pill.ghost{background:var(--paper-2);color:var(--ink-soft);border:1px solid var(--line)}
@@ -86,22 +142,24 @@ img{max-width:100%;display:block}
 .field label{font-size:13px;font-weight:600;color:var(--ink-soft)}
 .input{height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--paper-2);width:100%;color:var(--ink)}
 textarea.input{height:auto;padding:12px 14px;resize:vertical;min-height:80px}
-.input:focus{outline:none;border-color:var(--accent);background:#fff}
+.input:focus{outline:none;border-color:var(--accent);background:var(--card)}
 select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%236F655B' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 
 .disclaimer{font-size:12.5px;color:var(--ink-soft);background:var(--paper-2);border:1px dashed var(--line);border-radius:12px;padding:11px 14px;display:flex;gap:9px;align-items:flex-start}
+.disclaimer>span{flex-shrink:0;display:inline-flex;align-items:center;margin-top:1px}
+.disclaimer .ic{width:16px;height:16px;color:var(--ink-faint)}
 
 .alert{display:flex;gap:11px;align-items:flex-start;padding:13px 15px;border-radius:14px;border:1px solid;font-size:14px}
-.alert.red{background:var(--red-soft);border-color:#f3c6c2;color:#922019}
-.alert.green{background:var(--green-soft);border-color:#bfe3cd;color:#1d6a40}
-.alert.amber{background:var(--amber-soft);border-color:#eed9a4;color:#8a6410}
-.alert.info{background:var(--blue-soft);border-color:#c4d6f3;color:#234a8f}
+.alert.red{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 35%,transparent);color:var(--red-ink)}
+.alert.green{background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 35%,transparent);color:var(--green-ink)}
+.alert.amber{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,transparent);color:var(--amber-ink)}
+.alert.info{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 35%,transparent);color:var(--blue-ink)}
 
 /* ---------- login ---------- */
 .login-wrap{min-height:100vh;display:grid;place-items:center;padding:24px;background:
   radial-gradient(900px 520px at 12% -8%, rgba(201,97,46,.14), transparent 55%),
   radial-gradient(900px 520px at 90% 108%, rgba(47,143,91,.10), transparent 55%),
-  linear-gradient(180deg, #FBF8F3, var(--paper))}
+  linear-gradient(180deg, var(--paper-2), var(--paper))}
 .login-card{width:100%;max-width:440px;padding:54px 30px 26px;border-radius:24px;
   box-shadow:0 2px 6px rgba(33,30,27,.06), 0 30px 60px -28px rgba(33,30,27,.30);
   animation:pop .4s var(--ease-out)}
@@ -114,27 +172,35 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .role-pick{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:18px 0}
 .role-pick button{padding:14px 8px;border-radius:14px;border:1px solid var(--line);background:var(--paper-2);
   font-weight:600;font-size:13.5px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:48px}
-.role-pick button .em{font-size:22px}
+.role-pick button .em{font-size:22px;display:inline-flex}
+.role-pick button .ic{width:22px;height:22px}
+.preview-box b .ic{width:16px;height:16px;vertical-align:-3px;margin-right:2px}
+.preview-box .btn .ic{width:16px;height:16px}
 .role-pick button.sel{border-color:var(--ink);background:var(--ink);color:var(--paper)}
 .seed-hint{font-size:12px;color:var(--ink-soft);background:var(--paper-2);border-radius:12px;padding:10px 12px;margin-top:14px}
-.seed-hint code{background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:11.5px}
+.seed-hint code{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:11.5px}
 
 /* ---------- app shell ---------- */
 .shell{display:grid;grid-template-columns:var(--sidebar) 1fr;min-height:100vh}
 .sidebar{background:var(--paper-2);border-right:1px solid var(--line-2);padding:20px 16px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;overflow:auto}
 .side-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
 .side-brand .logo{width:36px;height:36px;border-radius:11px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-weight:900;font-family:"Playfair Display",serif}
-.side-brand b{font-size:15px}.side-brand small{display:block;font-size:11px;color:var(--ink-soft)}
+/* A venue called "My Kitchen · Melbourne" wrapped to three lines and shoved the
+   fold button off the row. One line, elided. */
+.side-brand b{font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-brand small{display:block;font-size:11px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;font-weight:600;font-size:14.5px;color:var(--ink-soft);min-height:48px;transition:background .15s}
 .nav-item .em{font-size:18px;width:22px;text-align:center}
 .nav-item:hover{background:var(--card)}
 .nav-item.active{background:var(--ink);color:var(--paper)}
 .nav-item .badge{margin-left:auto;background:var(--red);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px;min-width:18px;text-align:center}
 .nav-item.active .badge{background:var(--accent)}
+.nav-sep{margin:14px 12px 6px;padding-top:12px;border-top:1px solid var(--line-2);
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
 .side-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--line-2)}
 
 .main{display:flex;flex-direction:column;min-width:0}
-.topbar{position:sticky;top:0;z-index:20;background:rgba(246,242,236,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-2);
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 85%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-2);
   display:flex;align-items:center;gap:14px;padding:14px 26px;min-height:64px}
 .topbar h1{font-size:20px;font-weight:800}
 .topbar .sub{font-size:12.5px;color:var(--ink-soft)}
@@ -168,7 +234,18 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:10px}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
 
-.section-title{font-size:13px;font-weight:700;letter-spacing:.03em;color:var(--ink-soft);margin:4px 0 12px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+/* flex-start + gap, not space-between: a leading icon is its own flex item, and
+   space-between would shove it to one end and the words to the other. The
+   trailing hint that space-between used to place is pushed right explicitly. */
+.section-title{font-size:13px;font-weight:700;letter-spacing:.03em;color:var(--ink-soft);margin:4px 0 12px;text-transform:uppercase;display:flex;align-items:center;justify-content:flex-start;gap:7px}
+.section-title>span:last-child,.section-title>b:last-child{margin-left:auto}
+.section-title>.ic{width:16px;height:16px;flex-shrink:0;color:var(--ink-faint)}
+/* On a phone there is no room for a title and its hint side by side — both end
+   up four words tall. The hint drops onto its own line instead. */
+@media(max-width:560px){
+  .section-title{flex-wrap:wrap}
+  .section-title>span:last-child,.section-title>b:last-child{margin-left:0;flex-basis:100%}
+}
 
 .list{display:flex;flex-direction:column}
 .li{display:flex;align-items:center;gap:13px;padding:13px 4px;border-bottom:1px solid var(--line-2)}
@@ -308,15 +385,15 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 
 /* ---------- KPI callout (large stat) ---------- */
 .kpi-callout{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
-  background:linear-gradient(135deg,var(--ink),#312c27);color:var(--paper);border-radius:var(--radius-lg);
+  background:var(--ink-grad);color:var(--paper);border-radius:var(--radius-lg);
   padding:26px 30px;box-shadow:var(--shadow)}
 .kpi-main{display:flex;flex-direction:column;gap:2px;min-width:200px}
-.kpi-label{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:rgba(246,242,236,.7)}
+.kpi-label{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--paper) 72%,transparent)}
 .kpi-value{font-family:"Playfair Display",serif;font-weight:900;font-size:clamp(40px,7vw,64px);line-height:1.02}
-.kpi-sub{font-size:13px;color:rgba(246,242,236,.75);margin-top:4px}
+.kpi-sub{font-size:13px;color:color-mix(in srgb,var(--paper) 76%,transparent);margin-top:4px}
 .kpi-side{display:flex;gap:12px;flex-wrap:wrap}
-.kpi-mini{background:rgba(246,242,236,.12);border-radius:14px;padding:12px 16px;min-width:120px}
-.kpi-mini span{display:block;font-size:11.5px;color:rgba(246,242,236,.7)}
+.kpi-mini{background:color-mix(in srgb,var(--paper) 12%,transparent);border-radius:14px;padding:12px 16px;min-width:120px}
+.kpi-mini span{display:block;font-size:11.5px;color:color-mix(in srgb,var(--paper) 72%,transparent)}
 .kpi-mini b{font-family:"Playfair Display",serif;font-size:24px;color:var(--paper)}
 
 /* ---------- menu item image (POS) ---------- */
@@ -391,10 +468,36 @@ body.side-mini .branch-pick{display:none}
 .empty .em{font-size:40px;opacity:.5}
 
 /* offline banner */
-.offbar{background:var(--amber-soft);color:#8a6410;text-align:center;font-size:13px;font-weight:600;padding:8px;border-bottom:1px solid #eed9a4}
+.offbar{background:var(--amber-soft);color:var(--amber-ink);text-align:center;font-size:13px;font-weight:600;padding:8px;border-bottom:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
 
 /* mobile nav */
 .mobile-nav{display:none}
+.navsheet-back{display:none}
+
+/* ---------- "More" sheet (phones only) ----------
+   The pages the bottom bar has no room for. The sidebar that carries them is
+   hidden under 880px, so without this they have no entry point on a phone. */
+@media(max-width:880px){
+  .navsheet-back:not(.hidden){display:flex;position:fixed;inset:0;z-index:40;align-items:flex-end;
+    background:rgba(33,30,27,.4);backdrop-filter:blur(2px);animation:fade .2s ease}
+  .navsheet{width:100%;max-height:82vh;overflow:auto;background:var(--card);
+    border-radius:26px 26px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 40px -18px rgba(33,30,27,.5);animation:sheetUp .26s var(--ease-out)}
+  .navsheet-grip{width:40px;height:4px;border-radius:99px;background:var(--line);margin:6px auto 14px}
+  .navsheet-list{display:flex;flex-direction:column}
+  .ns-item{display:flex;align-items:center;gap:14px;min-height:56px;padding:8px 4px;
+    font-size:15px;font-weight:600;border-bottom:1px solid var(--line-2)}
+  .ns-item:last-child{border-bottom:none}
+  .ns-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex-shrink:0;
+    background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink-soft))}
+  .ns-ic .ic{width:20px;height:20px}
+  .ns-item.on{color:var(--accent)}
+  .ns-badge{margin-left:auto;background:var(--red);color:#fff;font-size:11.5px;font-weight:800;
+    border-radius:999px;padding:2px 8px;min-width:22px;text-align:center}
+  .navsheet-foot{display:flex;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .navsheet-foot .ic{width:17px;height:17px}
+}
+@keyframes sheetUp{from{transform:translateY(18px);opacity:.4}to{transform:none;opacity:1}}
 @media(max-width:880px){
   .shell{grid-template-columns:1fr}
   .sidebar{display:none}
@@ -407,9 +510,12 @@ body.side-mini .branch-pick{display:none}
   .roster .cell{min-height:84px;padding:5px}
   .cash-grid{grid-template-columns:1fr 1fr}
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--card);border-top:1px solid var(--line);justify-content:space-around;padding:6px 4px env(safe-area-inset-bottom)}
-  .mobile-nav a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--ink-soft);padding:6px 10px;min-width:56px;min-height:48px;justify-content:center}
-  .mobile-nav a.active{color:var(--accent)}
-  .mobile-nav a .em{font-size:20px}
+  .mobile-nav a,.mobile-nav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--ink-soft);padding:6px 10px;min-width:56px;min-height:48px;justify-content:center}
+  .mobile-nav a.active,.mobile-nav button.active{color:var(--accent)}
+  .mobile-nav a .em,.mobile-nav button .em{font-size:20px;position:relative}
+  .mn-badge{position:absolute;top:-5px;left:12px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;
+    background:var(--red);color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;
+    border:1.5px solid var(--card)}
 }
 @media(max-width:520px){.g2,.g3,.g4{grid-template-columns:1fr}.cash-grid{grid-template-columns:1fr 1fr}.role-pick{grid-template-columns:1fr}}
 
@@ -448,8 +554,11 @@ body.side-mini .branch-pick{display:none}
 @media (hover:hover) and (pointer:fine){ .today-foot-metrics a:hover{background:var(--card);border-color:var(--line)} }
 
 /* compact summary strip — replaces stacked stat cards across pages */
+/* Cells grow into the row they land on, so a wrapped last cell fills the width
+   instead of sitting there as a narrow orphan. A fixed column count can't do
+   this — it would leave the same gap at some other width. */
 .statline{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 18px}
-.statcell{display:flex;flex-direction:column;gap:1px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:12px;padding:8px 16px;min-width:78px}
+.statcell{flex:1 1 96px;display:flex;flex-direction:column;gap:1px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:12px;padding:8px 16px;min-width:0}
 .statcell b{font-size:18px;font-weight:800;color:var(--ink);line-height:1.1}
 .statcell i{font-size:11.5px;color:var(--ink-faint);font-style:normal}
 @media (hover:hover) and (pointer:fine){ .statcell.warn:hover{background:var(--card)} }
@@ -499,7 +608,11 @@ body.side-mini .branch-pick{display:none}
   border:none;cursor:pointer;transition:transform .15s,background .2s}
 .ai-fab:hover{transform:translateY(-2px)}
 .ai-fab.open{background:var(--accent)}
-@media(max-width:880px){.ai-fab{bottom:78px}}
+.ai-fab .ic{width:24px;height:24px;stroke-width:2}
+/* On a phone the bottom bar already carries AI, so the floating button was a
+   second door to the same room — one that sat on top of the content on every
+   single page. Desktop keeps it; there the sidebar link is further away. */
+@media(max-width:880px){.ai-fab{display:none}}
 .ai-panel{position:fixed;right:18px;bottom:84px;z-index:301;width:min(380px,calc(100vw - 36px));max-height:min(560px,calc(100vh - 120px));
   background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);
   display:none;flex-direction:column;overflow:hidden;animation:pop .2s ease}
@@ -568,6 +681,12 @@ body.side-mini .branch-pick{display:none}
 .gauge-line{position:absolute;top:-3px;width:2px;height:20px;background:var(--ink);border-radius:2px}
 .gauge-legend{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);margin-top:8px}
 .ds-li-ic{width:40px;height:40px;flex:0 0 auto;border-radius:12px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center}
+.ds-li-ic .ic{width:20px;height:20px}
+/* Severity as a tinted chip rather than a 🔴/🟠/🔵 emoji: an emoji circle is
+   colour and nothing else, and it renders differently on every OS. */
+.ds-li-ic.sev-red{background:var(--red-soft);color:var(--red-ink)}
+.ds-li-ic.sev-amber{background:var(--amber-soft);color:var(--amber-ink)}
+.ds-li-ic.sev-info{background:var(--blue-soft);color:var(--blue-ink)}
 @media(max-width:760px){ .ds-hero{grid-template-columns:1fr} }
 
 /* ===== Accessibility: respect reduced motion (keep opacity, drop movement) ===== */
@@ -623,6 +742,7 @@ body.side-mini .branch-pick{display:none}
 .empty{border:1.5px dashed var(--line);border-radius:16px;background:var(--paper-2)}
 .empty .em{font-size:34px;opacity:.6;display:inline-grid;place-items:center;width:64px;height:64px;
   margin:0 auto 6px;border-radius:50%;background:var(--card);box-shadow:var(--shadow-soft)}
+.empty .em .ic{width:28px;height:28px;color:var(--ink-faint)}
 .empty p{font-size:13.5px}
 
 /* Sidebar: clearer active state + crisper icons */
@@ -667,6 +787,20 @@ body.side-mini .branch-pick{display:none}
 
 #print-area{display:none}
 @media print{
+  /* Paper is white whatever the screen is doing. Without this a venue printing
+     a docket in dark mode gets light-on-dark tokens on white paper — a page
+     that looks blank. */
+  :root{
+    --paper:#FFFFFF; --paper-2:#F8F6F2; --card:#FFFFFF;
+    --ink:#211E1B; --ink-soft:#5A524A; --ink-faint:#6E665D;
+    --line:rgba(33,30,27,.18); --line-2:rgba(33,30,27,.10);
+    --accent:#C9612E; --accent-soft:#F4E2D5; --accent-ink:#9A4516;
+    --green:#2F8F5B; --green-soft:#E9F6EE; --green-ink:#1D6A40;
+    --red:#D8453C; --red-soft:#FDECEA; --red-ink:#922019;
+    --amber:#E0A11B; --amber-soft:#FBF2DA; --amber-ink:#8A6410;
+    --blue:#2B5BB5; --blue-soft:#E7EEFB; --blue-ink:#234A8F;
+    color-scheme:light;
+  }
   body{background:#fff}
   body *{visibility:hidden}
   #print-area, #print-area *{visibility:visible}
@@ -736,7 +870,7 @@ body{
 .ai-admin{max-width:760px;margin:0 auto;display:flex;flex-direction:column;height:calc(100vh - 140px);min-height:420px}
 .aa-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line-2);margin-bottom:14px}
 .aa-orb{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:20px;
-  background:linear-gradient(150deg,var(--ink),#3a342e);color:#fff;box-shadow:var(--shadow-soft)}
+  background:var(--ink-grad);color:var(--paper);box-shadow:var(--shadow-soft)}
 .aa-log{flex:1;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:4px 2px 10px}
 .aa-msg{max-width:86%;padding:13px 16px;border-radius:16px;font-size:14.5px;line-height:1.6;word-wrap:break-word;overflow-wrap:anywhere}
 .aa-msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);border-bottom-left-radius:6px}
@@ -756,10 +890,30 @@ body{
    time-saving back-of-house rebuild.
    ========================================================================== */
 
-/* ---------- tab bar (Stock page) ---------- */
-.tabbar{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line-2);margin-bottom:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.tabbar .tab{appearance:none;border:none;background:transparent;font:inherit;font-size:14px;font-weight:600;color:var(--ink-soft);
+/* ---------- overflow menu (⋯) ----------
+   The occasional actions, folded away so the everyday one can lead. <details>
+   does the open/close, so there is no state to keep and nothing to unbind. */
+.omenu{position:relative;flex-shrink:0}
+.omenu>summary{list-style:none;padding:0 14px}
+.omenu>summary::-webkit-details-marker{display:none}
+.omenu>summary .ic{width:19px;height:19px}
+.omenu[open]>summary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.omenu-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:25;min-width:200px;padding:6px;
+  background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;animation:pop .16s var(--ease-out)}
+.omenu-pop button{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:0 12px;
+  border-radius:11px;font-size:14px;font-weight:600;text-align:left;color:var(--ink)}
+.omenu-pop button:hover{background:var(--paper-2)}
+.omenu-pop .ic{width:18px;height:18px;color:var(--ink-soft);flex-shrink:0}
+
+/* ---------- tab bar (Stock page) ----------
+   A fade on the right edge is the only honest signal that a scroller has more
+   in it — a tab cut off mid-word just looks like a rendering fault. */
+.tabbar{position:relative;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line-2);margin-bottom:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tabbar .tab{display:inline-flex;align-items:center;gap:7px;appearance:none;border:none;background:transparent;font:inherit;font-size:14px;font-weight:600;color:var(--ink-soft);
   padding:11px 15px;min-height:46px;border-radius:12px 12px 0 0;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.tabbar .tab .ic{width:17px;height:17px}
 .tabbar .tab:hover{background:var(--paper-2);color:var(--ink)}
 .tabbar .tab.active{color:var(--ink);border-bottom-color:var(--accent);background:var(--card)}
 
@@ -804,7 +958,7 @@ table.rgrid{border-collapse:separate;border-spacing:0;width:100%;min-width:780px
 .rgrid th.rg-name,.rgrid td.rg-name{position:sticky;left:0;background:var(--card);z-index:2;text-align:left;min-width:150px;max-width:172px}
 .rgrid thead th.rg-name{z-index:4;background:var(--paper-2)}
 .rgrid td.rg-cell{min-width:90px;cursor:pointer}
-.rgrid td.rg-cell.today{background:#FFF9F0}
+.rgrid td.rg-cell.today{background:var(--accent-soft)}
 .rgrid td.rg-cell:hover{background:var(--paper-2)}
 .rgrid td.rg-cell.dragover{outline:2px dashed var(--accent);outline-offset:-2px}
 .rgrid tr.rg-bandrow td{padding:7px 10px;font-weight:800;letter-spacing:.3px}
@@ -816,12 +970,16 @@ table.rgrid{border-collapse:separate;border-spacing:0;width:100%;min-width:780px
 .rg-chip{display:inline-flex;align-items:center;gap:5px;margin:2px;padding:3px 8px;border-radius:8px;font-weight:700;white-space:nowrap;border:1px solid;cursor:grab;line-height:1.3}
 .rg-chip .rg-x{cursor:pointer;opacity:.5;font-weight:800}
 .rg-chip .rg-x:hover{opacity:1}
-.rg-empty{color:#C9BEAF;font-size:12px}
+.rg-empty{color:var(--ink-faint);font-size:12px}
 
 /* ---------- week switcher ---------- */
-.weekbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+/* nowrap: the arrows are square and fixed, the week label takes what is left.
+   With flex-wrap the two text pills queued up and folded onto three rows. */
+.weekbar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);
   border-radius:var(--radius);padding:10px 14px;margin-bottom:4px}
-.weekbar-mid{flex:1;min-width:150px;text-align:center;line-height:1.35}
+.weekbar-arrow{width:48px;min-width:48px;padding:0;flex-shrink:0}
+.weekbar-arrow .ic{width:20px;height:20px}
+.weekbar-mid{flex:1;min-width:0;text-align:center;line-height:1.35}
 .weekbar-mid b{display:block;font-size:15px}
 .weekbar-mid .faint{font-size:12px}
 
@@ -844,7 +1002,9 @@ table.rgrid{border-collapse:separate;border-spacing:0;width:100%;min-width:780px
    the two old breakpoints. Grids reflow on available space, the sidebar
    narrows before it disappears, and nothing pushes the page sideways.
    ========================================================================== */
-html,body{overflow-x:hidden}
+/* Only the body: an overflow on <html> stops it propagating to the viewport and
+   hands the scrolling to <body> instead. See the html/body rules at the top. */
+body{overflow-x:hidden}
 img,svg,video{max-width:100%}
 .content{max-width:min(1180px, 100%)}
 /* Break only words that genuinely don't fit — never mid-word on ordinary text. */
@@ -876,6 +1036,8 @@ img,svg,video{max-width:100%}
   body:not(.side-full){--sidebar:72px}
   body:not(.side-full) .sidebar{padding:16px 8px;align-items:center;overflow-x:hidden}
   body:not(.side-full) .nav-item{position:relative;justify-content:center;padding:11px 0;width:100%;font-size:0;gap:0}
+  /* Folded to an icon rail there is no room for the word — the rule stays. */
+  body:not(.side-full) .nav-sep{font-size:0;margin:12px 6px 8px;padding-top:10px}
   body:not(.side-full) .nav-item .em{font-size:18px;width:auto}
   body:not(.side-full) .nav-item .badge{position:absolute;top:4px;right:8px;font-size:10px;padding:0 5px;min-width:16px}
   body:not(.side-full) .side-brand{padding:6px 0 16px;justify-content:center}
@@ -896,6 +1058,10 @@ img,svg,video{max-width:100%}
   body.side-full .nav-item{font-size:13.5px;gap:9px;padding:10px}
 }
 @media(max-width:880px){
+  /* The bar used to be 90px of a 812px screen carrying one clipped marketing
+     line. It is now the iOS pattern: a slim persistent title, with the page's
+     own large heading scrolling underneath it. */
+  .topbar{min-height:52px;padding:8px 14px;gap:10px}
   .topbar h1{font-size:17px}
   .weekbar{padding:10px}
   .modal{width:min(560px,94vw)}
@@ -904,8 +1070,16 @@ img,svg,video{max-width:100%}
   .content{padding:16px 12px 90px}
   .section-head h2{font-size:20px}
   .stat .v{font-size:25px}
+  /* Only once they actually scroll do the two chip rows get their edge fade —
+     a tab or a category clipped mid-word otherwise reads as a rendering fault. */
+  .tabbar,.catbar{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
   .tabbar{flex-wrap:nowrap}
   .tabbar .tab{padding:10px 12px;font-size:13px}
+  /* Switch + primary + ⋯ come to 364px at 375px wide, so the menu dropped to a
+     line of its own. Eight pixels off each side of the switch and they fit. */
+  .viewswitch button{padding:0 11px}
+  .omenu>summary{padding:0 11px}
   .skill-row>b{min-width:100%}
 }
 
@@ -923,11 +1097,21 @@ img,svg,video{max-width:100%}
   --gv-wood:#D8B98C; --gv-wood-dk:#B4915F;
   --gv-cold:#EAF1F6; --gv-cold-2:#DCE8F1;
   --gv-dry:#F5EFE4;  --gv-dry-2:#EDE3D2;
+  /* What is IN the jar is a data graphic, not a surface — like a bar in a chart.
+     So it keeps its own mid-tone scale rather than using --green/--amber/--red,
+     which are tuned to be read as text and go too dark to hold a quantity label.
+     Same three steps as everywhere else, just at fill weight. */
+  --fill-ok:#6FBF8F; --fill-warn:#EBC062; --fill-low:#E8776E;
+  /* Specular highlight on the glass. A fixed white streak that reads as a
+     subtle sheen on a pale jar becomes a hard white bar on a dark one. */
+  --gloss:.85; --gloss-2:.35;
 }
 
 /* view switch (Shelf / List) */
+.home-switch{display:flex;justify-content:flex-end;margin-bottom:4px}
 .viewswitch{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card);flex-shrink:0}
-.viewswitch button{font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:0 14px;min-height:48px;line-height:1;white-space:nowrap;transition:background .2s,color .2s}
+.viewswitch button{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:0 14px;min-height:48px;line-height:1;white-space:nowrap;transition:background .2s,color .2s}
+.viewswitch button .ic{width:17px;height:17px}
 .viewswitch button.on{background:var(--ink);color:var(--paper)}
 
 /* the board across the top */
@@ -936,7 +1120,7 @@ img,svg,video{max-width:100%}
   display:flex;flex-direction:column;justify-content:center}
 .gv-top-num b{font-size:19px;line-height:1.15}
 .gv-top-num i{font-style:normal;font-size:11.5px;color:var(--ink-faint)}
-.gv-top-num.hot{background:var(--red-soft);border-color:#f3c8c4}
+.gv-top-num.hot{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 35%,transparent)}
 .gv-top-num.hot b{color:var(--red)}
 .gv-top .btn{margin-left:auto}
 
@@ -944,9 +1128,14 @@ img,svg,video{max-width:100%}
 .gv-room{margin-top:16px;border-radius:var(--radius-lg);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-soft)}
 .gv-room.cold{background:linear-gradient(180deg,var(--gv-cold) 0%,var(--gv-cold-2) 100%)}
 .gv-room.dry {background:linear-gradient(180deg,var(--gv-dry) 0%,var(--gv-dry-2) 100%)}
-.gv-room-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 18px 10px}
+.gv-room-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:14px 18px 10px}
 .gv-room-head b{font-size:15px;font-weight:700}
 .gv-room-head span{font-size:12px;color:var(--ink-soft)}
+.gv-room-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;flex-shrink:0;
+  background:var(--card);color:var(--ink-soft)}
+.gv-room-ic .ic{width:17px;height:17px}
+/* On a phone the hint drops under the title rather than squeezing it. */
+@media(max-width:560px){ .gv-room-head>span:last-child{flex-basis:100%} }
 .gv-empty{padding:0 18px 22px;font-size:13px;color:var(--ink-soft)}
 
 /* the shelf itself — planks are a repeating background so every row is one
@@ -962,7 +1151,7 @@ img,svg,video{max-width:100%}
     transparent 0 126px,
     var(--gv-wood) 126px 140px,
     var(--gv-wood-dk) 140px 146px,
-    rgba(33,30,27,.07) 146px 151px,
+    color-mix(in srgb,var(--ink) 8%,transparent) 146px 151px,
     transparent 151px 178px);
   background-position:0 6px;
 }
@@ -976,21 +1165,25 @@ img,svg,video{max-width:100%}
 .gv-tap:active .gv-jar{transform:translateY(2px) scale(.97)}
 .gv-em{font-size:22px;line-height:1.1;filter:drop-shadow(0 1px 1px rgba(33,30,27,.18))}
 .gv-glass{position:relative;display:block;width:100%;height:76px;border-radius:7px 7px 11px 11px;overflow:hidden;
-  background:rgba(255,255,255,.72);border:2px solid rgba(33,30,27,.16);
+  background:color-mix(in srgb,var(--card) 72%,transparent);border:2px solid var(--line);
   box-shadow:inset 0 -3px 8px rgba(33,30,27,.06), 0 3px 6px -3px rgba(33,30,27,.35)}
 .gv-fill{position:absolute;left:0;right:0;bottom:0;transition:height .55s var(--ease-out);
-  background:linear-gradient(180deg,rgba(255,255,255,.35) 0,rgba(255,255,255,0) 18px)}
-.gv-jar.st-ok   .gv-fill{background-color:#6FBF8F}
-.gv-jar.st-warn .gv-fill{background-color:#EBC062}
-.gv-jar.st-low  .gv-fill{background-color:#E8776E}
+  background:linear-gradient(180deg,rgba(255,255,255,var(--gloss-2)) 0,rgba(255,255,255,0) 18px)}
+.gv-jar.st-ok   .gv-fill{background-color:var(--fill-ok)}
+.gv-jar.st-warn .gv-fill{background-color:var(--fill-warn)}
+.gv-jar.st-low  .gv-fill{background-color:var(--fill-low)}
 /* an empty jar should look alarming, not just empty */
-.gv-jar.st-warn .gv-glass{border-color:rgba(224,161,27,.45);background:rgba(251,242,218,.9)}
-.gv-jar.st-low  .gv-glass{border-color:rgba(216,69,60,.5);background:rgba(253,236,234,.95)}
+.gv-jar.st-warn .gv-glass{border-color:color-mix(in srgb,var(--amber) 45%,transparent);background:color-mix(in srgb,var(--amber-soft) 90%,transparent)}
+.gv-jar.st-low  .gv-glass{border-color:color-mix(in srgb,var(--red) 50%,transparent);background:color-mix(in srgb,var(--red-soft) 95%,transparent)}
 .gv-glass::after{content:"";position:absolute;left:6px;top:6px;width:7px;bottom:10px;border-radius:4px;
-  background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.15))}
-.gv-qty{position:absolute;left:0;right:0;bottom:5px;text-align:center;font-size:11.5px;font-weight:800;
-  color:var(--ink);text-shadow:0 1px 0 rgba(255,255,255,.8)}
-.gv-qty i{font-style:normal;font-weight:600;opacity:.65;font-size:9.5px;margin-left:1px}
+  background:linear-gradient(180deg,rgba(255,255,255,var(--gloss)),rgba(255,255,255,calc(var(--gloss) * .18)))}
+.gv-qty{position:absolute;left:3px;right:3px;bottom:5px;display:flex;align-items:baseline;
+  justify-content:center;gap:1px;padding:1px 3px;border-radius:5px;font-size:11px;font-weight:800;
+  background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink);
+  white-space:nowrap;overflow:hidden}
+/* The unit is the first thing to go when the number is long — "1,526" alone
+   still reads; "1,52…" does not. */
+.gv-qty i{font-style:normal;font-weight:600;opacity:.7;font-size:9.5px;overflow:hidden;text-overflow:ellipsis}
 
 /* the "n days left" tab clipped to the jar */
 .gv-cover{position:absolute;top:16px;right:-3px;z-index:2;font-size:9.5px;font-weight:800;line-height:1;
@@ -1009,27 +1202,27 @@ img,svg,video{max-width:100%}
 
 /* the shelf-edge label, sitting on the plank like a supermarket price tag */
 .gv-tag{position:absolute;top:calc(100% + 4px);left:3px;right:3px;z-index:2;
-  background:var(--card);border:1px solid rgba(33,30,27,.14);border-radius:5px;
+  background:var(--card);border:1px solid var(--line);border-radius:5px;
   padding:3px 4px;text-align:center;box-shadow:0 1px 2px rgba(33,30,27,.14)}
 .gv-tag b{display:block;font-size:10.5px;font-weight:700;line-height:1.25;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* the price line — the second thing you want off a shelf label */
 .gv-tag i{display:block;font-style:normal;font-size:9px;font-weight:600;line-height:1.3;
   color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gv-tag.st-warn{border-color:rgba(224,161,27,.5);background:var(--amber-soft)}
-.gv-tag.st-low{border-color:rgba(216,69,60,.5);background:var(--red-soft)}
-.gv-tag.st-low b{color:#922019}
+.gv-tag.st-warn{border-color:color-mix(in srgb,var(--amber) 50%,transparent);background:var(--amber-soft)}
+.gv-tag.st-low{border-color:color-mix(in srgb,var(--red) 50%,transparent);background:var(--red-soft)}
+.gv-tag.st-low b{color:var(--red-ink)}
 
 /* the reorder point, drawn across the glass */
 .gv-mark{position:absolute;left:0;right:0;height:0;z-index:2;pointer-events:none;
-  border-top:1.5px dashed rgba(33,30,27,.42)}
+  border-top:1.5px dashed color-mix(in srgb,var(--ink) 45%,transparent)}
 .gv-mark::after{content:"";position:absolute;right:1px;top:-3px;width:0;height:0;
-  border:3px solid transparent;border-right-color:rgba(33,30,27,.5)}
+  border:3px solid transparent;border-right-color:color-mix(in srgb,var(--ink) 52%,transparent)}
 
 /* the items that need topping up, by name, each one a tap into the basket */
 .gv-needs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;
-  padding:12px 14px;border-radius:var(--radius);background:var(--red-soft);border:1px solid #f3c8c4}
-.gv-needs-h{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#922019}
+  padding:12px 14px;border-radius:var(--radius);background:var(--red-soft);border:1px solid color-mix(in srgb,var(--red) 35%,transparent)}
+.gv-needs-h{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--red-ink)}
 .gv-needs .btn{margin-left:auto}
 @media(max-width:560px){ .gv-needs .btn{margin-left:0;width:100%} }
 
@@ -1108,15 +1301,16 @@ img,svg,video{max-width:100%}
 .fp-prog-goal{font-size:12px;color:var(--ink-faint);flex-shrink:0}
 
 /* the room itself */
+/* A quiet tile grid, not a 45° chequerboard — the chequer reads as the
+   transparency placeholder every image editor uses, i.e. as a broken asset. */
 .fp-floor{position:relative;margin-top:16px;padding:68px 20px 30px;border-radius:var(--radius-lg);
-  border:6px solid var(--fp-wall);
+  border:5px solid var(--fp-wall);
   background-color:var(--fp-floor);
   background-image:
-    linear-gradient(45deg,var(--fp-floor-2) 25%,transparent 25%,transparent 75%,var(--fp-floor-2) 75%),
-    linear-gradient(45deg,var(--fp-floor-2) 25%,transparent 25%,transparent 75%,var(--fp-floor-2) 75%);
-  background-size:34px 34px; background-position:0 0, 17px 17px;
+    repeating-linear-gradient(90deg,var(--fp-floor-2) 0 1px,transparent 1px 46px),
+    repeating-linear-gradient(0deg,var(--fp-floor-2) 0 1px,transparent 1px 46px);
   box-shadow:var(--shadow)}
-.fp-floor-label{position:absolute;top:14px;left:18px;background:var(--card);border-radius:14px;
+.fp-floor-label{position:absolute;top:14px;left:18px;right:18px;max-width:max-content;background:var(--card);border-radius:14px;
   padding:8px 14px;box-shadow:var(--shadow-soft);line-height:1.3}
 .fp-floor-label span{display:block;font-size:13.5px;font-weight:700}
 .fp-floor-label small{font-size:11.5px;color:var(--ink-soft)}
@@ -1130,16 +1324,25 @@ img,svg,video{max-width:100%}
   transition:transform .18s var(--ease-out), box-shadow .2s, border-color .2s}
 .rm b{font-size:14.5px;font-weight:700}
 .rm small{font-size:11.5px;color:var(--ink-soft)}
-.rm-em{font-size:26px;line-height:1.1}
+/* Same icon chip as the room's block on the home screen — one module, one look. */
+.rm-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;margin-bottom:3px;
+  background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink))}
+.rm-ic .ic{width:23px;height:23px}
 .rm:active{transform:scale(.97)}
 @media (hover:hover) and (pointer:fine){ .rm:hover{transform:translateY(-2px);box-shadow:var(--shadow)} }
-/* a room that wants you has a warm wall and a live badge */
-.rm-live{border-color:var(--accent);background:var(--accent-soft)}
-.rm-done{opacity:.72}
+/* a room that wants you gets its own colour on the wall; a clear one goes quiet */
+.rm-live{border-color:color-mix(in srgb,var(--tone,var(--accent)) 55%,transparent)}
+.rm-done{opacity:.75}
+.rm-done .rm-ic{background:var(--paper-2);color:var(--ink-faint)}
+/* Three states, the same three the home blocks use: clear · worth a look ·
+   do it today. Never the room's own colour — that is identity, not status. */
 .rm-badge{position:absolute;top:-11px;right:-9px;min-width:26px;height:26px;padding:0 7px;border-radius:999px;
-  background:var(--accent);color:#fff;font-size:13px;font-weight:800;line-height:26px;text-align:center;
+  color:#fff;font-size:13px;font-weight:800;line-height:26px;text-align:center;
   box-shadow:0 2px 6px -1px rgba(33,30,27,.35)}
-.rm-badge.ok{background:var(--green);font-size:14px}
+.rm-badge .ic{width:15px;height:15px;stroke-width:3;vertical-align:middle;margin-top:-2px}
+.rm.is-ok .rm-badge,.rm-badge.ok{background:var(--green)}
+.rm.is-warm .rm-badge{background:var(--amber);color:#4a3405}
+.rm.is-hot .rm-badge{background:var(--red)}
 
 /* the boss stands in the middle and points at the first room */
 .fp-boss{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
@@ -1148,20 +1351,26 @@ img,svg,video{max-width:100%}
   box-shadow:var(--shadow-soft);white-space:nowrap;max-width:270px;overflow:hidden;text-overflow:ellipsis;
   margin-bottom:6px;animation:fpBob 3.2s var(--ease-in-out) infinite}
 @keyframes fpBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-.fp-head{font-size:24px;line-height:1}
 .fp-body{display:flex;align-items:center;justify-content:center;width:52px;height:38px;margin-top:-2px;
   border-radius:12px 12px 8px 8px;background:var(--fp-wall);color:var(--paper);
   font-size:10px;font-weight:800;letter-spacing:.06em;
   box-shadow:0 6px 12px -6px rgba(33,30,27,.5)}
-.fp-deco{position:absolute;font-size:19px;opacity:.62;pointer-events:none}
-.fp-deco.d1{left:15%;top:50%;transform:translateY(-50%)}
-.fp-deco.d2{right:15%;top:50%;transform:translateY(-50%)}
-.fp-deco.d3{left:32%;top:26px}.fp-deco.d4{right:32%;top:26px}
-
 /* the one line of context under the floor */
 .fp-insight{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;padding:16px 18px;
   border-radius:var(--radius);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
-.fp-insight-ic{font-size:20px;flex-shrink:0}
+.fp-insight-ic{flex-shrink:0;display:grid;place-items:center;width:38px;height:38px;border-radius:12px;
+  background:var(--accent-soft);color:var(--accent-ink)}
+.fp-insight-ic .ic{width:20px;height:20px}
+
+/* Legal/plumbing copy that has to exist but does not have to be on the home
+   screen every single visit. */
+.disclaimer-fold{font-size:12.5px;color:var(--ink-soft);background:var(--paper-2);
+  border:1px dashed var(--line);border-radius:12px;padding:10px 14px}
+.disclaimer-fold summary{cursor:pointer;font-weight:600;list-style:none}
+.disclaimer-fold summary::-webkit-details-marker{display:none}
+.disclaimer-fold summary::after{content:' ›';display:inline-block;transition:transform .2s}
+.disclaimer-fold[open] summary::after{transform:rotate(90deg)}
+.disclaimer-fold p{margin-top:8px;line-height:1.55}
 .fp-insight div{flex:1;min-width:200px}
 .fp-insight b{font-size:13.5px}
 .fp-insight p{font-size:13px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
@@ -1169,7 +1378,7 @@ img,svg,video{max-width:100%}
 @media(max-width:880px){
   .fp-hello h2{font-size:24px}
   .fp-hello .btn{margin-left:0;width:100%}
-  .fp-floor{padding:66px 14px 26px}
+  .fp-floor{padding:86px 14px 26px}
   .fp-rooms{gap:112px 12px}
 }
 @media(max-width:560px){
@@ -1209,6 +1418,7 @@ body.side-mini .side-toggle::before{content:'»'}
   body.side-mini .side-toggle{margin:0}
   /* Same trick as the automatic rail above: the nav label is a bare text node. */
   body.side-mini .nav-item{position:relative;justify-content:center;padding:11px 0;width:100%;font-size:0;gap:0}
+  body.side-mini .nav-sep{font-size:0;margin:12px 6px 8px;padding-top:10px}
   body.side-mini .nav-item .em{font-size:18px;width:auto}
   body.side-mini .nav-item .badge{position:absolute;top:4px;right:8px;font-size:10px;padding:0 5px;min-width:16px}
   body.side-mini .side-foot .who div{display:none}
@@ -1228,26 +1438,57 @@ body.side-mini .side-toggle::before{content:'»'}
    way a tablet home screen works. Edit mode wobbles the tiles and puts a −
    on each one; the rest of the time a tile is just a big tap target.
    ========================================================================== */
-.tiles-wrap{margin-top:16px}
-.tiles-head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.tiles-head b{font-size:15px;display:block}
-.tiles-head span{font-size:12.5px;color:var(--ink-soft)}
+.tiles-wrap{margin-top:8px}
+/* Greeting, today's count and Edit on one line — the springboard used to stack
+   a greeting, a "Your home screen" heading and a hint before the first block. */
+.tiles-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
+.tiles-head h2{font-size:30px;line-height:1.15;letter-spacing:-.02em}
+.tiles-head .fp-count{font-size:15px;color:var(--ink-soft);margin-top:6px;font-weight:600}
 .tiles-head .btn{margin-left:auto;flex:none}
+@media(max-width:560px){ .tiles-head h2{font-size:24px} .tiles-head .fp-count{font-size:13.5px} }
 
-.tiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:20px 16px;align-items:start}
-.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;
-  padding:0;background:none;border:none;font:inherit;color:inherit;text-align:center;
-  -webkit-tap-highlight-color:transparent;touch-action:none}
-.tile-ic{position:relative;display:grid;place-items:center;width:100%;max-width:78px;aspect-ratio:1;
-  border-radius:22px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
-  color:var(--ink);transition:transform .18s var(--ease-out),box-shadow .18s}
-.tile-ic .ic{width:30px;height:30px}
-.tile-label{font-size:12.5px;font-weight:600;line-height:1.3;max-width:96px}
-.tile-badge{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;
-  background:var(--red);color:#fff;font-size:11.5px;font-weight:800;display:grid;place-items:center;
-  border:2px solid var(--paper)}
-.tile:active .tile-ic{transform:scale(.93)}
-@media (hover:hover) and (pointer:fine){ .tile:hover .tile-ic{transform:translateY(-3px);box-shadow:var(--shadow)} }
+/* Two up on a phone, so a block is a comfortable thumb target and has room for
+   its own status line — a 4-across springboard of tiny icons reads as a launcher,
+   not as the six things the venue has to get done today. */
+.tiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:stretch;max-width:920px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  padding:16px 16px 14px;min-height:132px;border-radius:var(--radius-lg);text-align:left;
+  background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
+  font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:none;
+  transition:transform .18s var(--ease-out),box-shadow .18s,border-color .2s}
+.tile-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;
+  background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink));flex-shrink:0}
+.tile-ic .ic{width:26px;height:26px}
+.tile-label{font-size:15px;font-weight:700;line-height:1.25}
+/* The status line is what makes a block readable at arm's length: the number is
+   large, its unit is spelled out, and "All clear" is a real state, not a blank. */
+.tile-sub{display:flex;align-items:baseline;gap:6px;margin-top:auto;font-size:12.5px;
+  font-weight:600;color:var(--ink-soft);line-height:1.2}
+.tile-sub b{font-size:22px;font-weight:900;font-family:"Playfair Display",serif;line-height:1}
+.tile-sub .ic{width:15px;height:15px;stroke-width:2.6;align-self:center}
+.tile:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){ .tile:hover{transform:translateY(-3px);box-shadow:var(--shadow)} }
+
+/* One module, one colour — set once here, read by the icon chip and the border. */
+.t-blue{--tone:var(--blue);--tone-soft:var(--blue-soft)}
+.t-green{--tone:var(--green);--tone-soft:var(--green-soft)}
+.t-amber{--tone:var(--amber-ink);--tone-soft:var(--amber-soft)}
+.t-red{--tone:var(--red);--tone-soft:var(--red-soft)}
+.t-violet{--tone:var(--violet);--tone-soft:var(--violet-soft)}
+.t-teal{--tone:var(--teal);--tone-soft:var(--teal-soft)}
+.t-accent{--tone:var(--accent-ink);--tone-soft:var(--accent-soft)}
+.t-ink{--tone:var(--ink-soft);--tone-soft:var(--paper-2)}
+
+/* Three states, the same three everywhere: clear · worth a look · do it today. */
+/* The status line never takes the module's own colour — a green "5 jobs left"
+   on the green module reads as "all clear" at a glance. Identity is the icon
+   chip; status is these three and nothing else. */
+.tile.is-ok .tile-sub{color:var(--green)}
+.tile.is-warm{border-color:color-mix(in srgb,var(--amber) 50%,transparent)}
+.tile.is-warm .tile-sub{color:var(--amber-ink)}
+.tile.is-hot{border-color:var(--red);background:linear-gradient(0deg,var(--red-soft),var(--red-soft))}
+.tile.is-hot .tile-ic{background:var(--card)}
+.tile.is-hot .tile-sub{color:var(--red)}
 
 /* edit mode */
 .tiles-edit .tile{animation:tile-wobble .28s ease-in-out infinite alternate}
@@ -1255,19 +1496,27 @@ body.side-mini .side-toggle::before{content:'»'}
 .tiles-edit .tile-add{animation:none}
 @keyframes tile-wobble{ from{transform:rotate(-1.1deg)} to{transform:rotate(1.1deg)} }
 @media (prefers-reduced-motion:reduce){ .tiles-edit .tile{animation:none} }
-.tile-x{position:absolute;top:-8px;left:-8px;z-index:3;width:24px;height:24px;border-radius:999px;
-  background:var(--ink);color:var(--paper);font-size:17px;font-weight:800;line-height:1;
+.tile-x{position:absolute;top:-9px;left:-9px;z-index:3;width:28px;height:28px;border-radius:999px;
+  background:var(--ink);color:var(--paper);line-height:1;
   display:grid;place-items:center;border:2px solid var(--paper);box-shadow:var(--shadow-soft)}
-.tile-dragging{opacity:.9;z-index:5;animation:none!important}
-.tile-dragging .tile-ic{transform:scale(1.08);box-shadow:var(--shadow)}
-.tile-add .tile-ic{background:transparent;border-style:dashed;border-width:2px;color:var(--ink-faint)}
+.tile-x .ic{width:16px;height:16px;stroke-width:2.6}
+.tile-dragging{opacity:.95;z-index:5;animation:none!important;transform:scale(1.04);box-shadow:var(--shadow)}
+.tile-add{align-items:center;justify-content:center;background:transparent;box-shadow:none;
+  border:2px dashed var(--line);color:var(--ink-faint)}
+.tile-add .tile-ic{background:transparent}
+.tile-add .tile-label{font-size:13px}
 .tiles-empty{padding:26px 18px;border-radius:var(--radius);background:var(--paper-2);
   border:1px dashed var(--line);text-align:center;font-size:13.5px;color:var(--ink-soft)}
-.tiles-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:18px 14px}
+/* The picker is a chooser, not a dashboard — icon and name only, packed tighter. */
+.tiles-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.tiles-pick .tile{min-height:96px;padding:14px 10px;align-items:center;text-align:center;gap:8px}
+.tiles-pick .tile-ic{width:44px;height:44px;border-radius:14px}
+.tiles-pick .tile-label{font-size:12.5px}
 @media(max-width:560px){
-  .tiles-grid,.tiles-pick{grid-template-columns:repeat(4,1fr);gap:18px 10px}
-  .tile-ic{max-width:66px;border-radius:19px}
-  .tile-label{font-size:11.5px}
+  .tiles-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .tile{min-height:124px;padding:14px 13px 12px;border-radius:22px}
+  .tile-ic{width:46px;height:46px;border-radius:14px}
+  .tile-label{font-size:14px}
 }
 
 /* ==========================================================================
@@ -1285,12 +1534,12 @@ body.side-mini .side-toggle::before{content:'»'}
 
 .kv-room{position:relative;margin-top:16px;padding:56px 18px 24px;border-radius:var(--radius-lg);
   border:6px solid var(--fp-wall,#3C4A3E);
-  background-color:#EDE6D8;
+  background-color:var(--fp-floor,#EDE6D8);
   background-image:linear-gradient(#0000 0 0),
     repeating-linear-gradient(90deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px),
     repeating-linear-gradient(0deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px);
   overflow:hidden}
-.kv-room-label{position:absolute;top:13px;left:16px;background:var(--card);border-radius:14px;
+.kv-room-label{position:absolute;top:13px;left:16px;right:16px;max-width:max-content;background:var(--card);border-radius:14px;
   padding:6px 13px;box-shadow:var(--shadow-soft)}
 .kv-room-label span{display:block;font-size:13.5px;font-weight:700}
 .kv-room-label small{font-size:11.5px;color:var(--ink-soft)}
@@ -1302,15 +1551,23 @@ body.side-mini .side-toggle::before{content:'»'}
   transition:transform .18s var(--ease-out),box-shadow .18s,border-color .18s}
 .kv-st b{font-size:14px;font-weight:700}
 .kv-st small{font-size:11.5px;color:var(--ink-soft);text-align:center}
-.kv-st-em{font-size:27px;line-height:1.1}
+/* Same chip as the floor's rooms and the home blocks — one module, one look. */
+.kv-st-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;margin-bottom:3px;
+  background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink))}
+.kv-st-ic .ic{width:23px;height:23px}
 .kv-st:active{transform:scale(.97)}
 @media (hover:hover) and (pointer:fine){ .kv-st:hover{transform:translateY(-2px);box-shadow:var(--shadow)} }
-.kv-st.live{border-color:var(--accent);background:var(--accent-soft)}
-.kv-st.clear{opacity:.68}
+.kv-st.live{border-color:color-mix(in srgb,var(--tone,var(--accent)) 55%,transparent)}
+.kv-st.clear{opacity:.75}
+.kv-st.clear .kv-st-ic{background:var(--paper-2);color:var(--ink-faint)}
+/* Badge = status only, never the station's own colour. */
 .kv-st-badge{position:absolute;top:-11px;right:-9px;min-width:26px;height:26px;padding:0 7px;border-radius:999px;
-  background:var(--accent);color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;
+  color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;
   border:2px solid var(--paper)}
-.kv-st-badge.ok{background:var(--green);font-size:14px}
+.kv-st-badge .ic{width:15px;height:15px;stroke-width:3}
+.kv-st.is-ok .kv-st-badge,.kv-st-badge.ok{background:var(--green)}
+.kv-st.is-warm .kv-st-badge{background:var(--amber);color:#4a3405}
+.kv-st.is-hot .kv-st-badge{background:var(--red)}
 /* the outstanding jobs, as dots on the bench */
 .kv-dots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:2px;min-height:8px}
 .kv-dot{width:7px;height:7px;border-radius:999px;background:var(--red)}
@@ -1324,10 +1581,11 @@ body.side-mini .side-toggle::before{content:'»'}
 @media(max-width:880px){ .kv-stations{grid-template-columns:repeat(3,1fr)} }
 @media(max-width:560px){
   .kv-stations{grid-template-columns:repeat(2,1fr);gap:12px}
-  .kv-room{padding:54px 12px 20px}
+  .kv-room{padding:84px 12px 20px}
   .kv-st{min-height:110px;padding:13px 8px}
   .kv-st b{font-size:13px}
-  .kv-st-em{font-size:24px}
+  .kv-st-ic{width:38px;height:38px;border-radius:12px}
+  .kv-st-ic .ic{width:20px;height:20px}
 }
 
 /* ==========================================================================
@@ -1409,7 +1667,7 @@ body.side-mini .side-toggle::before{content:'»'}
   padding:9px 12px;display:flex;flex-direction:column;gap:1px}
 .sup-stats b{font-size:16px;line-height:1.2}
 .sup-stats i{font-style:normal;font-size:10.5px;color:var(--ink-faint)}
-.sup-stats .hot{background:var(--red-soft);border-color:#f3c8c4}
+.sup-stats .hot{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 35%,transparent)}
 .sup-stats .hot b{color:var(--red)}
 .sup-items{margin-top:16px;display:flex;flex-wrap:wrap;gap:7px}
 .sup-items-h{flex:1 0 100%;font-size:12px;color:var(--ink-faint);margin-bottom:2px}
@@ -1422,14 +1680,14 @@ body.side-mini .side-toggle::before{content:'»'}
 .chip:active{transform:scale(.96)}
 @media (hover:hover) and (pointer:fine){ .chip:hover{border-color:var(--ink)} }
 .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.chip.on i{color:rgba(246,242,236,.7)}
-.chip-hot{background:var(--amber-soft);border-color:#eed9a4;color:#8a6410}
-.chip-hot i{color:#a5803a}
+.chip.on i{color:color-mix(in srgb,var(--paper) 72%,transparent)}
+.chip-hot{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,transparent);color:var(--amber-ink)}
+.chip-hot i{color:var(--amber-ink);opacity:.8}
 .daypick{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:520px){ .sup-facts{grid-template-columns:1fr} }
 
 /* Forecast — showing the working */
-.fc-formula{display:block;margin:8px 0;padding:8px 11px;border-radius:9px;background:rgba(255,255,255,.55);
+.fc-formula{display:block;margin:8px 0;padding:8px 11px;border-radius:9px;background:color-mix(in srgb,var(--card) 55%,transparent);
   font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5}
 .fc-worked{margin-top:16px;padding:18px;border-radius:var(--radius);background:var(--card);
   border:1px solid var(--line);box-shadow:var(--shadow-soft)}
@@ -1440,7 +1698,7 @@ body.side-mini .side-toggle::before{content:'»'}
 .fc-sum i{display:block;font-style:normal;font-size:11px;color:var(--ink-faint);line-height:1.35}
 .fc-sum b{font-size:16px}
 .fc-sum em{display:flex;align-items:center;font-style:normal;font-weight:800;font-size:17px;color:var(--ink-faint)}
-.fc-sum .hot{background:var(--accent-soft);border-color:#e6c9b4}
+.fc-sum .hot{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
 .fc-sum .hot b{color:var(--accent-ink)}
 @media(max-width:560px){ .fc-sum span{flex:1 1 100%} .fc-sum em{justify-content:center} }
 
@@ -1465,7 +1723,7 @@ body.side-mini .side-toggle::before{content:'»'}
 /* Delivery ⇄ docket: the same event seen from either end */
 .dkt-flag{margin-top:3px;font-size:10px;font-weight:700;color:var(--red)}
 .dkt-stamp{margin-top:12px;padding:8px 10px;border-radius:8px;border:1.5px dashed rgba(47,143,91,.5);
-  background:rgba(233,246,238,.7);text-align:center}
+  background:color-mix(in srgb,var(--green-soft) 70%,transparent);text-align:center}
 .dkt-stamp b{display:block;font-size:10.5px;letter-spacing:.04em;color:#1d6a40}
 .dkt-stamp span{display:block;margin-top:2px;font-size:9.5px;color:#4b7c60;line-height:1.4}
 .dkt-stamp.plain{border-color:rgba(33,30,27,.18);background:rgba(33,30,27,.03)}
@@ -1474,3 +1732,38 @@ body.side-mini .side-toggle::before{content:'»'}
 .dlv-amt{white-space:nowrap;font-size:14px}
 /* the back-door check sheet: never let the condition column get crushed */
 .dc-row td:last-child{min-width:132px}
+
+/* Skill glyphs (can open / can close / kitchen / bar / shift lead) — inline with
+   the name they sit next to, so a roster row reads as one line. */
+.skill-ic{width:15px;height:15px;vertical-align:-2px;color:var(--ink-soft)}
+.skill-chip .skill-ic{margin:0 2px}
+.rg-name .skill-ic{width:13px;height:13px;opacity:.75}
+
+/* Icons that sit inline with a label rather than in a chip of their own —
+   stat-card keys, supplier buttons, chat, the AI send button. */
+.stat .k .ic{width:15px;height:15px;flex-shrink:0}
+.btn .ic{width:17px;height:17px;flex-shrink:0}
+.tab .ic{width:16px;height:16px}
+.pill .ic{width:13px;height:13px}
+.ai-head .ic,.aa-head .ic{width:17px;height:17px}
+.ai-input-row .btn .ic{width:18px;height:18px}
+.ai-msg .ic,.aa-msg .ic{width:14px;height:14px;vertical-align:-2px}
+.dkt-flag .ic,.dkt-stamp .ic{width:12px;height:12px;vertical-align:-1px}
+.gv-group-head .ic{width:15px;height:15px;vertical-align:-2px;margin-right:4px}
+.gv-warnline .ic{width:14px;height:14px;vertical-align:-2px}
+.li .meta .ic,.meta span .ic{width:13px;height:13px;vertical-align:-2px}
+.offbar .ic{width:15px;height:15px;vertical-align:-3px;margin-right:3px}
+.img-preview .ic{width:22px;height:22px;margin-bottom:4px}
+.ai-chip .ic{width:13px;height:13px}
+
+/* Rating: five icons filled to the score, rather than a repeated ★ character —
+   a text star can't be styled per-state and reads as noise to a screen reader. */
+.stars{display:inline-flex;gap:1px;vertical-align:-2px}
+.stars .ic{width:14px;height:14px;color:var(--line)}
+.stars .on .ic{color:var(--amber);fill:var(--amber)}
+/* Leaderboard rank: one medal icon plus the number. */
+.bestnm .ic,.li b .ic{width:14px;height:14px;vertical-align:-2px}
+.onb-ic .ic{width:17px;height:17px}
+.task-check .ic,.kv-tick .ic{width:15px;height:15px;stroke-width:3}
+.aa-orb .ic{width:21px;height:21px}
+.role-seg .ic{width:16px;height:16px}

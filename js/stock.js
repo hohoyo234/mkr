@@ -30,8 +30,8 @@ window.MKR = window.MKR || {};
   const mineOf = async (t)=> (await MKR.db.getAll(t)).filter(r=>(r.kitchenId||'k_main')===kid());
 
   const KIND = {
-    perishable:{label:'Perishable', em:'🥬', hint:'Goes off — has a shelf life'},
-    durable:   {label:'Non-perishable', em:'🥢', hint:"Doesn't go off — tools & consumables"},
+    perishable:{label:'Perishable', ic:'clock', hint:'Goes off — has a shelf life'},
+    durable:   {label:'Non-perishable', ic:'utensils', hint:"Doesn't go off — tools & consumables"},
   };
 
   // ---------- items ----------
@@ -478,12 +478,12 @@ window.MKR = window.MKR || {};
   // real life — so the next count still reconciles and the reorder maths, which
   // works on total depletion, is untouched.
   const WASTE_REASONS = {
-    expired:  {label:'Out of date',        em:'📅'},
-    spoiled:  {label:'Spoiled or off',     em:'🥀'},
-    prep:     {label:'Prep error / burnt', em:'🔥'},
-    damaged:  {label:'Dropped or damaged', em:'💥'},
+    expired:  {label:'Out of date',        ic:'calendar'},
+    spoiled:  {label:'Spoiled or off',     ic:'warning'},
+    prep:     {label:'Prep error / burnt', ic:'warning'},
+    damaged:  {label:'Dropped or damaged', ic:'warning'},
     returned: {label:'Sent back by a customer', em:'↩️'},
-    other:    {label:'Other',              em:'🗑'},
+    other:    {label:'Other',              ic:'trash'},
   };
   async function saveWaste(lines, reason, note){
     const all = await items();

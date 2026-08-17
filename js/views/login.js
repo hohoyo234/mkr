@@ -30,9 +30,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
           <div id="signinPane">
             <div class="role-pick mt16" id="rolePick">
-              <button data-r="owner" class="sel"><span class="em">👑</span>Owner</button>
-              <button data-r="manager"><span class="em">📋</span>Manager</button>
-              <button data-r="staff"><span class="em">🧑‍🍳</span>Staff</button>
+              <button data-r="owner" class="sel"><span class="em">${MKR.ui.icon('star')}</span>Owner</button>
+              <button data-r="manager"><span class="em">${MKR.ui.icon('checksq')}</span>Manager</button>
+              <button data-r="staff"><span class="em">${MKR.ui.icon('pan')}</span>Staff</button>
             </div>
 
             <div class="field"><label>Username or ID</label><input class="input" id="lu" value="boss" autocomplete="username"></div>
@@ -49,20 +49,20 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
             <div class="seed-hint">
               <b>Demo usernames (tap a role to fill, then enter the password):</b><br>
-              👑 Owner <code>boss</code> · 📋 Manager <code>mgr</code> · 🧑‍🍳 Staff <code>amy / kevin / leo</code><br>
+              Owner <code>boss</code> · Manager <code>mgr</code> · Staff <code>amy / kevin / leo</code><br>
               <span class="faint">Passwords are set in Supabase Auth — they are never stored in this app. Each account is isolated by role and revoked instantly on offboarding.</span>
             </div>
 
             <div class="preview-box">
-              <b>👀 Preview without an account</b>
+              <b>${MKR.ui.icon('eye')} Preview without an account</b>
               <p>Opens the app on this device with sample data only. No cloud sign-in, and nothing you do here is saved to the venue's real records.</p>
               <div class="row gap6 wrap">
-                <button class="btn btn-ghost btn-sm" data-prev="owner">👑 Owner</button>
-                <button class="btn btn-ghost btn-sm" data-prev="manager">📋 Manager</button>
-                <button class="btn btn-ghost btn-sm" data-prev="staff">🧑‍🍳 Staff</button>
+                <button class="btn btn-ghost btn-sm" data-prev="owner">${MKR.ui.icon('star')} Owner</button>
+                <button class="btn btn-ghost btn-sm" data-prev="manager">${MKR.ui.icon('checksq')} Manager</button>
+                <button class="btn btn-ghost btn-sm" data-prev="staff">${MKR.ui.icon('pan')} Staff</button>
               </div>
             </div>
-            ${joinKit?`<div style="text-align:center;margin-top:14px;font-size:13px"><a href="#/join/${joinKit.id}" class="faint" style="font-weight:600">🧑‍🍳 Joining a team? Request to join by phone →</a></div>`:''}
+            ${joinKit?`<div style="text-align:center;margin-top:14px;font-size:13px"><a href="#/join/${joinKit.id}" class="faint" style="font-weight:600">Joining a team? Request to join by phone →</a></div>`:''}
           </div>
 
           <div id="applyPane" class="hidden"></div>
@@ -74,7 +74,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
       // If a Google sign-in was rejected (account not invited), explain why.
       try{ if(sessionStorage.getItem('mkr.authmsg')==='no-invite'){ sessionStorage.removeItem('mkr.authmsg');
-        const e=U.qs('#lerr',root); if(e){ e.textContent='⚠️ This Google account isn\'t registered yet. You must be invited — ask an owner or manager for a join link, or use “Apply for a new restaurant system” below.'; e.classList.remove('hidden'); }
+        const e=U.qs('#lerr',root); if(e){ e.textContent='This Google account isn\'t registered yet. You must be invited — ask an owner or manager for a join link, or use “Apply for a new restaurant system” below.'; e.classList.remove('hidden'); }
       } }catch(e){}
 
       // Approved restaurants' logos sync onto the login page.
@@ -113,7 +113,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         if(!uTouched){ lu.value=QUICK[role].u; lp.value=''; }
         lp.focus(); err.classList.add('hidden');
       });
-      function showErr(msg){ err.textContent='⚠️ '+msg; err.classList.remove('hidden'); }
+      function showErr(msg){ err.textContent=''+msg; err.classList.remove('hidden'); }
       async function doLogin(){
         err.classList.add('hidden'); btn.disabled=true; btn.textContent='Signing in…';
         const res = await MKR.auth.login(lu.value, lp.value);
@@ -178,7 +178,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   // ===== New-restaurant application form (Business Owners only) =====
   function buildApply(pane){
     pane.innerHTML = `
-      <div class="disclaimer mt16"><span>🏢</span>Apply to run your restaurant on My Kitchen. Only business owners may apply — a Super Admin reviews every request before your system is provisioned.</div>
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('building')}</span>Apply to run your restaurant on My Kitchen. Only business owners may apply — a Super Admin reviews every request before your system is provisioned.</div>
       <div class="field"><label>Restaurant name</label><input class="input" id="a_name" placeholder="e.g. Golden Wok · Sydney"></div>
       <div class="field"><label>Restaurant address</label><input class="input" id="a_addr" placeholder="street, suburb, state"></div>
       <div class="field"><label>Website (optional)</label><input class="input" id="a_web" placeholder="https://…"></div>
@@ -196,10 +196,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="field grow"><label>Choose a password</label><input class="input" id="a_pass" type="password" autocomplete="new-password" placeholder="min 6 characters"></div>
       </div>
       <div id="aerr" class="alert red hidden" style="margin-bottom:12px"></div>
-      <button class="btn btn-accent btn-block" id="abtn">📩 Submit application</button>`;
+      <button class="btn btn-accent btn-block" id="abtn">${MKR.ui.icon('mail')} Submit application</button>`;
 
     const err=U.qs('#aerr',pane);
-    const showErr=(m)=>{ err.textContent='⚠️ '+m; err.classList.remove('hidden'); };
+    const showErr=(m)=>{ err.textContent=''+m; err.classList.remove('hidden'); };
     const v=(id)=>U.qs('#'+id,pane).value.trim();
 
     U.qs('#abtn',pane).onclick=async()=>{
@@ -225,7 +225,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           else if(error){ authMsg=error.message; }
           await MKR.supa.signupClient.auth.signOut().catch(()=>{});
         }catch(e){ authMsg=e.message||String(e); }
-        if(!ownerUid && /regist|exist/i.test(authMsg||'')){ btn.disabled=false; btn.textContent='📩 Submit application'; return showErr('That username is already taken — pick another'); }
+        if(!ownerUid && /regist|exist/i.test(authMsg||'')){ btn.disabled=false; btn.textContent='Submit application'; return showErr('That username is already taken — pick another'); }
       }
 
       // 2) Record the application (pending) for the Super Admin to review.
@@ -243,7 +243,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       // the owner role (creates the profiles row) on approval; see SECURITY.md.
       await MKR.db.put('users', {
         id:ownerId, role:'owner', name:name, username, email, ownerUid, status:'pending',
-        kitchenId, emoji:'👑', onboarded:false, createdAt:Date.now()
+        kitchenId, onboarded:false, createdAt:Date.now()
       });
 
       // 3) Notify the Super Admin (in-app alert + push if available).
@@ -253,13 +253,13 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
       // 4) Success
       pane.innerHTML = `
-        <div class="alert green mt16"><span>✅</span><div><b>Application submitted!</b><br>Your request for <b>${U.esc(name)}</b> has been sent to the Super Admin for review.</div></div>
+        <div class="alert green mt16"><span>${MKR.ui.icon('checkcircle')}</span><div><b>Application submitted!</b><br>Your request for <b>${U.esc(name)}</b> has been sent to the Super Admin for review.</div></div>
         <div class="card" style="padding:16px 18px;margin-top:12px">
           <div class="li" style="border:none;padding:4px 0"><div class="meta"><span>Your login username</span><b>${U.esc(username)}</b></div></div>
           <div class="li" style="border:none;padding:4px 0"><div class="meta"><span>Status</span><b style="color:var(--amber)">Pending approval</b></div></div>
         </div>
         <p class="muted mt12" style="font-size:13px">Once approved, sign in with the username and password you chose to finish setting up your restaurant (logo + features).</p>
-        ${authMsg && !ownerUid ? `<div class="alert amber mt12"><span>⚠️</span><div>Note: ${U.esc(authMsg)} — your application was still recorded; the Super Admin can provision your login on approval.</div></div>`:''}`;
+        ${authMsg && !ownerUid ? `<div class="alert amber mt12"><span>${MKR.ui.icon('warning')}</span><div>Note: ${U.esc(authMsg)} — your application was still recorded; the Super Admin can provision your login on approval.</div></div>`:''}`;
     };
   }
 
@@ -274,23 +274,23 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="row center gap8"><div class="login-logo">${kitchen&&kitchen.logo?`<img src="${kitchen.logo}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:'M'}</div>
           <div><b style="font-size:18px">${valid?U.esc(kitchen.name):'My Kitchen Rules'}</b><div class="faint" style="font-size:12.5px">${valid?'Request to join the team':'Invalid invite link'}</div></div></div>
         ${valid?`
-          <div class="disclaimer mt16"><span>🙋</span>Request to join <b>${U.esc(kitchen.name)}</b> with your phone number. A manager reviews and approves you — then sign in with your <b>phone + password</b>.</div>
+          <div class="disclaimer mt16"><span>${MKR.ui.icon('userplus')}</span>Request to join <b>${U.esc(kitchen.name)}</b> with your phone number. A manager reviews and approves you — then sign in with your <b>phone + password</b>.</div>
           <div class="field"><label>Your name</label><input class="input" id="j_name" placeholder="e.g. Sam Lee"></div>
           <div class="row">
             <div class="field grow"><label>Phone number</label><input class="input" id="j_phone" inputmode="tel" autocomplete="tel" placeholder="04XX XXX XXX"></div>
             <div class="field grow"><label>Choose a password</label><input class="input" id="j_pass" type="password" autocomplete="new-password" placeholder="min 6 characters"></div>
           </div>
-          <div class="field"><label>Role</label><select class="input" id="j_role"><option value="staff">🧑‍🍳 Staff</option><option value="manager">📋 Manager</option></select></div>
+          <div class="field"><label>Role</label><select class="input" id="j_role"><option value="staff">Staff</option><option value="manager">Manager</option></select></div>
           <div id="jerr" class="alert red hidden" style="margin-bottom:12px"></div>
           <button class="btn btn-accent btn-block" id="jbtn">Request to join ${U.esc(kitchen.name)}</button>
         ` : `
-          <div class="alert red mt16"><span>⚠️</span><div>This invite link is invalid or the restaurant isn't active yet. Please check with the owner.</div></div>
+          <div class="alert red mt16"><span>${MKR.ui.icon('warning')}</span><div>This invite link is invalid or the restaurant isn't active yet. Please check with the owner.</div></div>
           <a class="btn btn-ghost btn-block mt12" href="#/login">← Back to sign in</a>
         `}
       </div></div>`;
       if(!valid) return;
 
-      const err=U.qs('#jerr',root); const showErr=(m)=>{ err.textContent='⚠️ '+m; err.classList.remove('hidden'); };
+      const err=U.qs('#jerr',root); const showErr=(m)=>{ err.textContent=''+m; err.classList.remove('hidden'); };
       U.qs('#jbtn',root).onclick=async()=>{
         err.classList.add('hidden');
         const name=U.qs('#j_name',root).value.trim();
@@ -315,12 +315,11 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           }catch(e){}
         }
         // Phone-pairing request: created as PENDING — a manager must approve before login works.
-        await MKR.db.put('users',{ id, role, name, username:phone, phone, joinUid, status:'pending', kitchenId,
-          emoji: role==='manager'?'📋':'🧑‍🍳', onboarded:false, position: role==='manager'?'Manager':'', joinRequest:true, requestedAt:Date.now() });
+        await MKR.db.put('users',{ id, role, name, username:phone, phone, joinUid, status:'pending', kitchenId, onboarded:false, position: role==='manager'?'Manager':'', joinRequest:true, requestedAt:Date.now() });
         await MKR.db.put('alerts',{type:'join', level:'amber', title:'Join request — approval needed', desc:`${name} (${phone}) wants to join ${kitchen.name} as ${role}`, read:false, ts:Date.now()});
         try{ if(MKR.notify&&MKR.notify.push) MKR.notify.push({role:'manager'}, '🙋 Join request', `${name} wants to join as ${role}`, 'join'); }catch(e){}
-        U.modal('✅ Request sent', `
-          <div class="alert green"><span>🎉</span><div>Thanks ${U.esc(name)} — your request to join <b>${U.esc(kitchen.name)}</b> is now <b>pending a manager's approval</b>. Once approved, sign in with your <b>phone number</b> and the password you chose.</div></div>`,
+        U.modal('Request sent', `
+          <div class="alert green"><span>${MKR.ui.icon('checkcircle')}</span><div>Thanks ${U.esc(name)} — your request to join <b>${U.esc(kitchen.name)}</b> is now <b>pending a manager's approval</b>. Once approved, sign in with your <b>phone number</b> and the password you chose.</div></div>`,
           {actions:[{label:'Go to sign in', class:'btn-dark', onClick:(cl)=>{ cl(); location.hash='#/login'; MKR.router.render(); }}]});
       };
     }

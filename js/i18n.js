@@ -898,6 +898,36 @@ window.MKR = window.MKR || {};
     "Today's rounds":"今日巡店进度",
     "Clear them all and you can leave the back office alone tonight":"全部清完，今晚就不用再看后台了",
     "All clear — nothing left in the back office":"全部搞定 —— 后台没有待办了",
+
+    // -- Blocks home screen, the "More" sheet, appearance, and the strings the
+    //    UI-polish pass introduced. Keys are the plain English the app now
+    //    renders; the emoji-era keys still resolve via the bare() index. --
+    "Blocks":"方块", "Floor":"平面图", "List":"列表", "More":"更多",
+    "Your home screen":"你的主屏", "Tap a block to open it":"点一个方块就能进去",
+    "Arrange your blocks":"整理你的方块", "Drag to move · − to take one off":"拖动排序 · 按 − 移除",
+    "Add a block":"添加方块", "Add":"添加", "Edit":"编辑", "Done":"完成",
+    "No blocks yet — hit Edit and add the pages you open most.":"还没有方块 —— 点「编辑」把你最常开的页面加进来。",
+    "This layout is saved on this device only — nothing goes to the cloud.":"这个排列只存在本机 —— 不会上传云端。",
+    "All clear":"全部搞定", "to top up":"需补货", "to check":"待核对", "jobs left":"项待办",
+    "gaps this week":"本周缺人", "to sign off":"待签字", "unread":"条未读", "people":"人",
+    "to approve":"待审批", "applications":"份申请", "shifts":"个班次", "to fill in":"待填写",
+    "new":"条新的", "waiting":"项待处理",
+    "Manage":"管理",
+    // Pre-existing gaps noticed while checking the icon pass — never had keys.
+    "Training & SOPs":"培训与 SOP", "Nothing assigned yet":"暂无派发的培训",
+    "Brand colour":"品牌色", "Main colour":"主色", "Soft background":"浅色底",
+    "Text on the soft background":"浅色底上的文字",
+    "buttons, links, the active menu item":"按钮、链接、当前菜单项",
+    "avatars and chips sit on this":"头像和标签的底色",
+    "Appearance":"外观", "Auto":"跟随系统", "Light":"浅色", "Dark":"深色",
+    "Saved on this device only — each phone or tablet in the venue can differ.":"只存在本机 —— 店里每台手机或平板可以各不相同。",
+    "Where these numbers come from":"这些数字是怎么来的",
+    "That page has moved or no longer exists":"该页面已移动或不存在",
+    "Nothing to show here yet.":"这里暂时没有内容。",
+    "Stocktake":"盘点", "Threw it out":"报损", "Export CSV":"导出 CSV", "Add items":"添加物料",
+    "Shelf":"货架", "Kitchen":"厨房",
+    "Preferences":"偏好设置", "Export":"导出", "AI auto-roster":"AI 自动排班",
+    "Today":"今天", "Password":"修改密码", "Log out":"退出登录",
     "Your restaurant":"你的餐厅", "Tap a room with a badge on it":"点有提醒的房间开始",
     "Cold room & store":"冷库与储藏", "Stock to top up":"库存补货",
     "Back door":"收货口", "Deliveries to check":"确认到货",
@@ -1330,9 +1360,42 @@ window.MKR = window.MKR || {};
     if(code === lang){ active = DICTS[code]; if(lang !== 'en') schedule(); }
   }
 
+  // ---- icon-safe keys ----
+  // Many keys were written when a label carried a leading emoji ("📘 SOP
+  // library"). Those emoji are now SVG icons, which are elements, not text — so
+  // the text node the translator sees is just "SOP library" and the old key
+  // misses, silently leaving the string in English in every language.
+  //
+  // Rather than hand-editing ~450 keys across five dictionaries and hoping the
+  // source and the dictionaries stay in lockstep for ever, strip the leading
+  // glyph at lookup time. Built lazily, once per dictionary.
+  //
+  // The value is stripped too: if the source no longer shows an emoji, the
+  // translation must not put one back next to the SVG that replaced it.
+  const LEAD = /^(?:[←-⇿⌀-➿⬀-⯿️‍\u{1F300}-\u{1FAFF}]+\s*)+/u;
+  // Trailing is deliberately narrower than leading: pictographs only, no arrows
+  // or dingbats. "Exit preview →" ends in a glyph that is part of the label.
+  const TRAIL = /(?:\s*[️‍\u{1F300}-\u{1FAFF}]+)+$/u;
+  const bare = (s)=> String(s).replace(LEAD, '').replace(TRAIL, '').trim();
+
+  function bareIndex(d){
+    if(d._bare) return d._bare;
+    const b = Object.create(null);
+    for(const k in d.T){
+      const bk = bare(k);
+      // Only worth an entry if the key actually led with a glyph, and first
+      // writer wins so a plain key already in the dictionary is never shadowed.
+      if(bk && bk !== k && !(bk in b) && !(bk in d.T)) b[bk] = bare(d.T[k]);
+    }
+    d._bare = b;
+    return b;
+  }
+
   function trKey(key){
     if(!active) return null;
     if(active.T[key]) return active.T[key];
+    const b = bareIndex(active)[key];
+    if(b) return b;
     for(const [re, rep] of active.P){
       const m = key.match(re);
       if(m) return typeof rep === 'function' ? rep(m) : key.replace(re, rep);

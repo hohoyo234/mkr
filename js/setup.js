@@ -14,11 +14,11 @@
 window.MKR = window.MKR || {};
 (function(){
   const ACCOUNTS = [
-    {username:'boss',  password:'boss1111',  role:'owner',   staff_id:'u_boss',  name:'James Carter', emoji:'👑'},
-    {username:'mgr',   password:'mgr2222',   role:'manager', staff_id:'u_mgr',   name:'Maria Lopez',  emoji:'📋'},
-    {username:'amy',   password:'amy3333',   role:'staff',   staff_id:'u_amy',   name:'Amy',   emoji:'🧑‍🍳'},
-    {username:'kevin', password:'kevin3333', role:'staff',   staff_id:'u_kevin', name:'Kevin', emoji:'🧑‍🍳'},
-    {username:'leo',   password:'leo3333',   role:'staff',   staff_id:'u_leo',   name:'Leo',   emoji:'🧑‍🍳'},
+    {username:'boss',  password:'boss1111',  role:'owner',   staff_id:'u_boss',  name:'James Carter'},
+    {username:'mgr',   password:'mgr2222',   role:'manager', staff_id:'u_mgr',   name:'Maria Lopez'},
+    {username:'amy',   password:'amy3333',   role:'staff',   staff_id:'u_amy',   name:'Amy'},
+    {username:'kevin', password:'kevin3333', role:'staff',   staff_id:'u_kevin', name:'Kevin'},
+    {username:'leo',   password:'leo3333',   role:'staff',   staff_id:'u_leo',   name:'Leo'},
   ];
 
   async function createDemoAccounts(){
@@ -32,8 +32,8 @@ window.MKR = window.MKR || {};
         const {data:si} = await MKR.supa.signupClient.auth.signInWithPassword({email, password:a.password});
         if(si && si.user) uid = si.user.id;
       }
-      if(!uid){ out.push(`${a.username}: ❌ ${se?se.message:'could not get uid'}`); continue; }
-      out.push(`${a.username}: ✅ auth user ${uid}`);
+      if(!uid){ out.push(`${a.username}: FAILED — ${se?se.message:'could not get uid'}`); continue; }
+      out.push(`${a.username}: OK — auth user ${uid}`);
       rows.push(`  ('${uid}','${a.username}','${a.name.replace(/'/g,"''")}','${a.role}','${a.staff_id}','k_main','${a.emoji}',true)`);
     }
     await MKR.supa.signupClient.auth.signOut().catch(()=>{});
@@ -58,10 +58,10 @@ window.MKR = window.MKR || {};
   // OWNER login. Delete these in Supabase (Authentication → Users) before the
   // project carries anything real.
   const TEST_ACCOUNTS = [
-    {username:'test_boss1',    password:'threepandas', role:'owner',   staff_id:'u_test_boss1',   name:'Test Owner',     emoji:'👑'},
-    {username:'test_manager1', password:'threepandas', role:'manager', staff_id:'u_test_mgr1',    name:'Test Manager',   emoji:'📋'},
-    {username:'test_staff1',   password:'threepandas', role:'staff',   staff_id:'u_test_staff1',  name:'Test Staff One', emoji:'🧑‍🍳'},
-    {username:'test_staff2',   password:'threepandas', role:'staff',   staff_id:'u_test_staff2',  name:'Test Staff Two', emoji:'🧑‍🍳'},
+    {username:'test_boss1',    password:'threepandas', role:'owner',   staff_id:'u_test_boss1',   name:'Test Owner'},
+    {username:'test_manager1', password:'threepandas', role:'manager', staff_id:'u_test_mgr1',    name:'Test Manager'},
+    {username:'test_staff1',   password:'threepandas', role:'staff',   staff_id:'u_test_staff1',  name:'Test Staff One'},
+    {username:'test_staff2',   password:'threepandas', role:'staff',   staff_id:'u_test_staff2',  name:'Test Staff Two'},
   ];
 
   // The auth user is only half an account. `profiles` is the server-side source
@@ -81,7 +81,7 @@ window.MKR = window.MKR || {};
         const {data:si} = await MKR.supa.signupClient.auth.signInWithPassword({email, password:a.password});
         if(si && si.user) uid = si.user.id;
       }
-      if(!uid){ out.push(`${a.username}: ❌ ${se?se.message:'could not get uid'}`); continue; }
+      if(!uid){ out.push(`${a.username}: FAILED — ${se?se.message:'could not get uid'}`); continue; }
 
       await MKR.db.put('users', {
         id:a.staff_id, role:a.role, name:a.name, username:a.username,
@@ -94,7 +94,7 @@ window.MKR = window.MKR || {};
         onboarded: a.role!=='staff',
       });
 
-      out.push(`${a.username}: ✅ auth user ${uid} · users row ${a.staff_id}`);
+      out.push(`${a.username}: OK — auth user ${uid} · users row ${a.staff_id}`);
       rows.push(`  ('${uid}','${a.username}','${a.name.replace(/'/g,"''")}','${a.role}','${a.staff_id}','k_main','${a.emoji}',true)`);
     }
     await MKR.supa.signupClient.auth.signOut().catch(()=>{});

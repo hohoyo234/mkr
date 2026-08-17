@@ -59,19 +59,48 @@ window.MKR = window.MKR || {};
 
     // Compute nav badges (e.g. unread alert count)
     const badges = portal.badges ? await portal.badges() : {};
-    const nav = visNav.map(n=>{
+    // Fifteen rows of identical weight is a wall, not a menu. One rule splits
+    // it: the pages that carry the day's work sit above the line, the ones you
+    // open when something needs setting up or checking sit below it.
+    const ADMIN = ['performance','branches','feedback','audit','switch','settings','setup','restaurants'];
+    const navRow = (n)=>{
       const active = n.id===section ? 'active':'';
       const badge = badges[n.id] ? `<span class="badge">${badges[n.id]}</span>`:'';
-      const ic = MKR.ui ? MKR.ui.navIcon(n.id) : n.em;
+      const ic = MKR.ui.navIcon(n.id);
       // The title is what you get when the menu is folded down to icons — the
       // label itself is hidden with font-size:0, so hovering has to say it.
       return `<a class="nav-item ${active}" href="#/${viewingRole}/${n.id}" title="${MKR.util.esc(n.label)}"><span class="em">${ic}</span>${n.label}${badge}</a>`;
-    }).join('');
+    };
+    const daily = visNav.filter(n=>!ADMIN.includes(n.id));
+    const admin = visNav.filter(n=> ADMIN.includes(n.id));
+    const nav = daily.map(navRow).join('')
+      + (admin.length ? `<div class="nav-sep">Manage</div>` + admin.map(navRow).join('') : '');
 
-    const mobileNav = visNav.slice(0,5).map(n=>{
+    // The bottom bar holds four pages and a way to the rest. It used to hold the
+    // first five full stop, which on a phone left Tasks, Alerts, Team, Settings
+    // and the log-out button with no entry point at all — the sidebar that
+    // carries them is display:none under 880px.
+    const mobileTop = visNav.slice(0,4);
+    const mobileRest = visNav.slice(4);
+    const restActive = mobileRest.some(n=>n.id===section) ? 'active':'';
+    const mobileNav = mobileTop.map(n=>{
       const active = n.id===section ? 'active':'';
-      const ic = MKR.ui ? MKR.ui.navIcon(n.id) : n.em;
-      return `<a class="${active}" href="#/${viewingRole}/${n.id}"><span class="em">${ic}</span>${n.short||n.label}</a>`;
+      const ic = MKR.ui.navIcon(n.id);
+      const badge = badges[n.id] ? `<span class="mn-badge">${badges[n.id]}</span>`:'';
+      return `<a class="${active}" href="#/${viewingRole}/${n.id}"><span class="em">${ic}${badge}</span>${n.short||n.label}</a>`;
+    }).join('') + (mobileRest.length ? `<button class="${restActive}" id="navMore" aria-haspopup="dialog" aria-label="More pages">
+        <span class="em">${MKR.ui.icon('dots')}${
+          mobileRest.reduce((t,n)=>t+(badges[n.id]||0),0) ? `<span class="mn-badge">${mobileRest.reduce((t,n)=>t+(badges[n.id]||0),0)}</span>`:''
+        }</span>More</button>` : '');
+
+    // Everything the bottom bar could not fit, plus the two account actions that
+    // only ever lived in the sidebar footer.
+    const moreSheet = mobileRest.map(n=>{
+      const ic = MKR.ui.navIcon(n.id);
+      const tone = MKR.ui.tone(n.id);
+      const badge = badges[n.id] ? `<span class="ns-badge">${badges[n.id]}</span>`:'';
+      return `<a class="ns-item t-${tone} ${n.id===section?'on':''}" href="#/${viewingRole}/${n.id}">
+        <span class="ns-ic">${ic}</span>${MKR.util.esc(n.label)}${badge}</a>`;
     }).join('');
 
     const cur = portal.nav.find(n=>n.id===section) || visNav[0] || portal.nav[0];
@@ -115,7 +144,7 @@ window.MKR = window.MKR || {};
     root.innerHTML = `
       <div class="shell">
         <aside class="sidebar">
-          <div class="side-brand">${logoHtml}<div class="grow" style="min-width:0"><b>${MKR.util.esc(brandName)}</b>
+          <div class="side-brand">${logoHtml}<div class="grow" style="min-width:0"><b title="${MKR.util.esc(brandName)}">${MKR.util.esc(brandName)}</b>
               ${branches.length>1
                 ? `<select class="branch-pick" id="branchPick" aria-label="Which branch you are looking at">
                      ${branches.map(k=>`<option value="${MKR.util.esc(k.id)}" ${k.id===sess.kitchenId?'selected':''}>${MKR.util.esc(k.name)}</option>`).join('')}
@@ -126,16 +155,16 @@ window.MKR = window.MKR || {};
           ${nav}
           <div class="side-foot">
             <div class="who" style="margin-bottom:10px"><div class="ava">${sess.emoji||MKR.util.initials(sess.name)}</div><div><b style="font-size:14px">${MKR.util.esc(sess.name)}</b><div class="faint" style="font-size:11.5px">${MKR.auth.roleName(sess.role)}${preview?' · previewing '+MKR.auth.roleName(viewingRole):''}</div></div></div>
-            <div class="row gap6"><button class="btn btn-ghost btn-sm grow" id="pwBtn" title="Password">🔑 Password</button><button class="btn btn-ghost btn-sm grow" id="logoutBtn" title="Log out">Log out</button></div>
+            <div class="row gap6"><button class="btn btn-ghost btn-sm grow" id="pwBtn" title="Password">${MKR.ui.icon('key')} Password</button><button class="btn btn-ghost btn-sm grow" id="logoutBtn" title="Log out">Log out</button></div>
           </div>
         </aside>
         <div class="main">
-          <div id="offbar" class="offbar hidden">⚠️ Network lost · running in offline-safe mode — keep working, it will sync automatically when back online</div>
-          ${sess._preview?`<div class="offbar" style="background:var(--accent-soft);color:var(--accent-ink);border-color:#e6c9b4">👀 Preview · ${MKR.auth.roleName(viewingRole)} · sample data on this device only, nothing is saved to a real venue &nbsp;<a href="#exit" id="exitPrev" style="text-decoration:underline;font-weight:700">Exit preview →</a></div>`:''}
-          ${sess._impersonating?`<div class="offbar" style="background:var(--blue-soft);color:var(--blue);border-color:#c4d6f3">🛡️ Super Admin preview · ${MKR.auth.roleName(viewingRole)} &nbsp;<a href="#exit" id="exitImp" style="text-decoration:underline;font-weight:700">Back to Super Admin →</a></div>`:''}
-          ${(preview && !sess._impersonating)?`<div class="offbar" style="background:var(--blue-soft);color:var(--blue);border-color:#c4d6f3">👁 Owner preview · ${MKR.auth.roleName(viewingRole)} &nbsp;<a href="#/owner/switch" style="text-decoration:underline;font-weight:700">Back to Owner →</a></div>`:''}
+          <div id="offbar" class="offbar hidden">${MKR.ui.icon('warning')} Network lost · running in offline-safe mode — keep working, it will sync automatically when back online</div>
+          ${sess._preview?`<div class="offbar" style="background:var(--accent-soft);color:var(--accent-ink);border-color:#e6c9b4">${MKR.ui.icon('eye')} Preview · ${MKR.auth.roleName(viewingRole)} · sample data on this device only, nothing is saved to a real venue &nbsp;<a href="#exit" id="exitPrev" style="text-decoration:underline;font-weight:700">Exit preview →</a></div>`:''}
+          ${sess._impersonating?`<div class="offbar" style="background:var(--blue-soft);color:var(--blue);border-color:#c4d6f3">${MKR.ui.icon('shield')} Super Admin preview · ${MKR.auth.roleName(viewingRole)} &nbsp;<a href="#exit" id="exitImp" style="text-decoration:underline;font-weight:700">Back to Super Admin →</a></div>`:''}
+          ${(preview && !sess._impersonating)?`<div class="offbar" style="background:var(--blue-soft);color:var(--blue);border-color:#c4d6f3">${MKR.ui.icon('eye')} Owner preview · ${MKR.auth.roleName(viewingRole)} &nbsp;<a href="#/owner/switch" style="text-decoration:underline;font-weight:700">Back to Owner →</a></div>`:''}
           <div class="topbar">
-            <div class="topbar-title"><h1>${cur.label}</h1><div class="sub">${MKR.util.esc(portal.subtitle||'')}</div></div>
+            <div class="topbar-title"><h1>${cur.label}</h1></div>
             <div class="topbar-right">
               ${MKR.i18n?MKR.i18n.switcher():''}
               <div id="netlight" class="netlight online"><span class="lamp"></span>Connected</div>
@@ -144,6 +173,16 @@ window.MKR = window.MKR || {};
           <div class="content" id="view"></div>
         </div>
         <nav class="mobile-nav">${mobileNav}</nav>
+        <div class="navsheet-back hidden" id="navSheet">
+          <div class="navsheet" role="dialog" aria-label="More pages">
+            <div class="navsheet-grip"></div>
+            <div class="navsheet-list">${moreSheet}</div>
+            <div class="navsheet-foot">
+              <button class="btn btn-ghost btn-sm grow" id="pwBtnM">${MKR.ui.icon('key')} Password</button>
+              <button class="btn btn-ghost btn-sm grow" id="logoutBtnM">${MKR.ui.icon('logout')} Log out</button>
+            </div>
+          </div>
+        </div>
       </div>`;
 
     const newSidebar = root.querySelector('.sidebar');
@@ -179,12 +218,33 @@ window.MKR = window.MKR || {};
       render();
     };
 
-    document.getElementById('logoutBtn').onclick = ()=>{
+    const doLogout = ()=>{
       if(MKR.net.isDirty() && !confirm('You have unsaved data — log out anyway?')) return;
       MKR.auth.logout();
     };
+    const doPassword = ()=>{ if(MKR.account) MKR.account.openChangePassword(); };
+    document.getElementById('logoutBtn').onclick = doLogout;
     const pwBtn=document.getElementById('pwBtn');
-    if(pwBtn) pwBtn.onclick = ()=>{ if(MKR.account) MKR.account.openChangePassword(); };
+    if(pwBtn) pwBtn.onclick = doPassword;
+
+    // The "More" sheet: same pages, same actions, reachable with a thumb.
+    const sheet = document.getElementById('navSheet');
+    const moreBtn = document.getElementById('navMore');
+    if(sheet && moreBtn){
+      const close = ()=> sheet.classList.add('hidden');
+      moreBtn.onclick = ()=> sheet.classList.remove('hidden');
+      // Backdrop only — a tap on the sheet itself must not close it.
+      sheet.onclick = (e)=>{ if(e.target===sheet) close(); };
+      // A link inside navigates within the same shell, so nothing would otherwise
+      // take the sheet back down.
+      sheet.querySelectorAll('a').forEach(a=> a.addEventListener('click', close));
+      document.addEventListener('keydown', function esc(e){
+        if(e.key==='Escape'){ close(); document.removeEventListener('keydown', esc); }
+      });
+      const pwM = document.getElementById('pwBtnM'), outM = document.getElementById('logoutBtnM');
+      if(pwM) pwM.onclick = ()=>{ close(); doPassword(); };
+      if(outM) outM.onclick = doLogout;
+    }
     const exitImp=document.getElementById('exitImp');
     if(exitImp) exitImp.onclick=(e)=>{ e.preventDefault(); MKR.auth.exitImpersonate(); location.hash='#/superadmin/restaurants'; render(); };
     const exitPrev=document.getElementById('exitPrev');
@@ -193,7 +253,24 @@ window.MKR = window.MKR || {};
     if(MKR.i18n) MKR.i18n.bindSwitchers(root);
     const view = document.getElementById('view');
     try{ await portal.view(section, view, arg, viewingRole); }
-    catch(e){ console.error(e); view.innerHTML = `<div class="empty"><div class="em">😵</div><p>Page error: ${MKR.util.esc(e.message)}</p></div>`; }
+    catch(e){ console.error(e); view.innerHTML = `<div class="empty"><div class="em">${MKR.ui.icon('warning')}</div><p>Page error: ${MKR.util.esc(e.message)}</p></div>`; }
+
+    // A section no portal knows about (a stale bookmark, a typo, a link to a
+    // page that moved) used to fall straight through every `if` in view() and
+    // leave a blank pane under a topbar still saying "Dashboard". Whether the
+    // section is in the nav is not the test — `setup` is a real page that isn't
+    // — so the test is simply whether anything got drawn.
+    if(!view.innerHTML.trim()){
+      if(section !== portal.home){
+        MKR.util.toast('That page has moved or no longer exists','amber');
+        location.hash = `#/${viewingRole}/${portal.home}`;
+        return;
+      }
+      // The home page itself came back empty: say so rather than redirect to it
+      // again and spin.
+      view.innerHTML = `<div class="empty"><div class="em">${MKR.ui.icon('search')}</div>
+        <p>Nothing to show here yet.</p></div>`;
+    }
     // Gentle entrance for the freshly-rendered page (re-triggered each navigation).
     view.classList.remove('view-enter'); void view.offsetWidth; view.classList.add('view-enter');
   }

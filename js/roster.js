@@ -24,13 +24,15 @@ window.MKR = window.MKR || {};
   const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
   const SKILLS = {
-    open:    {label:'Can open',    em:'🔑'},
-    close:   {label:'Can close',   em:'🌙'},
-    kitchen: {label:'Kitchen',     em:'🍳'},
-    floor:   {label:'Front of house', em:'🍽️'},
-    coffee:  {label:'Coffee / bar', em:'☕'},
-    lead:    {label:'Can run a shift', em:'⭐'},
+    open:    {label:'Can open',    ic:'key'},
+    close:   {label:'Can close',   ic:'moon'},
+    kitchen: {label:'Kitchen',     ic:'pan'},
+    floor:   {label:'Front of house', ic:'utensils'},
+    coffee:  {label:'Coffee / bar', ic:'cup'},
+    lead:    {label:'Can run a shift', ic:'star'},
   };
+  // One skill -> one icon, drawn the same wherever it appears.
+  const skillIcon = (k)=> SKILLS[k] ? MKR.ui.icon(SKILLS[k].ic, 'skill-ic') : '';
 
   // ---------- week helpers ----------
   function weekStart(offset=0){
@@ -257,9 +259,9 @@ window.MKR = window.MKR || {};
       const onDay = shifts.filter(x=>x.day===d);
       if(!onDay.length) continue;
       const has = (sk)=> onDay.some(x=>skillsOf(byId[x.staffId]||{}).includes(sk));
-      if(p.requireOpener && !has('open'))   push('amber', `${DAYS[d]}: nobody rostered can open`, `No one on that day has the 🔑 open skill.`);
-      if(p.requireCloser && !has('close'))  push('amber', `${DAYS[d]}: nobody rostered can close`, `No one on that day has the 🌙 close skill.`);
-      if(p.requireKitchen && !has('kitchen')) push('amber', `${DAYS[d]}: no kitchen skill rostered`, `Nobody on that day is marked 🍳 kitchen.`);
+      if(p.requireOpener && !has('open'))   push('amber', `${DAYS[d]}: nobody rostered can open`, `No one on that day is marked as able to open.`);
+      if(p.requireCloser && !has('close'))  push('amber', `${DAYS[d]}: nobody rostered can close`, `No one on that day is marked as able to close.`);
+      if(p.requireKitchen && !has('kitchen')) push('amber', `${DAYS[d]}: no kitchen skill rostered`, `Nobody on that day is marked as kitchen.`);
     }
 
     // Understaffed against your own target
@@ -314,7 +316,7 @@ window.MKR = window.MKR || {};
       + (warns.length?`<p class="muted">${warns.length} warning${warns.length===1?'':'s'} below — none of them block publishing.</p>`:'');
   }
 
-  MKR.roster = {
+  MKR.roster = { skillIcon,
     DAYS, SKILLS, DEFAULT_PREFS,
     weekStart, weekKey, thisWeek, dayTs, weekOf, shiftsFor, slots,
     prefs, savePrefs, demandTable, learnedDemand, fits, skillsOf,

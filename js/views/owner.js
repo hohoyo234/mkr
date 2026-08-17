@@ -60,23 +60,23 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   }
 
   MKR.portals.owner = {
-    home:'dashboard', subtitle:'Fewer hours on admin — the app only asks when it has to',
+    home:'dashboard',
     nav:[
-      {id:'dashboard', label:'Dashboard',    em:'📊', short:'Dash'},
-      {id:'assistant', label:'AI Assistant', em:'✨', short:'AI',        feature:'o_assistant'},
-      {id:'stock',     label:'Stock & costs',em:'📦', short:'Stock',     feature:'stock'},
-      {id:'deliveries',label:'Deliveries',   em:'🚚', short:'Delivery',  feature:'deliveries'},
-      {id:'training',  label:'Training & SOP',em:'📘',short:'Training',  feature:'training'},
-      {id:'tasks',     label:'Daily tasks',  em:'✅', short:'Tasks',     feature:'tasks'},
-      {id:'alerts',    label:'Alerts',       em:'🚨', short:'Alerts'},
-      {id:'team',      label:'Team',         em:'👥', short:'Team',      feature:'o_team'},
-      {id:'hire',      label:'Add people',   em:'➕', short:'Add',       feature:'hire'},
-      {id:'performance',label:'Performance', em:'🏅', short:'Perform',   feature:'o_performance'},
-      {id:'branches',  label:'Branches',     em:'🏢', short:'Branches',  feature:'o_branches'},
-      {id:'feedback',  label:'Feedback',     em:'⭐', short:'Reviews',   feature:'o_feedback'},
-      {id:'audit',     label:'Audit log',    em:'🔍', short:'Audit'},
-      {id:'switch',    label:'Switch view',  em:'👁', short:'Switch'},
-      {id:'settings',  label:'Settings',     em:'⚙️', short:'Settings'},
+      {id:'dashboard', label:'Dashboard', short:'Dash'},
+      {id:'assistant', label:'AI Assistant', short:'AI',        feature:'o_assistant'},
+      {id:'stock',     label:'Stock & costs', short:'Stock',     feature:'stock'},
+      {id:'deliveries',label:'Deliveries', short:'Delivery',  feature:'deliveries'},
+      {id:'training',  label:'Training & SOP',short:'Training',  feature:'training'},
+      {id:'tasks',     label:'Daily tasks', short:'Tasks',     feature:'tasks'},
+      {id:'alerts',    label:'Alerts', short:'Alerts'},
+      {id:'team',      label:'Team', short:'Team',      feature:'o_team'},
+      {id:'hire',      label:'Add people', short:'Add',       feature:'hire'},
+      {id:'performance',label:'Performance', short:'Perform',   feature:'o_performance'},
+      {id:'branches',  label:'Branches', short:'Branches',  feature:'o_branches'},
+      {id:'feedback',  label:'Feedback', short:'Reviews',   feature:'o_feedback'},
+      {id:'audit',     label:'Audit log', short:'Audit'},
+      {id:'switch',    label:'Switch view', short:'Switch'},
+      {id:'settings',  label:'Settings', short:'Settings'},
     ],
     async badges(){
       const b={};
@@ -127,7 +127,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="card" style="padding:22px">
           <div class="section-title">1 · Restaurant logo</div>
           <p class="muted" style="font-size:13px;margin-bottom:10px">Your logo appears on the sign-in page and in every portal.</p>
-          <label class="img-drop"><div class="img-preview" id="logoPrev">${logo?`<img src="${logo}">`:'<span>📷 Tap to upload your logo</span>'}</div><input type="file" id="logoFile" accept="image/*" hidden></label>
+          <label class="img-drop"><div class="img-preview" id="logoPrev">${logo?`<img src="${logo}">`:`<span>${MKR.ui.icon('camera')} Tap to upload your logo</span>`}</div><input type="file" id="logoFile" accept="image/*" hidden></label>
           <div class="field mt12"><label>Display name</label><input class="input" id="setName" value="${U.esc(kitchen.name||'')}"></div>
         </div>
         <div class="card" style="padding:22px">
@@ -136,7 +136,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           <div id="featList"></div>
         </div>
       </div>
-      <div class="row gap8 mt16" style="max-width:560px"><button class="btn btn-dark grow" id="finishSetup">✅ Finish setup</button></div>
+      <div class="row gap8 mt16" style="max-width:560px"><button class="btn btn-dark grow" id="finishSetup">${MKR.ui.icon('checkcircle')} Finish setup</button></div>
       <div class="disclaimer mt12"><span>ℹ️</span>You can revisit Settings anytime to toggle features or switch language.</div>`;
     U.qs('#logoFile',c).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{ logo=data; U.qs('#logoPrev',c).innerHTML=`<img src="${logo}">`; });
     const fl=U.qs('#featList',c);
@@ -153,7 +153,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       await MKR.features.save(work, kitchen.id);
       await MKR.db.meta('brand', {name, avatar:logo});       // syncs logo to the login page
       await MKR.audit.log({action:'settings.update', desc:'Completed restaurant setup'});
-      U.toast('Setup complete — welcome aboard! 🎉','green');
+      U.toast('Setup complete — welcome aboard','green');
       location.hash='#/owner/dashboard'; MKR.router.render();
     };
   }
@@ -169,8 +169,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       <div class="section-head"><div><h2>Customer feedback</h2><p>Complaints taken at the counter, and reviews left afterwards</p></div>
         <div class="row gap8" id="fbActions"></div></div>
       <div class="tabbar" id="fbTabs">
-        <button class="tab ${fbTab==='complaints'?'active':''}" data-fbtab="complaints">📝 Complaints</button>
-        <button class="tab ${fbTab==='reviews'?'active':''}" data-fbtab="reviews">⭐ Reviews</button>
+        <button class="tab ${fbTab==='complaints'?'active':''}" data-fbtab="complaints">${MKR.ui.icon('checksq')} Complaints</button>
+        <button class="tab ${fbTab==='reviews'?'active':''}" data-fbtab="reviews">${MKR.ui.icon('star')} Reviews</button>
       </div>
       <div id="fbBody"></div>`;
     U.qsa('[data-fbtab]',c).forEach(b=> b.onclick=()=>{ fbTab=b.dataset.fbtab; feedback(c); });
@@ -185,7 +185,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const open=rows.filter(r=>r.status!=='resolved');
     const esc=rows.filter(r=>String(r.level)==='3');
     const wk=rows.filter(r=>Date.now()-r.ts < 7*864e5);
-    actions.innerHTML=`<button class="btn btn-ghost btn-sm" id="cmpPolicy">⚙️ Policy</button>
+    actions.innerHTML=`<button class="btn btn-ghost btn-sm" id="cmpPolicy">${MKR.ui.icon('gear')} Policy</button>
       <button class="btn btn-dark btn-sm" id="cmpAdd">＋ Take a complaint</button>`;
     U.qs('#cmpAdd',actions).onclick=()=> S.form(null, reload);
     U.qs('#cmpPolicy',actions).onclick=()=> policyModal(reload);
@@ -193,7 +193,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     c.innerHTML=`
       <div class="statline">
         <span class="statcell"><b>${rows.length}</b><i>on record</i></span>
-        <span class="statcell"${open.length?' style="color:#8a6410"':''}><b>${open.length}</b><i>still open</i></span>
+        <span class="statcell"${open.length?' style="color:var(--amber-ink)"':''}><b>${open.length}</b><i>still open</i></span>
         <span class="statcell"${esc.length?' style="color:var(--red)"':''}><b>${esc.length}</b><i>level 3</i></span>
         <span class="statcell"><b>${wk.length}</b><i>this week</i></span>
       </div>
@@ -205,11 +205,11 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <div class="meta"><b>${U.esc(r.customerName||'Someone')}${r.table?' · '+U.esc(r.table):''}</b>
               <span>${U.esc((r.reason||'').slice(0,90))}${(r.reason||'').length>90?'…':''}</span>
               <span class="faint">${U.fmtDateTime(r.ts)} · taken by ${U.esc(r.staffName||'—')}${r.signature?' · signed':''}</span></div>
-            <span class="pill ${st.pill}">${st.em} ${st.label}</span></div>`;
+            <span class="pill ${st.pill}">${MKR.ui.icon(st.ic)} ${st.label}</span></div>`;
         }).join('')
-        :`<div class="empty"><div class="em">📝</div><p>No complaints recorded. When one comes in, taking it here means it reaches you instead of staying at the counter.</p></div>`}
+        :`<div class="empty"><div class="em">${MKR.ui.icon('checksq')}</div><p>No complaints recorded. When one comes in, taking it here means it reaches you instead of staying at the counter.</p></div>`}
       </div></div>
-      <div class="disclaimer mt16"><span>🔒</span>Kept for the venue only — nothing is posted anywhere. A level 3 also raises an alert, so it reaches you the same day rather than on Friday.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('lock')}</span>Kept for the venue only — nothing is posted anywhere. A level 3 also raises an alert, so it reaches you the same day rather than on Friday.</div>`;
     U.qsa('[data-cmp]',c).forEach(b=> b.onclick=()=> detailModal(rows.find(x=>x.id===b.dataset.cmp), reload));
   }
 
@@ -252,7 +252,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="field"><label>For example</label><input class="input" data-lv="examples" data-i="${i}" value="${U.esc(l.examples)}"></div>
         <div class="field"><label>What we do</label><textarea class="input" data-lv="remedy" data-i="${i}" rows="2">${U.esc(l.remedy)}</textarea></div>
       </div>`).join('')}
-      <div class="disclaimer"><span>⚠️</span>The form this was built from promised no refunds at the top and a full refund at every level. Whatever you write here is what staff will follow — make the two agree.</div>
+      <div class="disclaimer"><span>${MKR.ui.icon('warning')}</span>The form this was built from promised no refunds at the top and a full refund at every level. Whatever you write here is what staff will follow — make the two agree.</div>
     </div>`);
     U.modal('Complaint policy', wrap, {wide:true, actions:[
       {label:'Reset to default', class:'btn-ghost', onClick:async(close)=>{
@@ -277,19 +277,19 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const avg=fbs.length?(fbs.reduce((s,f)=>s+f.rating,0)/fbs.length).toFixed(1):'—';
     c.innerHTML=`
       <div class="grid g3" style="margin-bottom:18px">
-        <div class="card stat"><div class="k">⭐ Average rating</div><div class="v">${avg}</div><div class="delta flat">${fbs.length} reviews</div></div>
-        <div class="card stat"><div class="k">😟 Bad (1-3★)</div><div class="v" style="color:${bad.length?'var(--red)':'inherit'}">${bad.length}</div><div class="delta flat">kept internal</div></div>
-        <div class="card stat"><div class="k">🔔 Urges today</div><div class="v">${todayUrge}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('star')} Average rating</div><div class="v">${avg}</div><div class="delta flat">${fbs.length} reviews</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('frown')} Bad (1-3 stars)</div><div class="v" style="color:${bad.length?'var(--red)':'inherit'}">${bad.length}</div><div class="delta flat">kept internal</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('bell')} Urges today</div><div class="v">${todayUrge}</div></div>
       </div>
       <div class="card" style="padding:8px 18px"><div class="list">
         ${fbs.length? fbs.map(f=>`<div class="li">
-          <div class="ava" style="background:${f.rating<=3?'var(--red-soft)':'var(--green-soft)'};color:${f.rating<=3?'var(--red)':'var(--green)'}">${f.rating}★</div>
-          <div class="meta"><b>${'★'.repeat(f.rating)}<span class="faint">${'★'.repeat(5-f.rating)}</span> · table ${U.esc(f.table||'—')}</b>
+          <div class="ava" style="background:${f.rating<=3?'var(--red-soft)':'var(--green-soft)'};color:${f.rating<=3?'var(--red)':'var(--green)'}">${f.rating}</div>
+          <div class="meta"><b><span class="stars">${[1,2,3,4,5].map(i=>`<span class="${i<=f.rating?'on':''}">${MKR.ui.icon('star')}</span>`).join('')}</span> · table ${U.esc(f.table||'—')}</b>
             <span>${U.esc(f.comment||'(no written review)')} · ${U.ago(f.ts)}</span></div>
           ${f.rating<=3?'<span class="pill danger">Bad</span>':'<span class="pill ok">Good</span>'}</div>`).join('')
-        :'<div class="empty"><div class="em">⭐</div><p>No customer reviews yet</p></div>'}
+        :`<div class="empty"><div class="em">${MKR.ui.icon('star')}</div><p>No customer reviews yet</p></div>`}
       </div></div>
-      <div class="disclaimer mt16"><span>🛡️</span>Low ratings stay in here so you can reach out privately rather than letting them sit online.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('shield')}</span>Low ratings stay in here so you can reach out privately rather than letting them sit online.</div>`;
   }
 
   // ---------- Switch view (owner is super admin, can preview any portal) ----------
@@ -300,15 +300,15 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     c.innerHTML=`
       <div class="section-head"><div><h2>Switch view</h2><p>The owner can preview any portal and see exactly what staff / managers see</p></div></div>
       <div class="grid g3">
-        ${card('#/owner/dashboard','👑','Owner','Dashboard · your current portal')}
-        ${card('#/manager/schedule','📋','Manager · Roster','AI rostering / warnings / add users')}
-        ${card('#/manager/stock','📦','Stock & costs','Ingredients, tools, suppliers, purchases')}
-        ${card('#/manager/deliveries','🚚','Deliveries','Confirm what actually turned up')}
-        ${card('#/manager/training','📘','Training & SOP','Write it once, assign it, track it')}
-        ${card('#/staff/my','🧑‍🍳','Staff · Shifts','Clock-in / availability / claim')}
-        ${card('#/staff/training','🎓','Staff · Training','What a new starter sees')}
+        ${card('#/owner/dashboard','grid','Owner','Dashboard · your current portal')}
+        ${card('#/manager/schedule','calendar','Manager · Roster','AI rostering / warnings / add users')}
+        ${card('#/manager/stock','inbox','Stock & costs','Ingredients, tools, suppliers, purchases')}
+        ${card('#/manager/deliveries','receipt','Deliveries','Confirm what actually turned up')}
+        ${card('#/manager/training','book','Training & SOP','Write it once, assign it, track it')}
+        ${card('#/staff/my','calcheck','Staff · Shifts','Clock-in / availability / claim')}
+        ${card('#/staff/training','book','Staff · Training','What a new starter sees')}
       </div>
-      <div class="disclaimer mt16"><span>👁</span>Inside another portal the top shows an "Owner preview" banner — tap "Back to Owner" to return.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('eye')}</span>Inside another portal the top shows an "Owner preview" banner — tap "Back to Owner" to return.</div>`;
   }
 
   // ---------- Settings (feature switches + role permissions) ----------
@@ -322,13 +322,26 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     c.innerHTML=`
       <div class="section-head"><div><h2>Settings</h2><p>Toggle modules · control which roles can access each one</p></div>
         <button class="btn btn-dark btn-sm" id="saveBtn">Save settings</button></div>
+
+      <!-- Applies the moment it is picked, and is saved on this device, so it is
+           deliberately not behind the Save button above (which writes venue-wide
+           module switches to the cloud). -->
+      <div class="card pad20" style="margin-bottom:16px">
+        <div class="section-title" style="margin-top:0">${MKR.ui.icon('sun')} Appearance</div>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">Saved on this device only — each phone or tablet in the venue can differ.</p>
+        <div class="viewswitch" role="group" aria-label="Appearance">
+          ${[['auto','Auto','refresh'],['light','Light','sun'],['dark','Dark','moon']]
+            .map(([v,label,ic])=>`<button class="${MKR.ui.theme()===v?'on':''}" data-theme-pick="${v}">${MKR.ui.icon(ic)}${label}</button>`).join('')}
+        </div>
+      </div>
+
       ${kitchen?`
       <div class="card pad20" style="margin-bottom:16px">
-        <div class="section-title" style="margin-top:0">🏪 Restaurant profile</div>
+        <div class="section-title" style="margin-top:0">${MKR.ui.icon('building')} Restaurant profile</div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Your logo and name appear in the sidebar, on the sign-in page and across every portal.</p>
         <div class="row gap8 wrap" style="align-items:flex-start">
           <label class="img-drop" style="width:140px;flex:none">
-            <div class="img-preview" id="rLogoPrev" style="min-height:120px">${rLogo?`<img src="${rLogo}">`:'<span>📷 Tap to upload</span>'}</div>
+            <div class="img-preview" id="rLogoPrev" style="min-height:120px">${rLogo?`<img src="${rLogo}">`:`<span>${MKR.ui.icon('camera')} Tap to upload</span>`}</div>
             <input type="file" id="rLogoFile" accept="image/*" hidden>
           </label>
           <div class="grow" style="min-width:200px">
@@ -339,7 +352,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             </div>
           </div>
         </div>
-        <div class="section-title" style="margin-top:18px">🎨 Brand colour</div>
+        <div class="section-title" style="margin-top:18px">${MKR.ui.icon('star')} Brand colour</div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Taken from your logo, then darkened if it has to be so the text on top can still be read. Change any of it by hand — you know your brand better than a colour histogram does.</p>
         <div id="brandBox"></div>
       </div>`:''}
@@ -348,18 +361,18 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         ${MKR.i18n?MKR.i18n.switcher():''}
       </div></div>
       <div class="card pad20" style="margin-bottom:16px">
-        <div class="section-title" style="margin-top:0">⚖️ Optional Australian add-ons</div>
+        <div class="section-title" style="margin-top:0">${MKR.ui.icon('shield')} Optional Australian add-ons</div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">This app never interprets awards, calculates pay or checks work rights itself. Turn these on and it will simply hand you to someone who does — your call, every time.</p>
         <div class="list">
-          <div class="li"><div class="ds-li-ic">⚖️</div><div class="meta"><b>Awards help</b><span>Adds a button that opens our partner employment lawyer</span></div>
+          <div class="li"><div class="ds-li-ic">${MKR.ui.icon('shield')}</div><div class="meta"><b>Awards help</b><span>Adds a button that opens our partner employment lawyer</span></div>
             <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-on="au_awards" ${work.au_awards&&work.au_awards.on?'checked':''} style="width:22px;height:22px"> On</label></div>
-          <div class="li"><div class="ds-li-ic">🛂</div><div class="meta"><b>Work rights check</b><span>Adds a button that opens VEVO (Home Affairs) — we store no visa data</span></div>
+          <div class="li"><div class="ds-li-ic">${MKR.ui.icon('idcard')}</div><div class="meta"><b>Work rights check</b><span>Adds a button that opens VEVO (Home Affairs) — we store no visa data</span></div>
             <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" data-on="au_workrights" ${work.au_workrights&&work.au_workrights.on?'checked':''} style="width:22px;height:22px"> On</label></div>
         </div>
-        <div class="row gap8 wrap mt12"><button class="btn btn-ghost btn-sm" id="lawyerBtn">✏️ Partner lawyer details</button></div>
+        <div class="row gap8 wrap mt12"><button class="btn btn-ghost btn-sm" id="lawyerBtn">${MKR.ui.icon('pencil')} Partner lawyer details</button></div>
       </div>
       <div class="card pad20" style="margin-bottom:16px">
-        <div class="section-title" style="margin-top:0">📤 Data export</div>
+        <div class="section-title" style="margin-top:0">${MKR.ui.icon('download')} Data export</div>
         <p class="muted" style="font-size:13px;margin-bottom:12px">Your own operational records — download CSV or print to PDF.</p>
         <div class="row gap8 wrap">
           <div class="field" style="margin:0;min-width:170px"><label>What to export</label>
@@ -382,8 +395,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           <div class="field" style="margin:0"><label>To</label><input class="input" id="exTo" type="date"></div>
         </div>
         <div class="row gap8 wrap mt12">
-          <button class="btn btn-dark btn-sm" id="exCsv">⬇️ Export CSV</button>
-          <button class="btn btn-ghost btn-sm" id="exPdf">🖨️ Print / PDF</button>
+          <button class="btn btn-dark btn-sm" id="exCsv">${MKR.ui.icon('download')} Export CSV</button>
+          <button class="btn btn-ghost btn-sm" id="exPdf">${MKR.ui.icon('printer')} Print / PDF</button>
         </div>
         <div class="faint" id="exNote" style="font-size:11.5px;margin-top:8px"></div>
         <div class="disclaimer mt12"><span>ℹ️</span>These are your own records, exported for you. Nothing is filed or sent anywhere.</div>
@@ -424,6 +437,14 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       });
     }
     draw();
+
+    // Re-render rather than just repaint: the switch's own "on" state is drawn
+    // from MKR.ui.theme(), so it has to be rebuilt to show the new pick.
+    U.qsa('[data-theme-pick]',c).forEach(b=> b.onclick = ()=>{
+      MKR.ui.theme(b.dataset.themePick);
+      settings(c);
+    });
+
     U.qs('#saveBtn',c).onclick=async()=>{
       await MKR.features.save(work);
       await MKR.audit.log({action:'settings.update', desc:'Updated settings / permissions'});
@@ -462,7 +483,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         const b = await MKR.brand.fromLogo(data);
         if(b){ brand = b; MKR.brand.apply(brand); drawBrand(); U.toast('Picked up the colour from your logo','green'); }
       });
-      U.qs('#rClear',c).onclick=()=>{ rLogo=null; prev.innerHTML='<span>📷 Tap to upload</span>'; };
+      U.qs('#rClear',c).onclick=()=>{ rLogo=null; prev.innerHTML=`<span>${MKR.ui.icon('camera')} Tap to upload</span>`; };
 
       // ---- Brand colour ----
       // Kept in a local so the swatches, the preview and the app itself always
@@ -487,7 +508,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <span class="pill ok">unchanged</span>
             <span class="tag" style="align-self:center">TAG TEXT</span>
           </div>
-          <div class="disclaimer mt12"><span>${MKR.brand.contrast(brand.accent,'#FFFFFF')>=4.5 && MKR.brand.contrast(brand.accent,MKR.brand.PAPER)>=4.5 ? '✅' : '⚠️'}</span><div>
+          <div class="disclaimer mt12"><span>${MKR.brand.contrast(brand.accent,'#FFFFFF')>=4.5 && MKR.brand.contrast(brand.accent,MKR.brand.PAPER)>=4.5 ? MKR.ui.icon('checkcircle') : MKR.ui.icon('warning')}</span><div>
             White text on the main colour: <b>${ratio(brand.accent,'#FFFFFF')}:1</b> · the same colour as text on the page: <b>${ratio(brand.accent,MKR.brand.PAPER)}:1</b>.
             ${MKR.brand.contrast(brand.accent,'#FFFFFF')>=4.5 && MKR.brand.contrast(brand.accent,MKR.brand.PAPER)>=4.5
               ? 'Both clear the 4.5:1 readability standard.'
@@ -605,15 +626,18 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   // list. Same data underneath; the choice sticks per device.
   const HKEY = 'mkr_home_view';
   const HOME_VIEWS = ['floor','tiles','list'];
+  // Blocks is the default: it is the one of the three that works the same at
+  // every window width and needs no explaining — a page per block, tap it, done.
+  // The floor is still there for owners who prefer to walk the rooms.
   let homeView = (function(){
-    try{ const v = localStorage.getItem(HKEY); return HOME_VIEWS.includes(v) ? v : 'floor'; }
-    catch(e){ return 'floor'; }
+    try{ const v = localStorage.getItem(HKEY); return HOME_VIEWS.includes(v) ? v : 'tiles'; }
+    catch(e){ return 'tiles'; }
   })();
+  const HOME_LABEL = {tiles:['grid','Blocks'], floor:['home','Floor'], list:['list','List']};
   function homeSwitch(){
     return `<div class="viewswitch" role="group" aria-label="How to show today">
-      <button class="${homeView==='floor'?'on':''}" data-home="floor">🏠 Floor</button>
-      <button class="${homeView==='tiles'?'on':''}" data-home="tiles">⬛ Blocks</button>
-      <button class="${homeView==='list'?'on':''}" data-home="list">☰ List</button>
+      ${HOME_VIEWS.map(v=>`<button class="${homeView===v?'on':''}" data-home="${v}">${
+        MKR.ui.icon(HOME_LABEL[v][0])}${HOME_LABEL[v][1]}</button>`).join('')}
     </div>`;
   }
   function bindHomeSwitch(c){
@@ -627,8 +651,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   async function dashboard(c){
     await noShowScan();
     if((homeView==='floor' && MKR.gameMap) || (homeView==='tiles' && MKR.tiles)){
-      c.innerHTML = `<div class="section-head"><div><h2>Today</h2><p>Runs quietly — it only asks for you when something actually needs you</p></div>
-        <div class="row gap8 wrap">${homeSwitch()}</div></div><div id="homeBody"></div>`;
+      // No "Today" heading here: the topbar already says Dashboard and the view
+      // below opens with its own greeting — three stacked headings was half the
+      // screen gone before the first number.
+      c.innerHTML = `<div class="home-switch">${homeSwitch()}</div><div id="homeBody"></div>`;
       bindHomeSwitch(c);
       const body = U.qs('#homeBody',c);
       return homeView==='tiles' ? MKR.tiles.render(body, {role:'owner'}) : MKR.gameMap.render(body);
@@ -652,7 +678,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const weekHrs = U.round2(m.shifts.reduce((t,s)=>t+U.shiftHours(s.start,s.end),0)).toFixed(1);
 
     c.innerHTML = `
-      <div class="section-head"><div><h2>Today</h2><p>Runs quietly — it only asks for you when something actually needs you</p></div>
+      <div class="section-head"><div><h2>Today</h2></div>
         <div class="row gap8 wrap">${homeSwitch()}</div></div>
 
       ${todo.length ? `
@@ -716,25 +742,25 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
     c.innerHTML = `
       <div class="section-head"><div><h2>Staff performance</h2><p>Points from on-time clock-ins, checklist tasks and completed training over the last 30 days</p></div>
-        <button class="btn btn-ghost btn-sm" id="ptsCfg">⚙️ Points settings</button></div>
+        <button class="btn btn-ghost btn-sm" id="ptsCfg">${MKR.ui.icon('gear')} Points settings</button></div>
       <div class="card pad20"><div class="bestlist" id="lb"></div></div>
-      <div class="disclaimer mt16"><span>🏅</span>Points are an internal incentive metric over the last 30 days — not a formal performance review.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('award')}</span>Points are an internal incentive metric over the last 30 days — not a formal performance review.</div>`;
 
     const lb = U.qs('#lb',c);
     lb.innerHTML = rows.length ? rows.map((r,i)=>{
-      const medal = ['🥇','🥈','🥉'][i] || `#${i+1}`;
+      const medal = i<3 ? `${MKR.ui.icon('award')}${i+1}` : `#${i+1}`;
       return `<div class="li"><div class="ava">${r.s.emoji||U.initials(r.s.name)}</div>
-        <div class="meta"><b>${medal} ${U.esc(r.s.name)} ${r.lastReward?`<span class="pill ok">🎁 ${U.esc(r.lastReward.note||'rewarded')}</span>`:''}</b>
+        <div class="meta"><b>${medal} ${U.esc(r.s.name)} ${r.lastReward?`<span class="pill ok">${MKR.ui.icon('gift')} ${U.esc(r.lastReward.note||'rewarded')}</span>`:''}</b>
           <span>${r.onTime} on-time · ${r.tasks} tasks · ${r.trained} training done${r.late?` · <span style="color:var(--red)">${r.late} late</span>`:''}${r.trainingOpen?` · ${r.trainingOpen} outstanding`:''}</span>
           <div class="bar" style="margin-top:6px"><i style="width:${Math.round(r.points/maxPts*100)}%"></i></div></div>
-        <div class="row gap6 center"><b style="font-family:'Playfair Display',serif;font-size:18px">${r.points}</b><button class="btn btn-ghost btn-sm" data-reward="${r.s.id}">🎁 Reward</button></div></div>`;
-    }).join('') : '<div class="empty"><div class="em">🏅</div><p>No staff yet</p></div>';
+        <div class="row gap6 center"><b style="font-family:'Playfair Display',serif;font-size:18px">${r.points}</b><button class="btn btn-ghost btn-sm" data-reward="${r.s.id}">${MKR.ui.icon('gift')} Reward</button></div></div>`;
+    }).join('') : `<div class="empty"><div class="em">${MKR.ui.icon('award')}</div><p>No staff yet</p></div>`;
     U.qsa('[data-reward]',lb).forEach(b=>b.onclick=()=>rewardModal((rows.find(r=>r.s.id===b.dataset.reward)||{}).s));
     U.qs('#ptsCfg',c).onclick=cfgModal;
 
     function cfgModal(){
       const f=(id,label,val)=>`<div class="row center" style="gap:10px;margin-bottom:8px"><div class="grow" style="font-size:14px">${label}</div><input class="input" id="${id}" type="number" min="0" value="${val}" style="width:90px;text-align:right"></div>`;
-      const wrap=U.el(`<div><div class="disclaimer" style="margin-bottom:12px"><span>⚙️</span>Set how many points each action is worth (last 30 days, all staff).</div>
+      const wrap=U.el(`<div><div class="disclaimer" style="margin-bottom:12px"><span>${MKR.ui.icon('gear')}</span>Set how many points each action is worth (last 30 days, all staff).</div>
         ${f('w_t','Points per on-time clock-in',W.perOnTime)}${f('w_k','Points per task done',W.perTask)}${f('w_r','Points per training completed',W.perTraining)}${f('w_e','Penalty per late clock-in',W.latePenalty)}</div>`);
       U.modal('Points settings', wrap, {actions:[{label:'Save', class:'btn-dark', onClick:async(cl)=>{
         const s=await MKR.db.meta('settings')||{};
@@ -746,13 +772,13 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const wrap=U.el(`<div>
         <div class="field"><label>Reward / recognition</label><input class="input" id="r_note" placeholder="e.g. $50 bonus · Employee of the month"></div>
         <div class="field"><label>Bonus points (optional)</label><input class="input" id="r_pts" type="number" min="0" value="0"></div></div>`);
-      U.modal('🎁 Reward '+U.esc(su.name), wrap, {actions:[{label:'Give reward', class:'btn-green', onClick:async(cl)=>{
+      U.modal('Reward '+U.esc(su.name), wrap, {actions:[{label:'Give reward', class:'btn-green', onClick:async(cl)=>{
         const note=U.qs('#r_note',wrap).value.trim(); if(!note){ U.toast('Enter a reward','red'); return; }
         const pts=Math.max(0,+U.qs('#r_pts',wrap).value||0);
         const u=await MKR.db.get('users',su.id)||{}; const rewards=(u.rewards||[]).concat([{ts:Date.now(),note,points:pts,by:(MKR.auth.current()||{}).name}]);
         await MKR.db.put('users',{id:su.id, rewards});
         await MKR.audit.log({action:'reward', desc:`Rewarded ${su.name}: ${note}${pts?` (+${pts} pts)`:''}`});
-        cl(); U.toast('Reward recorded 🎁','green'); performanceView(c);
+        cl(); U.toast('Reward recorded','green'); performanceView(c);
       }}]});
     }
   }
@@ -774,15 +800,15 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="row gap8 wrap center">
           <span class="faint" style="font-size:13px">Auto-clear after</span>
           <select class="input" id="retSel" style="height:38px;width:auto">${opts}</select>
-          ${list.some(a=>a.read)?'<button class="btn btn-ghost btn-sm" id="clrRead">🗑️ Clear read</button>':''}
+          ${list.some(a=>a.read)?`<button class="btn btn-ghost btn-sm" id="clrRead">${MKR.ui.icon('trash')} Clear read</button>`:''}
           ${list.some(a=>!a.read)?'<button class="btn btn-ghost btn-sm" id="readAll">Mark all read</button>':''}
         </div></div>
         <div id="al"></div>`;
       const el=U.qs('#al',c);
-      if(!list.length){ el.innerHTML=`<div class="empty"><div class="em">😌</div><p>No alerts — all good</p></div>`; }
-      else el.innerHTML=list.map(a=>`<div class="alert ${a.level==='red'?'red':'amber'}" style="margin-bottom:12px;${a.read?'opacity:.55':''}"><span>${a.level==='red'?'⚠️':'🔔'}</span>
+      if(!list.length){ el.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('checkcircle')}</div><p>No alerts — all good</p></div>`; }
+      else el.innerHTML=list.map(a=>`<div class="alert ${a.level==='red'?'red':'amber'}" style="margin-bottom:12px;${a.read?'opacity:.55':''}"><span>${MKR.ui.icon(a.level==='red'?'warning':'bell')}</span>
         <div class="grow"><b>${U.esc(a.title)}</b><br>${U.esc(a.desc)} · <span class="faint">${U.ago(a.ts)}</span></div>
-        <div class="row gap6">${a.read?'<span class="pill ghost">Read</span>':`<button class="btn btn-ghost btn-sm" data-r="${a.id}">Mark read</button>`}<button class="btn btn-ghost btn-sm" data-x="${a.id}" aria-label="Delete">✕</button></div></div>`).join('');
+        <div class="row gap6">${a.read?'<span class="pill ghost">Read</span>':`<button class="btn btn-ghost btn-sm" data-r="${a.id}">Mark read</button>`}<button class="btn btn-ghost btn-sm" data-x="${a.id}" aria-label="Delete">${MKR.ui.icon('minus')}</button></div></div>`).join('');
       U.qs('#retSel',c).onchange=async(e)=>{ retention=+e.target.value; const s=await MKR.db.meta('settings')||{}; s.alertRetentionDays=retention; await MKR.db.meta('settings',s); U.toast('Auto-clear setting saved','green'); alerts(c); };
       U.qsa('[data-r]',el).forEach(b=>b.onclick=async()=>{ await MKR.db.put('alerts',{id:b.dataset.r,read:true}); reload(); });
       U.qsa('[data-x]',el).forEach(b=>b.onclick=async()=>{ await MKR.db.remove('alerts',b.dataset.x); reload(); });
@@ -796,11 +822,21 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   async function audit(c){
     const logs=await MKR.audit.all();
     c.innerHTML=`<div class="section-head"><div><h2>Sensitive-action audit</h2><p>Roster changes, stock counts, deliveries and record access · who did it and when, never what it said</p></div>
-      <span class="pill ghost">🔒 Append-only · ${logs.length} entries</span></div>
+      <span class="pill ghost">${MKR.ui.icon('lock')} Append-only · ${logs.length} entries</span></div>
       <div class="card" style="padding:14px 18px;margin-bottom:14px"><input class="input" id="auditSearch" placeholder="Search actions, people, details…"></div>
       <div class="card" style="padding:8px 18px"><div class="list" id="auditList"></div></div>
-      <div class="disclaimer mt16"><span>🔒</span>The audit log is append-only — there is no delete or edit path anywhere in the system.</div>`;
-    function iconOf(a){ return ({'staff.offboard':'🔒','staff.hire':'➕','id.view':'🪪','tfn.view':'🪪','login':'🔑','shift.create':'📅','shift.remove':'🗑️','sos.post':'🆘','swap.approve':'🔁','settings.update':'⚙️','kitchen.create':'🏢','kitchen.approve':'✅','booking.create':'📅','booking.update':'📖','reward':'🎁','export':'⬇️','stock.purchase':'🧾','stock.count':'🔢','stock.waste':'🗑️','stock.statement':'📑','delivery.confirm':'✅','delivery.reject':'⛔','delivery.claim':'📌','training.assign':'📘','training.complete':'🎓','partner.lawyer':'⚖️','partner.vevo':'🛂'})[a]||'•'; }
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('lock')}</span>The audit log is append-only — there is no delete or edit path anywhere in the system.</div>`;
+    // Audit rows: one icon per kind of action, from the shared set.
+    function iconOf(a){ return MKR.ui.icon(({
+      'staff.offboard':'lock','staff.hire':'userplus','id.view':'idcard','tfn.view':'idcard',
+      'login':'key','shift.create':'calendar','shift.remove':'trash','sos.post':'bell',
+      'swap.approve':'repeat','settings.update':'gear','kitchen.create':'building',
+      'kitchen.approve':'checkcircle','booking.create':'calendar','booking.update':'book',
+      'reward':'gift','export':'download','stock.purchase':'receipt','stock.count':'bars',
+      'stock.waste':'trash','stock.statement':'receipt','delivery.confirm':'checkcircle',
+      'delivery.reject':'warning','delivery.claim':'dot','training.assign':'book',
+      'training.complete':'book','partner.lawyer':'shield','partner.vevo':'idcard'
+    })[a] || 'dot'); }
     const list=U.qs('#auditList',c);
     function draw(q){
       const ql=(q||'').trim().toLowerCase();
@@ -808,7 +844,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       list.innerHTML = rows.length? rows.map(l=>`<div class="li"><div class="ava">${iconOf(l.action)}</div>
         <div class="meta"><b>${MKR.audit.label(l.action)}${l.amount!=null?' · '+U.money(l.amount):''}</b><span>${U.esc(l.desc||'')}</span></div>
         <div style="text-align:right"><div style="font-size:13px;font-weight:600">${U.esc(l.actor||'System')}</div><div class="faint" style="font-size:11.5px">${U.fmtDateTime(l.ts)}</div></div></div>`).join('')
-        : `<div class="empty"><div class="em">🗂️</div><p>${ql?'No matching actions':'No actions recorded yet'}</p></div>`;
+        : `<div class="empty"><div class="em">${MKR.ui.icon('search')}</div><p>${ql?'No matching actions':'No actions recorded yet'}</p></div>`;
     }
     draw('');
     U.qs('#auditSearch',c).oninput=(e)=>draw(e.target.value);
@@ -847,10 +883,10 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           <div class="section-title">${I('bars')} Rostered hours this week by branch</div>
           <div class="bestlist">${rows.length? ranked.map(r=>`
             <div class="bestrow"><span class="bestnm">${U.esc(r.k.name)}</span><div class="besttrack"><div class="bestfill" data-w="${Math.round(r.hours/maxH*100)}"></div></div><b class="bestq">${r.hours.toFixed(1)}h</b></div>`).join('')
-            : '<div class="empty" style="padding:16px"><div class="em">🏢</div><p>No branches yet</p></div>'}</div>
+            : `<div class="empty" style="padding:16px"><div class="em">${MKR.ui.icon('building')}</div><p>No branches yet</p></div>`}</div>
         </div>
         <div class="card" style="padding:8px 18px"><div class="list" id="blist"></div></div>
-        <div class="disclaimer mt16"><span>🏢</span>Switching a branch changes which venue's team, stock and settings you manage. The current branch is highlighted and its logo/name shows on the sign-in page.</div>`;
+        <div class="disclaimer mt16"><span>${MKR.ui.icon('building')}</span>Switching a branch changes which venue's team, stock and settings you manage. The current branch is highlighted and its logo/name shows on the sign-in page.</div>`;
       const el=U.qs('#blist',c);
       el.innerHTML = rows.length? rows.map(({k,shifts:sh,hours,people})=>{
         const active=k.id===sess.kitchenId;
@@ -858,7 +894,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         return `<div class="li">${logo}
           <div class="meta"><b>${U.esc(k.name)} ${active?'<span class="pill ok">Current</span>':''} ${k.primary?'<span class="pill ghost">Primary</span>':''}</b><span>${U.esc(k.location||'—')} · ${people} people · ${sh} shifts · ${hours.toFixed(1)}h this week</span></div>
           ${active?'':`<button class="btn btn-ghost btn-sm" data-sw="${k.id}">Switch ›</button>`}</div>`;
-      }).join('') : '<div class="empty"><div class="em">🏢</div><p>No branches yet</p></div>';
+      }).join('') : `<div class="empty"><div class="em">${MKR.ui.icon('building')}</div><p>No branches yet</p></div>`;
       requestAnimationFrame(()=> U.qsa('.bestfill',c).forEach(b=> b.style.width=b.dataset.w+'%'));
       U.qsa('[data-sw]',el).forEach(b=>b.onclick=async()=>{
         const k=mine.find(x=>x.id===b.dataset.sw);
@@ -903,13 +939,13 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       <div class="section-head"><div><h2>Super Admin · Kitchens</h2><p>Master dashboard — full visibility and provisioning across every venue (tenant)</p></div>
         <button class="btn btn-accent btn-sm" id="newK">＋ Create kitchen</button></div>
       <div class="grid g4" style="margin-bottom:18px">
-        <div class="card stat"><div class="k">🏢 Kitchens</div><div class="v">${kitch.length}</div></div>
-        <div class="card stat"><div class="k">✅ Active</div><div class="v" style="color:var(--green)">${active}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('building')} Kitchens</div><div class="v">${kitch.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('checkcircle')} Active</div><div class="v" style="color:var(--green)">${active}</div></div>
         <div class="card stat"><div class="k">⏳ Pending approval</div><div class="v" style="color:${pending?'var(--amber)':'inherit'}">${pending}</div></div>
-        <div class="card stat"><div class="k">👥 Total users</div><div class="v">${users.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('users')} Total users</div><div class="v">${users.length}</div></div>
       </div>
       <div class="card" style="padding:8px 18px"><div class="list" id="klist"></div></div>
-      <div class="disclaimer mt16"><span>🏢</span>Each kitchen is an isolated tenant. From here you have global visibility into every kitchen's data, configuration and users, and you approve or onboard new ones.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('building')}</span>Each kitchen is an isolated tenant. From here you have global visibility into every kitchen's data, configuration and users, and you approve or onboard new ones.</div>`;
 
     const el=U.qs('#klist',c);
     el.innerHTML=kitch.sort((a,b)=>(a.status==='pending'?-1:0)-(b.status==='pending'?-1:0)).map(k=>{
@@ -917,7 +953,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const mgr=mem.filter(u=>u.role==='manager').length, stf=mem.filter(u=>u.role==='staff').length;
       const badge = k.status==='active'?'<span class="pill ok">Active</span>': k.status==='pending'?'<span class="pill warn">Pending</span>':'<span class="pill ghost">'+U.esc(k.status)+'</span>';
       return `<div class="li">
-        <div class="ava">🏢</div>
+        <div class="ava">${MKR.ui.icon('building')}</div>
         <div class="meta"><b>${U.esc(k.name)} ${k.primary?'<span class="pill ghost">Primary</span>':''}</b><span>${U.esc(k.location||'—')} · ${mgr} manager(s) · ${stf} staff · ID ${U.esc(k.id)}</span></div>
         <div class="row gap6 center">
           ${badge}
@@ -966,27 +1002,27 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       </div>
       <div class="section-head"><div><h2>${U.esc(k.name)}</h2><p>${U.esc(k.location||'—')} · tenant ID ${U.esc(k.id)}</p></div></div>
       <div class="grid g4" style="margin-bottom:18px">
-        <div class="card stat"><div class="k">👑 Owners</div><div class="v">${owners.length}</div></div>
-        <div class="card stat"><div class="k">📋 Managers</div><div class="v">${mgrs.length}</div></div>
-        <div class="card stat"><div class="k">🧑‍🍳 Staff</div><div class="v">${staff.length}</div></div>
-        <div class="card stat"><div class="k">👥 Total people</div><div class="v">${users.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('star')} Owners</div><div class="v">${owners.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('checksq')} Managers</div><div class="v">${mgrs.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('pan')} Staff</div><div class="v">${staff.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('users')} Total people</div><div class="v">${users.length}</div></div>
       </div>
       <div class="section-title">Hierarchy &amp; unique IDs</div>
-      ${owners.length?group('Owners',owners,'👑'):''}
-      ${group('Managers',mgrs,'📋')}
-      ${group('Staff',staff,'🧑‍🍳')}
-      <div class="card" style="padding:6px 18px"><div class="section-title" style="padding-top:12px">⚙️ Configuration snapshot</div><div class="list">
+      ${owners.length?group('Owners',owners,'star'):''}
+      ${group('Managers',mgrs,'checksq')}
+      ${group('Staff',staff,'pan')}
+      <div class="card" style="padding:6px 18px"><div class="section-title" style="padding-top:12px">${MKR.ui.icon('gear')} Configuration snapshot</div><div class="list">
         <div class="li"><div class="meta"><span>Operating hours</span><b>${(settings.operatingHours||{}).open||'—'} – ${(settings.operatingHours||{}).close||'—'}</b></div></div>
         <div class="li"><div class="meta"><span>Shift slots</span><b>${(settings.shiftSlots||[]).map(s=>s.label+' '+s.start+'-'+s.end).join(' · ')||'—'}</b></div></div>
         <div class="li"><div class="meta"><span>Daily task template</span><b>${(settings.dailyTasks||[]).length} task(s)</b></div></div>
       </div></div>
-      <div class="disclaimer mt16"><span>🔑</span>Every user has a unique ID for signing into their customised portal. Tap a person to open their full profile.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('key')}</span>Every user has a unique ID for signing into their customised portal. Tap a person to open their full profile.</div>`;
     const ap=U.qs('#apK',c); if(ap) ap.onclick=async()=>{ await MKR.db.put('kitchens',{id, status:'active', approvedAt:Date.now()}); await MKR.audit.log({action:'kitchen.approve', desc:`Approved kitchen ${id}`}); U.toast('Kitchen approved','green'); kitchenDetail(c,id); };
   }
 
   // ---------- Team management (offboard cut-off + TFN reveal + skills) ----------
   const EMP_LABEL=e=>({casual:'Casual',parttime:'Part-time',fulltime:'Full-time'})[e]||e||'—';
-  const SKILL_EM=(k)=> ((MKR.roster.SKILLS[k]||{}).em)||'';
+  const SKILL_EM=(k)=> MKR.roster.skillIcon(k);
 
   async function team(c, arg){
     if(arg) return staffPage(c, arg);   // full-page staff profile
@@ -1013,17 +1049,17 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
     c.innerHTML=`
       <div class="section-head"><div><h2>Team</h2><p>Your managers and staff · tap anyone to open their profile or change their role</p></div>
-        <button class="btn btn-dark btn-sm" id="joinBtn">🔗 Manager join link</button></div>
+        <button class="btn btn-dark btn-sm" id="joinBtn">${MKR.ui.icon('link')} Manager join link</button></div>
       <div class="grid g3" style="margin-bottom:16px">
-        <div class="card stat"><div class="k">📋 Managers</div><div class="v">${managers.length}</div></div>
-        <div class="card stat"><div class="k">🧑‍🍳 Staff</div><div class="v">${staff.length}</div></div>
-        <div class="card stat"><div class="k">👥 Total people</div><div class="v">${all.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('checksq')} Managers</div><div class="v">${managers.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('pan')} Staff</div><div class="v">${staff.length}</div></div>
+        <div class="card stat"><div class="k">${MKR.ui.icon('users')} Total people</div><div class="v">${all.length}</div></div>
       </div>
-      <div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">📋 Managers <span class="faint" style="font-size:12px">${managers.length}</span></div>
-        <div class="list">${managers.length?managers.map(row).join(''):'<div class="empty" style="padding:18px"><div class="em">📋</div><p>No managers yet — share the join link</p></div>'}</div></div>
-      <div class="card" style="padding:6px 18px"><div class="section-title" style="padding-top:12px">🧑‍🍳 Staff <span class="faint" style="font-size:12px">${staff.length}</span></div>
-        <div class="list">${staff.length?staff.map(row).join(''):'<div class="empty" style="padding:18px"><div class="em">🧑‍🍳</div><p>No staff yet</p></div>'}</div></div>
-      <div class="disclaimer mt16"><span>🔒</span>Only the owner can reveal a TFN / passport, and every reveal is audited. Skills (🔑 open · 🌙 close · 🍳 kitchen …) are what the AI roster plans around — set them in Rostering → Preferences.</div>`;
+      <div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">${MKR.ui.icon('checksq')} Managers <span class="faint" style="font-size:12px">${managers.length}</span></div>
+        <div class="list">${managers.length?managers.map(row).join(''):`<div class="empty" style="padding:18px"><div class="em">${MKR.ui.icon('checksq')}</div><p>No managers yet — share the join link</p></div>`}</div></div>
+      <div class="card" style="padding:6px 18px"><div class="section-title" style="padding-top:12px">${MKR.ui.icon('pan')} Staff <span class="faint" style="font-size:12px">${staff.length}</span></div>
+        <div class="list">${staff.length?staff.map(row).join(''):`<div class="empty" style="padding:18px"><div class="em">${MKR.ui.icon('users')}</div><p>No staff yet</p></div>`}</div></div>
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('lock')}</span>Only the owner can reveal a TFN / passport, and every reveal is audited. Skills (open · close · kitchen …) are what the AI roster plans around — set them in Rostering → Preferences.</div>`;
 
     U.qs('#joinBtn',c).onclick=()=>{
       const wrap=U.el(`<div>
@@ -1042,7 +1078,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const settings=await MKR.db.meta('settings');
     const u=(await MKR.db.getAll('users')).find(x=>x.id===id);
     const ob=(await MKR.db.getAll('onboarding')).find(o=>o.userId===id);
-    if(!u){ c.innerHTML=`<div class="empty"><div class="em">🤷</div><p>Staff member not found</p><a class="btn btn-ghost mt12" href="#/owner/team">← Back to team</a></div>`; return; }
+    if(!u){ c.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('search')}</div><p>Staff member not found</p><a class="btn btn-ghost mt12" href="#/owner/team">← Back to team</a></div>`; return; }
     const shifts=await MKR.roster.shiftsFor(MKR.roster.thisWeek());
     const h=U.round2(shifts.filter(s=>s.staffId===id).reduce((t,s)=>t+U.shiftHours(s.start,s.end),0));
     let myTraining=[]; try{ myTraining=(await MKR.training.trainings()).filter(t=>t.staffId===id); }catch(e){}
@@ -1080,7 +1116,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Work details</div><div class="list">
           ${row('Contract type', EMP_LABEL(u.employment))}
           ${row('Hours this week', h.toFixed(2)+'h')}
-          ${row('Skills', MKR.roster.skillsOf(u).map(k=>`${(MKR.roster.SKILLS[k]||{}).em||''} ${(MKR.roster.SKILLS[k]||{}).label||k}`).join(' · ') || '<span class="faint">None set — add them in Rostering → Preferences</span>')}
+          ${row('Skills', MKR.roster.skillsOf(u).map(k=>`${MKR.roster.skillIcon(k)} ${(MKR.roster.SKILLS[k]||{}).label||k}`).join(' · ') || '<span class="faint">None set — add them in Rostering → Preferences</span>')}
           ${row('Training', myTraining.length?`${myTraining.filter(t=>t.status==='done').length}/${myTraining.length} signed off`:'<span class="faint">None assigned</span>')}
           ${row('ID / passport no.', ob&&ob.passportEnc?'<span id="ppSlot">'+MKR.crypto.mask()+'</span> <button class="btn btn-ghost btn-sm" id="ppBtn" style="margin-left:6px;min-height:32px;padding:0 12px">Reveal</button>':'')}
           ${row('Tax file number', ob&&ob.tfnEnc
@@ -1093,17 +1129,17 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           ${row('Emergency contact', U.esc(u.emergency))}
           ${row('Onboarding', u.onboarded?'<span class="pill ok">Complete</span>'+(ob&&ob.signedAt?' · signed '+U.fmtDate(ob.signedAt):''):'<span class="pill warn">Pending</span>')}
         </div></div>
-        <div class="alert info" style="margin-bottom:16px"><span>💸</span><div>Pay, tax, super and bank details are deliberately not held here — this app doesn't run payroll or talk to any government system.${MKR.features.can('au_workrights','owner')?' Work rights are checked on VEVO.':''}</div></div>
+        <div class="alert info" style="margin-bottom:16px"><span>${MKR.ui.icon('receipt')}</span><div>Pay, tax, super and bank details are deliberately not held here — this app doesn't run payroll or talk to any government system.${MKR.features.can('au_workrights','owner')?' Work rights are checked on VEVO.':''}</div></div>
         ${u.offboarded?`<div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Offboard archive</div><div class="list">
           ${row('Offboarded on', u.archivedAt?new Date(u.archivedAt).toISOString().slice(0,10):'')}
           ${row('Retained until', u.retentionUntil?new Date(u.retentionUntil).toISOString().slice(0,10):'')}
         </div></div>`:''}
-        <div class="disclaimer"><span>🔒</span>The ID number is encrypted separately and only the owner can reveal it; each reveal is written to the audit log.</div>
+        <div class="disclaimer"><span>${MKR.ui.icon('lock')}</span>The ID number is encrypted separately and only the owner can reveal it; each reveal is written to the audit log.</div>
         </div>`;
       // Head actions
       const ha=U.qs('#headActions',c);
-      ha.innerHTML = `${MKR.partners?MKR.partners.buttons('owner'):''}<button class="btn btn-ghost btn-sm" id="roleBtn">🔀 ${MKR.auth.roleName(u.role)}</button>
-        <button class="btn btn-dark btn-sm" id="editBtn">✏️ Edit profile</button>
+      ha.innerHTML = `${MKR.partners?MKR.partners.buttons('owner'):''}<button class="btn btn-ghost btn-sm" id="roleBtn">${MKR.ui.icon('shuffle')} ${MKR.auth.roleName(u.role)}</button>
+        <button class="btn btn-dark btn-sm" id="editBtn">${MKR.ui.icon('pencil')} Edit profile</button>
         ${u.offboarded?'<button class="btn btn-green btn-sm" id="restoreBtn">Reactivate</button>':'<button class="btn btn-danger btn-sm" id="offBtn">Offboard</button>'}`;
       if(MKR.partners) MKR.partners.bind(c);
       U.qs('#editBtn',c).onclick=renderEdit;
@@ -1157,13 +1193,13 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           ${fld('f_passport','ID / passport no. (encrypted)','', 'text', ob&&ob.passportEnc?'stored (leave blank to keep)':'enter ID number')}
           <div class="field"><label>Skills — what this person can be rostered onto</label>
             <div class="row gap6 wrap">${Object.entries(MKR.roster.SKILLS).map(([k,v])=>`
-              <label class="skill-chip"><input type="checkbox" data-fsk="${k}" ${MKR.roster.skillsOf(u).includes(k)?'checked':''}>${v.em} ${v.label}</label>`).join('')}</div></div>
+              <label class="skill-chip"><input type="checkbox" data-fsk="${k}" ${MKR.roster.skillsOf(u).includes(k)?'checked':''}>${MKR.roster.skillIcon(k)} ${v.label}</label>`).join('')}</div></div>
         </div>
         <div class="row gap8" style="max-width:680px">
           <button class="btn btn-dark grow" id="saveBtn">Save profile</button>
           <button class="btn btn-ghost grow" id="cancelBtn">Cancel</button>
         </div>
-        <div class="disclaimer mt12"><span>🔒</span>The ID number is AES-encrypted and stored separately — only the owner can reveal it. This app holds no pay, tax, super or bank data.</div>
+        <div class="disclaimer mt12"><span>${MKR.ui.icon('lock')}</span>The ID number is AES-encrypted and stored separately — only the owner can reveal it. This app holds no pay, tax, super or bank data.</div>
         </div>`;
       U.qs('#cancelBtn',c).onclick=renderView;
       U.qs('#saveBtn',c).onclick=async()=>{
@@ -1191,7 +1227,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const opt=(r,em,lbl)=>`<button data-role="${r}" class="${cur===r?'active':''}">${em} ${lbl}</button>`;
       const wrap=U.el(`<div>
         <p class="muted" style="font-size:14px">Change ${U.esc(u.name)}'s role in this restaurant. Managers can run rostering, the menu and approvals; staff get the simple execution portal.</p>
-        <div class="role-seg" id="rseg">${opt('staff','🧑‍🍳','Staff')}${opt('manager','📋','Manager')}</div>
+        <div class="role-seg" id="rseg">${opt('staff','pan','Staff')}${opt('manager','checksq','Manager')}</div>
       </div>`);
       let pick=cur;
       U.qsa('[data-role]',wrap).forEach(b=>b.onclick=()=>{ pick=b.dataset.role; U.qsa('[data-role]',wrap).forEach(x=>x.classList.toggle('active', x===b)); });

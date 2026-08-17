@@ -70,15 +70,15 @@ window.MKR = window.MKR || {};
 
       <div class="grid g2 mt16" style="align-items:start">
         <div class="card pad20">
-          <div class="section-title">📘 SOP library</div>
+          <div class="section-title">${MKR.ui.icon('book')} SOP library</div>
           ${list.length? `<div class="list">${list.map(s=>`
-            <div class="li clickable" data-sop="${s.id}"><div class="ds-li-ic">📘</div>
+            <div class="li clickable" data-sop="${s.id}"><div class="ds-li-ic">${MKR.ui.icon('book')}</div>
               <div class="meta"><b>${U.esc(s.title)}</b><span>${U.esc(s.category)} · ${(s.steps||[]).length} step${(s.steps||[]).length===1?'':'s'} · v${s.version||1}</span></div>
               <span class="faint">›</span></div>`).join('')}</div>`
-            : `<div class="empty"><div class="em">📘</div><p>No SOPs yet. Start with the three things new starters always get wrong.</p></div>`}
+            : `<div class="empty"><div class="em">${MKR.ui.icon('book')}</div><p>No SOPs yet. Start with the three things new starters always get wrong.</p></div>`}
         </div>
         <div class="card pad20">
-          <div class="section-title">👥 Training status</div>
+          <div class="section-title">${MKR.ui.icon('users')} Training status</div>
           ${users.length? `<div class="list">${users.map(u=>{
             const t=trs.filter(x=>x.staffId===u.id);
             const done=t.filter(x=>x.status==='done').length;
@@ -87,12 +87,12 @@ window.MKR = window.MKR || {};
               <div class="meta"><b>${U.esc(u.name)}</b><span>${U.esc(u.position||MKR.auth.roleName(u.role))}</span></div>
               <span class="pill ${od?'danger':(t.length&&done===t.length?'ok':'ghost')}">${done}/${t.length||0} done${od?` · ${od} overdue`:''}</span></div>`;
           }).join('')}</div>`
-            : `<div class="empty"><div class="em">👥</div><p>No team members yet</p></div>`}
+            : `<div class="empty"><div class="em">${MKR.ui.icon('users')}</div><p>No team members yet</p></div>`}
         </div>
       </div>
 
       <div class="card pad20 mt16">
-        <div class="section-title">📝 Assigned training</div>
+        <div class="section-title">${MKR.ui.icon('checksq')} Assigned training</div>
         ${trs.length? `<div class="tablewrap"><table class="dtable">
           <thead><tr><th>Person</th><th>SOP</th><th>Due</th><th>Status</th><th>Signed off</th><th></th></tr></thead>
           <tbody>${trs.slice().sort((a,b)=>String(a.dueDate||'').localeCompare(String(b.dueDate||''))).map(t=>`
@@ -101,7 +101,7 @@ window.MKR = window.MKR || {};
               <td>${t.status==='done'?'<span class="pill ok">Completed</span>':(isOverdue(t)?'<span class="pill danger">Overdue</span>':(dueSoon(t)?'<span class="pill warn">Due soon</span>':'<span class="pill ghost">Assigned</span>'))}</td>
               <td>${t.completedAt?`${U.esc(t.signedBy||'')} <span class="faint">${U.fmtDate(t.completedAt)}</span>`:'<span class="faint">—</span>'}</td>
               <td class="num"><button class="btn btn-ghost btn-sm" data-trdel="${t.id}">Remove</button></td></tr>`).join('')}</tbody>
-        </table></div>` : `<div class="empty"><div class="em">📝</div><p>Nothing assigned yet</p></div>`}
+        </table></div>` : `<div class="empty"><div class="em">${MKR.ui.icon('checksq')}</div><p>Nothing assigned yet</p></div>`}
       </div>`;
 
     U.qs('#trNew',c).onclick    = ()=> sopModal(null, ()=>renderManage(c));
@@ -165,27 +165,27 @@ window.MKR = window.MKR || {};
     c.innerHTML = `
       <div class="section-head"><div><h2>My training</h2><p>Read it, then sign it off — takes a couple of minutes</p></div></div>
       <div class="card pad20">
-        <div class="section-title">📝 To do</div>
+        <div class="section-title">${MKR.ui.icon('checksq')} To do</div>
         ${open.length? `<div class="list">${open.map(t=>`
-          <div class="li clickable" data-do="${t.id}"><div class="ds-li-ic">📘</div>
+          <div class="li clickable" data-do="${t.id}"><div class="ds-li-ic">${MKR.ui.icon('book')}</div>
             <div class="meta"><b>${U.esc(t.title)}</b><span>${t.dueDate?`due ${U.esc(t.dueDate)}`:'no due date'}</span></div>
             ${isOverdue(t)?'<span class="pill danger">Overdue</span>':(dueSoon(t)?'<span class="pill warn">Due soon</span>':'<span class="pill ghost">Open ›</span>')}</div>`).join('')}</div>`
-          : `<div class="empty"><div class="em">🎉</div><p>Nothing outstanding — you're up to date.</p></div>`}
+          : `<div class="empty"><div class="em">${MKR.ui.icon('checkcircle')}</div><p>Nothing outstanding — you're up to date.</p></div>`}
       </div>
       <div class="card pad20 mt16">
-        <div class="section-title">✅ Completed</div>
+        <div class="section-title">${MKR.ui.icon('checkcircle')} Completed</div>
         ${done.length? `<div class="list">${done.map(t=>`
-          <div class="li clickable" data-read="${t.sopId}"><div class="ds-li-ic">✅</div>
+          <div class="li clickable" data-read="${t.sopId}"><div class="ds-li-ic">${MKR.ui.icon('checkcircle')}</div>
             <div class="meta"><b>${U.esc(t.title)}</b><span>signed off ${U.fmtDate(t.completedAt)}</span></div>
             <span class="faint">read again ›</span></div>`).join('')}</div>`
-          : `<div class="empty"><div class="em">📗</div><p>Nothing completed yet</p></div>`}
+          : `<div class="empty"><div class="em">${MKR.ui.icon('book')}</div><p>Nothing completed yet</p></div>`}
       </div>
       <div class="card pad20 mt16">
-        <div class="section-title">📚 All SOPs — look anything up</div>
+        <div class="section-title">${MKR.ui.icon('book')} All SOPs — look anything up</div>
         ${list.length? `<div class="list">${list.map(s=>`
-          <div class="li clickable" data-read="${s.id}"><div class="ds-li-ic">📘</div>
+          <div class="li clickable" data-read="${s.id}"><div class="ds-li-ic">${MKR.ui.icon('book')}</div>
             <div class="meta"><b>${U.esc(s.title)}</b><span>${U.esc(s.category)}</span></div><span class="faint">›</span></div>`).join('')}</div>`
-          : `<div class="empty"><div class="em">📘</div><p>No SOPs published yet</p></div>`}
+          : `<div class="empty"><div class="em">${MKR.ui.icon('book')}</div><p>No SOPs published yet</p></div>`}
       </div>`;
 
     U.qsa('[data-do]',c).forEach(b=> b.onclick=()=>{
@@ -206,7 +206,7 @@ window.MKR = window.MKR || {};
     </div>`);
     const actions = task ? [
       {label:'Close', class:'btn-ghost', onClick:c=>c()},
-      {label:'✅ I have read and understood', class:'btn-dark', onClick:async(close)=>{
+      {label:'I have read and understood', class:'btn-dark', onClick:async(close)=>{
         const sig=U.qs('#tr_sign',wrap).value.trim();
         if(!sig){ U.toast('Type your name to sign off','red'); return; }
         await complete(task, sig); close(); U.toast('Signed off — nice work','green'); if(after) after();

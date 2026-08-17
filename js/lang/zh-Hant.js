@@ -67,7 +67,7 @@
       "Advisory only — nothing here blocks a roster.":"僅供參考 —— 這些都不會阻止排班。",
       "Nothing flagged on this week's roster":"本週排班沒有需要注意的",
       "This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.":"本系統只記錄你自己的運營數據。不計算工資、不解讀 Award、不與任何政府系統對接。",
-  
+
       // -- stock --
       "Ingredients and tools · what you hold, what it cost, who you buy it from":"原料與工具 · 有多少、花了多少、從誰那買的",
       "Purchases":"採購", "Suppliers":"供應商", "Forecast":"預測",
@@ -866,6 +866,36 @@
       "Today's rounds":"今日巡店進度",
       "Clear them all and you can leave the back office alone tonight":"全部清完，今晚就不用再看後臺了",
       "All clear — nothing left in the back office":"全部搞定 —— 後臺沒有待辦了",
+
+      // -- Blocks home screen, the "More" sheet, appearance, and the strings the
+      //    UI-polish pass introduced. Keys are the plain English the app now
+      //    renders; the emoji-era keys still resolve via the bare() index. --
+      "Blocks":"方塊", "Floor":"平面圖", "List":"列表", "More":"更多",
+      "Your home screen":"你的主屏", "Tap a block to open it":"點一個方塊就能進去",
+      "Arrange your blocks":"整理你的方塊", "Drag to move · − to take one off":"拖動排序 · 按 − 移除",
+      "Add a block":"添加方塊", "Add":"添加", "Edit":"編輯", "Done":"完成",
+      "No blocks yet — hit Edit and add the pages you open most.":"還沒有方塊 —— 點「編輯」把你最常開的頁面加進來。",
+      "This layout is saved on this device only — nothing goes to the cloud.":"這個排列只存在本機 —— 不會上傳雲端。",
+      "All clear":"全部搞定", "to top up":"需補貨", "to check":"待覈對", "jobs left":"項待辦",
+      "gaps this week":"本週缺人", "to sign off":"待簽字", "unread":"條未讀", "people":"人",
+      "to approve":"待審批", "applications":"份申請", "shifts":"個班次", "to fill in":"待填寫",
+      "new":"條新的", "waiting":"項待處理",
+      "Manage":"管理",
+      // Pre-existing gaps noticed while checking the icon pass — never had keys.
+      "Training & SOPs":"培訓與 SOP", "Nothing assigned yet":"暫無派發的培訓",
+      "Brand colour":"品牌色", "Main colour":"主色", "Soft background":"淺色底",
+      "Text on the soft background":"淺色底上的文字",
+      "buttons, links, the active menu item":"按鈕、鏈接、當前菜單項",
+      "avatars and chips sit on this":"頭像和標籤的底色",
+      "Appearance":"外觀", "Auto":"跟隨系統", "Light":"淺色", "Dark":"深色",
+      "Saved on this device only — each phone or tablet in the venue can differ.":"只存在本機 —— 店裏每臺手機或平板可以各不相同。",
+      "Where these numbers come from":"這些數字是怎麼來的",
+      "That page has moved or no longer exists":"該頁面已移動或不存在",
+      "Nothing to show here yet.":"這裏暫時沒有內容。",
+      "Stocktake":"盤點", "Threw it out":"報損", "Export CSV":"導出 CSV", "Add items":"添加物料",
+      "Shelf":"貨架", "Kitchen":"廚房",
+      "Preferences":"偏好設置", "Export":"導出", "AI auto-roster":"AI 自動排班",
+      "Today":"今天", "Password":"修改密碼", "Log out":"退出登錄",
       "Your restaurant":"你的餐廳", "Tap a room with a badge on it":"點有提醒的房間開始",
       "Cold room & store":"冷庫與儲藏", "Stock to top up":"庫存補貨",
       "Back door":"收貨口", "Deliveries to check":"確認到貨",

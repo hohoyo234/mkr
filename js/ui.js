@@ -45,6 +45,28 @@ window.MKR = window.MKR || {};
     download:'<path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/>',
     refresh:'<path d="M4 12a8 8 0 0 1 13.7-5.6L21 9"/><path d="M21 4v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L3 15"/><path d="M3 20v-5h5"/>',
     dot:'<circle cx="12" cy="12" r="3.5"/>',
+    pan:'<circle cx="10" cy="13" r="6.5"/><path d="M16.2 10.5L22 8"/><path d="M8 6.5V4M12 6.5V3.5"/>',
+    dots:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+    home:'<path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/>',
+    list:'<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+    minus:'<path d="M5 12h14"/>',
+    logout:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8l-4 4 4 4M6 12h9"/>',
+    key:'<circle cx="8" cy="14" r="4"/><path d="M11 11l8-8M17 5l2 2M15 7l2 2"/>',
+    moon:'<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
+    cup:'<path d="M4 8h12v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h2.5a2.5 2.5 0 0 1 0 5H16"/><path d="M6 2v3M10 2v3M14 2v3"/>',
+    phone:'<path d="M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3z"/>',
+    globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/>',
+    camera:'<path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/>',
+    printer:'<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
+    trash:'<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
+    pencil:'<path d="M4 20l4-1 10-10-3-3L5 16z"/><path d="M14.5 5.5l3 3"/>',
+    link:'<path d="M10 13a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7L11.5 5.8"/><path d="M14 11a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 19.7l1.5-1.5"/>',
+    shuffle:'<path d="M17 3l3 3-3 3"/><path d="M17 15l3 3-3 3"/><path d="M4 6h4l8 12h4"/><path d="M4 18h4l2-3"/><path d="M14 9l2-3h4"/>',
+    lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    frown:'<circle cx="12" cy="12" r="9"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M9 9.5v.01M15 9.5v.01"/>',
+    send:'<path d="M4 12l16-8-6 8 6 8z"/>',
+    chevleft:'<path d="M15 5l-7 7 7 7"/>',
+    chevright:'<path d="M9 5l7 7-7 7"/>',
   };
 
   // nav id -> icon name
@@ -58,6 +80,29 @@ window.MKR = window.MKR || {};
     stock:'inbox', deliveries:'receipt', training:'book',
     applications:'inbox', restaurants:'building',
   };
+
+  // nav id -> colour tone. One module, one colour, everywhere it appears — the
+  // home block, the room on the floor and the page header all read the same, so
+  // the owner learns "the blue one is the cold room" instead of reading labels.
+  // Tone names map to the --<tone> / --<tone>-soft pairs in the stylesheet.
+  const TONE = {
+    stock:'blue', deliveries:'amber', tasks:'green', x_tasks:'green',
+    schedule:'violet', x_schedule:'violet', myshifts:'violet', my:'violet',
+    availability:'violet', swaps:'violet', team:'violet', hire:'green',
+    training:'teal', bookings:'teal', branches:'teal',
+    alerts:'red', audit:'ink', settings:'ink', setup:'ink', switch:'ink',
+    assistant:'accent', dashboard:'accent', performance:'amber',
+    feedback:'amber', market:'amber', me:'ink', applications:'blue',
+    restaurants:'teal',
+  };
+  const tone = (id)=> TONE[id] || 'ink';
+
+  // Where a badge count sits on the only three-step scale this app uses:
+  // green nothing to do · amber worth a look · red do it today.
+  function tier(n, urgent){
+    if(!n) return 'ok';
+    return urgent ? 'hot' : 'warm';
+  }
 
   function icon(name, cls=''){
     const inner = P[name] || P.dot;
@@ -81,5 +126,37 @@ window.MKR = window.MKR || {};
     return `<div class="qr-fallback" style="width:${size}px;height:${size}px"><span>${t}</span></div>`;
   }
 
-  MKR.ui = { icon, navIcon, qr, ICONS:P, NAV };
+  // ---------- theme ----------
+  // Three states, not two: 'auto' follows the OS (the default and what most
+  // people want), 'light' / 'dark' are the venue overruling it — a phone that
+  // lives on a bright pass is easier to read in light whatever the clock says.
+  // The CSS does the work; this only writes the attribute the CSS keys off.
+  // Applied again in index.html before first paint so there is no flash.
+  const TKEY = 'mkr_theme';
+  function theme(next){
+    if(next === undefined){
+      try{ return localStorage.getItem(TKEY) || 'auto'; }catch(e){ return 'auto'; }
+    }
+    try{ localStorage.setItem(TKEY, next); }catch(e){}
+    // index.html owns the resolve (it has to run before first paint anyway);
+    // re-run it rather than keeping a second copy of the same three lines.
+    if(window.__mkrTheme) window.__mkrTheme();
+    return next;
+  }
+
+  // Every <details class="omenu"> closes when you pick something out of it, and
+  // when you click away from it. Delegated once here rather than re-bound at
+  // each call site — a menu that stays open behind the modal it just opened is
+  // the same bug however many pages grow one.
+  document.addEventListener('click', (e)=>{
+    const inside = e.target.closest ? e.target.closest('.omenu') : null;
+    document.querySelectorAll('.omenu[open]').forEach(d=>{
+      if(d !== inside || e.target.closest('.omenu-pop')) d.open = false;
+    });
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape') document.querySelectorAll('.omenu[open]').forEach(d=> d.open = false);
+  });
+
+  MKR.ui = { icon, navIcon, qr, tone, tier, theme, ICONS:P, NAV, TONE };
 })();

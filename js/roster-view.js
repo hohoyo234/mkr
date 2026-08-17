@@ -45,33 +45,40 @@ window.MKR = window.MKR || {};
       <div class="section-head"><div><h2>Rostering</h2><p>AI plans it from availability, skills and your own history · you stay in charge</p></div>
         <div class="row gap8 wrap">
           ${MKR.partners ? MKR.partners.buttons(((MKR.auth.current()||{}).role)||'manager') : ''}
-          <button class="btn btn-ghost btn-sm" id="rsPrefs">${MKR.ui.icon('gear')} Preferences</button>
-          <button class="btn btn-ghost btn-sm" id="rsCsv">${MKR.ui.icon('download')} Export</button>
           <button class="btn btn-accent btn-sm" id="rsAuto">${MKR.ui.icon('sparkle')} AI auto-roster</button>
+          <details class="omenu"><summary class="btn btn-ghost btn-sm" aria-label="More rostering actions">${MKR.ui.icon('dots')}</summary>
+            <div class="omenu-pop">
+              <button id="rsPrefs">${MKR.ui.icon('gear')} Preferences</button>
+              <button id="rsCsv">${MKR.ui.icon('download')} Export</button>
+            </div>
+          </details>
         </div></div>
 
+      <!-- Arrows flank the week, they don't queue up with it. "‹ Previous" and
+           "Next ›" as full-width pills wrapped onto three rows at 375px. -->
       <div class="weekbar">
-        <button class="btn btn-ghost btn-sm" id="wkPrev">‹ Previous</button>
+        <button class="btn btn-ghost weekbar-arrow" id="wkPrev" aria-label="Previous week">${MKR.ui.icon('chevleft')}</button>
         <div class="weekbar-mid"><b>${U.esc(label)}</b><span class="faint">${U.fmtDate(R().dayTs(week,0))} – ${U.fmtDate(R().dayTs(week,6))}</span></div>
-        <button class="btn btn-ghost btn-sm" id="wkNext">Next ›</button>
         ${weekOffset!==0?`<button class="btn btn-ghost btn-sm" id="wkToday">Today</button>`:''}
+        <button class="btn btn-ghost weekbar-arrow" id="wkNext" aria-label="Next week">${MKR.ui.icon('chevright')}</button>
       </div>
 
       <div class="statline">
         <span class="statcell"><b>${new Set(shifts.map(s=>s.staffId)).size}/${staff.length}</b><i>rostered</i></span>
         <span class="statcell"><b>${shifts.length}</b><i>shifts</i></span>
         <span class="statcell"><b>${totalHours.toFixed(1)}h</b><i>total</i></span>
-        <span class="statcell warn clickable" id="warnCard" style="${reds?'color:var(--red)':(warns.length?'color:#8a6410':'')}">${warns.length? `<b>${warns.length}</b><i>warnings</i>` : '<b>✓</b><i>all clear</i>'}</span>
+        <span class="statcell warn clickable" id="warnCard" style="${reds?'color:var(--red)':(warns.length?'color:var(--amber-ink)':'')}">${warns.length? `<b>${warns.length}</b><i>warnings</i>` : `<b>${MKR.ui.icon('check')}</b><i>all clear</i>`}</span>
       </div>
 
       ${warns.length? `<div class="card pad20" style="margin-bottom:16px">
-        <div class="section-title">⚠️ Worth a look — none of this blocks anything</div>
+        <div class="section-title">${MKR.ui.icon('warning')} Worth a look — none of this blocks anything</div>
         <div class="list">${warns.slice(0,6).map(w=>`
-          <div class="li"><div class="ds-li-ic">${w.level==='red'?'🔴':(w.level==='amber'?'🟠':'🔵')}</div>
+          <div class="li"><div class="ds-li-ic sev-${w.level==='red'?'red':(w.level==='amber'?'amber':'info')}">${
+            MKR.ui.icon(w.level==='red'?'warning':(w.level==='amber'?'clock':'dot'))}</div>
             <div class="meta"><b>${U.esc(w.title)}</b><span>${U.esc(w.detail)}</span></div></div>`).join('')}
           ${warns.length>6?`<div class="li"><div class="meta"><span class="faint">+ ${warns.length-6} more</span></div></div>`:''}
         </div>
-        <div class="faint" style="font-size:12px;margin-top:10px">These are your own preferences talking back to you. Change what you're warned about in ⚙️ Preferences.</div>
+        <div class="faint" style="font-size:12px;margin-top:10px">These are your own preferences talking back to you. Change what you're warned about in Preferences.</div>
       </div>` : ''}
 
       <div class="card" style="padding:14px 14px 6px;margin-bottom:16px">
@@ -101,7 +108,7 @@ window.MKR = window.MKR || {};
 
     function drawGrid(){
       const grid = U.qs('#rosterGrid',c);
-      if(!staff.length){ grid.innerHTML='<div class="empty"><div class="em">👥</div><p>No team members yet</p></div>'; return; }
+      if(!staff.length){ grid.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('users')}</div><p>No team members yet</p></div>`; return; }
       const todayIdx = weekOffset===0 ? (new Date().getDay()+6)%7 : -1;
       const cellShifts = (id,d)=> shifts.filter(x=>x.staffId===id && x.day===d).sort((a,b)=>String(a.start).localeCompare(String(b.start)));
       const head = `<tr><th class="rg-name">Name</th>${DAYS.map((d,di)=>`<th${di===todayIdx?' style="color:var(--accent)"':''}>${d}<br><span class="rg-date">${U.fmtDate(R().dayTs(week,di))}</span></th>`).join('')}<th>Total</th></tr>`;
@@ -115,7 +122,7 @@ window.MKR = window.MKR || {};
             const chips = cellShifts(s.id,di).map(x=>`<span class="rg-chip" draggable="true" data-id="${x.id}" style="background:${band.soft};color:${band.color};border-color:${band.color}55">${x.start}–${x.end}<span class="rg-x" data-rm="${x.id}">×</span></span>`).join('');
             return `<td class="rg-cell${di===todayIdx?' today':''}" data-day="${di}" data-staff="${s.id}">${chips||'<span class="rg-empty">＋</span>'}</td>`;
           }).join('');
-          const sk = R().skillsOf(s).map(k=>(R().SKILLS[k]||{}).em||'').join('');
+          const sk = R().skillsOf(s).map(k=>R().skillIcon(k)).join('');
           body += `<tr><td class="rg-name"><div class="rg-person"><span class="ava">${s.emoji||U.initials(s.name)}</span>
             <div style="min-width:0"><b>${U.esc(s.name)}</b><span class="faint">${U.esc(s.position||MKR.auth.roleName(s.role))} ${sk}</span></div></div></td>${cells}
             <td class="rg-total">${hoursOf(s.id).toFixed(1)}h</td></tr>`;
@@ -177,9 +184,9 @@ window.MKR = window.MKR || {};
   function warnModal(warns){
     U.modal(`Roster warnings · ${warns.length}`, warns.length? `
       <div class="alert info" style="margin-bottom:12px"><span>ℹ️</span><div>Every item here is advisory. Nothing in this app stops you publishing a roster — these are the things you asked to be told about.</div></div>
-      <div class="list">${warns.map(w=>`<div class="li"><div class="ds-li-ic">${w.level==='red'?'🔴':(w.level==='amber'?'🟠':'🔵')}</div>
+      <div class="list">${warns.map(w=>`<div class="li"><div class="ds-li-ic sev-${w.level==='red'?'red':(w.level==='amber'?'amber':'info')}">${MKR.ui.icon(w.level==='red'?'warning':(w.level==='amber'?'clock':'dot'))}</div>
         <div class="meta"><b>${U.esc(w.title)}</b><span>${U.esc(w.detail)}</span></div></div>`).join('')}</div>`
-      : `<div class="empty"><div class="em">✅</div><p>Nothing flagged</p></div>`);
+      : `<div class="empty"><div class="em">${MKR.ui.icon('checkcircle')}</div><p>Nothing flagged</p></div>`);
   }
 
   // ---------- auto-roster ----------
@@ -202,10 +209,10 @@ window.MKR = window.MKR || {};
 
     const box = U.qs('#rsExplain');
     if(box){
-      box.innerHTML = `<div class="card pad20 mt16"><div class="section-title">✨ Why it planned it this way</div><p class="muted">Thinking…</p></div>`;
+      box.innerHTML = `<div class="card pad20 mt16"><div class="section-title">${MKR.ui.icon('sparkle')} Why it planned it this way</div><p class="muted">Thinking…</p></div>`;
       const text = await R().explain(week, staff, plan, warns);
-      box.innerHTML = `<div class="card pad20 mt16"><div class="section-title">✨ Why it planned it this way</div>${text}
-        ${gaps.length?`<div class="alert amber mt12"><span>🕳️</span><div><b>${gaps.length} slot${gaps.length===1?'':'s'} couldn't be filled</b> — nobody was available. Add availability, or fill them by hand.</div></div>`:''}</div>`;
+      box.innerHTML = `<div class="card pad20 mt16"><div class="section-title">${MKR.ui.icon('sparkle')} Why it planned it this way</div>${text}
+        ${gaps.length?`<div class="alert amber mt12"><span>${MKR.ui.icon('warning')}</span><div><b>${gaps.length} slot${gaps.length===1?'':'s'} couldn't be filled</b> — nobody was available. Add availability, or fill them by hand.</div></div>`:''}</div>`;
     }
     U.toast(`Rostered ${plan.length} shifts`,'green');
   }
@@ -220,7 +227,7 @@ window.MKR = window.MKR || {};
       <div class="grow"><b>${label}</b><div class="faint" style="font-size:12px">${hint}</div></div></label>`;
 
     const wrap = U.el(`<div>
-      ${firstRun?`<div class="alert info" style="margin-bottom:14px"><span>👋</span><div>Before the AI rosters anything, tell it how you like to run the place. You can change all of this later.</div></div>`:''}
+      ${firstRun?`<div class="alert info" style="margin-bottom:14px"><span>${MKR.ui.icon('users')}</span><div>Before the AI rosters anything, tell it how you like to run the place. You can change all of this later.</div></div>`:''}
 
       <div class="section-title">1 · How many people do you want on?</div>
       <p class="muted" style="font-size:13px">${learned?'These numbers were learned from what you actually rostered over the last few weeks — adjust anything that looks wrong.':'Set the headcount you want for each day-part.'}</p>
@@ -233,9 +240,9 @@ window.MKR = window.MKR || {};
 
       <div class="section-title mt16">2 · What should it optimise for?</div>
       ${check('pf_fair', p.fairness, 'Spread hours evenly', 'Otherwise it just fills shifts with whoever scores highest.')}
-      ${check('pf_open', p.requireOpener, 'Every day needs someone who can open 🔑', 'Warns you if the first shift has nobody with the open skill.')}
-      ${check('pf_close', p.requireCloser, 'Every day needs someone who can close 🌙', 'Warns you if the last shift has nobody with the close skill.')}
-      ${check('pf_kit', p.requireKitchen, 'Every day needs kitchen skill 🍳', 'Warns you if nobody rostered that day can cook.')}
+      ${check('pf_open', p.requireOpener, 'Every day needs someone who can open', 'Warns you if the first shift has nobody with the open skill.')}
+      ${check('pf_close', p.requireCloser, 'Every day needs someone who can close', 'Warns you if the last shift has nobody with the close skill.')}
+      ${check('pf_kit', p.requireKitchen, 'Every day needs kitchen skill', 'Warns you if nobody rostered that day can cook.')}
 
       <div class="section-title mt16">3 · When should it warn you?</div>
       <div class="alert info" style="margin-bottom:10px"><span>ℹ️</span><div>These are <b>warnings, not limits</b>. Go past any of them and the roster still saves — you just get told.</div></div>
@@ -245,13 +252,13 @@ window.MKR = window.MKR || {};
       ${check('pf_notify', p.notify, 'Send me a notification for roster warnings', 'Otherwise they only show on this page.')}
 
       <div class="section-title mt16">4 · Who can do what?</div>
-      <p class="muted" style="font-size:13px">Skills drive the plan — someone with 🔑 gets the early shift, 🍳 keeps the kitchen covered.</p>
+      <p class="muted" style="font-size:13px">Skills drive the plan — someone who can open gets the early shift, kitchen skill keeps the kitchen covered.</p>
       <div id="pf_skills">${staff.map(s=>`
         <div class="skill-row"><b>${U.esc(s.name)}</b>
           <div class="row gap6 wrap">${Object.entries(R().SKILLS).map(([k,v])=>`
-            <label class="skill-chip"><input type="checkbox" data-sk="${s.id}" data-k="${k}" ${R().skillsOf(s).includes(k)?'checked':''}>${v.em} ${v.label}</label>`).join('')}</div></div>`).join('')}
+            <label class="skill-chip"><input type="checkbox" data-sk="${s.id}" data-k="${k}" ${R().skillsOf(s).includes(k)?'checked':''}>${R().skillIcon(k)} ${v.label}</label>`).join('')}</div></div>`).join('')}
       </div>
-      ${staff.length?'':'<div class="empty" style="padding:14px"><div class="em">👥</div><p>No team members yet</p></div>'}
+      ${staff.length?'':`<div class="empty" style="padding:14px"><div class="em">${MKR.ui.icon('users')}</div><p>No team members yet</p></div>`}
     </div>`);
 
     U.modal(firstRun?'How do you like your roster?':'Rostering preferences', wrap, {actions:[

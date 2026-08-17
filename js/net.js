@@ -18,11 +18,18 @@ window.MKR = window.MKR || {};
         light.innerHTML=`<span class="lamp"></span>Offline-safe mode${pend?` · ${pend} queued`:''}`;
       } else if(pend>0){
         light.className='netlight syncing';
-        light.innerHTML=`<span class="lamp"></span>Syncing · ${pend}`;
+        // "Syncing · 108" gave no clue what 108 counted. It counts changes.
+        light.innerHTML=`<span class="lamp"></span>Saving ${pend} change${pend===1?'':'s'}…`;
       } else {
         light.className='netlight online';
         light.innerHTML=`<span class="lamp"></span>${cloud?'Cloud connected':'Connected (local)'}`;
       }
+      // Under 560px the pill collapses to a bare dot (font-size:0), which leaves
+      // a status indicator with no name at all — carry the words in the label.
+      const text = light.textContent.trim();
+      light.setAttribute('role','status');
+      light.setAttribute('aria-label', text);
+      light.title = text;
       const bar=MKR.util.qs('#offbar'); if(bar) bar.classList.toggle('hidden', Net.online);
     },
 
