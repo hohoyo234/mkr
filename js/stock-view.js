@@ -7,11 +7,11 @@ window.MKR = window.MKR || {};
   const U = MKR.util;
   const S = ()=>MKR.stock;
   const TABS = [
-    {id:'stock',    label:'Stock',     em:'📦'},
-    {id:'purchases',label:'Purchases', em:'🧾'},
-    {id:'prices',   label:'Prices',    em:'🏷️'},
-    {id:'suppliers',label:'Suppliers', em:'🚚'},
-    {id:'forecast', label:'Forecast',  em:'📈'},
+    {id:'stock',    label:'Stock',     ic:'box'},
+    {id:'purchases',label:'Purchases', ic:'receipt'},
+    {id:'prices',   label:'Prices',    ic:'ticket'},
+    {id:'suppliers',label:'Suppliers', ic:'truck'},
+    {id:'forecast', label:'Forecast',  ic:'trend'},
   ];
   let tab = 'stock';
 
@@ -30,8 +30,8 @@ window.MKR = window.MKR || {};
   const VKEY = 'mkr_stock_view';
   let view = (function(){ try{ return localStorage.getItem(VKEY)==='list' ? 'list' : 'shelf'; }catch(e){ return 'shelf'; } })();
   const viewSwitch = ()=> `<div class="viewswitch" role="group" aria-label="How to show stock">
-      <button class="${view==='shelf'?'on':''}" data-view="shelf">🧊 Shelf</button>
-      <button class="${view==='list'?'on':''}" data-view="list">☰ List</button>
+      <button class="${view==='shelf'?'on':''}" data-view="shelf">${MKR.ui.icon('inbox')}Shelf</button>
+      <button class="${view==='list'?'on':''}" data-view="list">${MKR.ui.icon('list')}List</button>
     </div>`;
 
   async function render(c){
@@ -41,7 +41,7 @@ window.MKR = window.MKR || {};
     c.innerHTML = `
       <div class="section-head"><div><h2>Stock &amp; costs</h2><p>Ingredients and tools · what you hold, what it cost, who you buy it from</p></div>
         <div class="row gap8 wrap" id="stockActions"></div></div>
-      <div class="tabbar" id="stockTabs">${TABS.map(t=>`<button class="tab ${t.id===tab?'active':''}" data-tab="${t.id}">${t.em} ${t.label}</button>`).join('')}</div>
+      <div class="tabbar" id="stockTabs">${TABS.map(t=>`<button class="tab ${t.id===tab?'active':''}" data-tab="${t.id}">${MKR.ui.icon(t.ic)}${t.label}</button>`).join('')}</div>
       <div id="stockBody"></div>`;
     U.qsa('[data-tab]',c).forEach(b=> b.onclick = ()=>{ tab=b.dataset.tab; render(c); });
     const body = U.qs('#stockBody',c), actions = U.qs('#stockActions',c);
@@ -88,11 +88,19 @@ window.MKR = window.MKR || {};
         <button class="catchip ghost" id="catEdit" title="Add, rename or remove categories">＋ Edit</button>
       </div>` : `<div class="catbar"><button class="catchip ghost" id="catEdit">＋ Add categories</button></div>`;
 
+    // The primary action leads and the occasional ones fold into a menu. Five
+    // buttons of equal weight wrapping over two rows told the owner nothing
+    // about which one they open every day (Add items) and which one they open
+    // once a month (Export CSV).
     actions.innerHTML = `${viewSwitch()}
-      <button class="btn btn-ghost btn-sm" id="stkCount">${MKR.ui.icon('checksq')} Stocktake</button>
-      <button class="btn btn-ghost btn-sm" id="stkWaste">🗑 Threw it out</button>
-      <button class="btn btn-ghost btn-sm" id="stkCsv">${MKR.ui.icon('download')} Export CSV</button>
-      <button class="btn btn-dark btn-sm" id="stkAdd">${MKR.ui.icon('plus')} Add items</button>`;
+      <button class="btn btn-dark btn-sm" id="stkAdd">${MKR.ui.icon('plus')} Add items</button>
+      <details class="omenu"><summary class="btn btn-ghost btn-sm" aria-label="More stock actions">${MKR.ui.icon('dots')}</summary>
+        <div class="omenu-pop">
+          <button id="stkCount">${MKR.ui.icon('checksq')} Stocktake</button>
+          <button id="stkWaste">${MKR.ui.icon('warning')} Threw it out</button>
+          <button id="stkCsv">${MKR.ui.icon('download')} Export CSV</button>
+        </div>
+      </details>`;
 
     U.qsa('[data-view]',actions).forEach(b=> b.onclick = ()=>{
       view = b.dataset.view;
@@ -100,13 +108,16 @@ window.MKR = window.MKR || {};
       reload();
     });
 
-    const group = (title, hint, list)=>`
+    // The icon is a separate argument, not baked into `title`: the title runs
+    // through U.esc (and through the translator), and neither should be handed
+    // markup.
+    const group = (ic, title, hint, list)=>`
       <div class="card pad20 mt16">
-        <div class="section-title">${U.esc(title)}<span class="faint" style="font-size:12px;font-weight:500">${U.esc(hint)}</span></div>
+        <div class="section-title">${MKR.ui.icon(ic)}${U.esc(title)}<span class="faint" style="font-size:12px;font-weight:500">${U.esc(hint)}</span></div>
         ${list.length?`<div class="tablewrap"><table class="dtable">
           <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th><th>Price trend</th><th>Supplier</th><th></th></tr></thead>
           <tbody>${list.map(rowHtml).join('')}</tbody></table></div>`
-          :`<div class="empty" style="padding:18px"><div class="em">📦</div><p>Nothing here yet</p></div>`}
+          :`<div class="empty" style="padding:18px"><div class="em">${MKR.ui.icon('box')}</div><p>Nothing here yet</p></div>`}
       </div>`;
 
     if(view==='shelf' && MKR.stockGame){
@@ -120,10 +131,10 @@ window.MKR = window.MKR || {};
           <span class="statcell"><b>${U.money(total)}</b><i>stock value</i></span>
           <span class="statcell"><b>${U.money(perish.reduce((t,r)=>t+r.value,0))}</b><i>perishable</i></span>
           <span class="statcell"><b>${U.money(durable.reduce((t,r)=>t+r.value,0))}</b><i>non-perishable</i></span>
-          <span class="statcell"${flagged?' style="color:#8a6410"':''}><b>${flagged}</b><i>needs attention</i></span>
+          <span class="statcell"${flagged?' style="color:var(--amber-ink)"':''}><b>${flagged}</b><i>needs attention</i></span>
         </div>
-        ${group('🥬 Perishable · goes off', 'shelf life tracked from the last delivery', perish)}
-        ${group('🥢 Non-perishable · tools & consumables', 'chopsticks, containers, gloves — counted, never expires', durable)}
+        ${group('clock', 'Perishable · goes off', 'shelf life tracked from the last delivery', perish)}
+        ${group('utensils', 'Non-perishable · tools & consumables', 'chopsticks, containers, gloves — counted, never expires', durable)}
         <div class="disclaimer mt16"><span>ℹ️</span>Amount = quantity × the last price you actually paid. Price trend compares your two most recent purchase prices for that item.</div>`;
 
       U.qsa('[data-edit]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.edit); itemModal(r, reload); });
@@ -175,7 +186,7 @@ window.MKR = window.MKR || {};
         : pct>0 ? `<span class="pill danger">▲ ${pct.toFixed(1)}%</span>`
         : pct<0 ? `<span class="pill ok">▼ ${Math.abs(pct).toFixed(1)}%</span>` : '<span class="pill ghost">—</span>';
       return `<div class="li"><div class="meta"><b>${U.money(p.price)} / ${U.esc(r.unit||'unit')}</b><span>${U.fmtDateTime(p.ts)}${p.note?' · '+U.esc(p.note):''}</span></div>${badge}</div>`;
-    }).join('')}</div>` : `<div class="empty"><div class="em">🏷️</div><p>No price recorded yet — it fills in as you log purchases.</p></div>`);
+    }).join('')}</div>` : `<div class="empty"><div class="em">${MKR.ui.icon('ticket')}</div><p>No price recorded yet — it fills in as you log purchases.</p></div>`);
   }
 
   // Add, rename, remove — and move items in one go, because "make a Seafood
@@ -261,7 +272,7 @@ window.MKR = window.MKR || {};
     const wrap = U.el(`<div>
       <div class="field"><label>Name</label><input class="input" id="i_n" value="${U.esc(r.name||'')}" placeholder="e.g. Tomatoes / Chopsticks"></div>
       <div class="field"><label>Type</label><select class="input" id="i_k">
-        ${Object.entries(S().KIND).map(([k,v])=>`<option value="${k}" ${r.kind===k?'selected':''}>${v.em} ${v.label} — ${v.hint}</option>`).join('')}
+        ${Object.entries(S().KIND).map(([k,v])=>`<option value="${k}" ${r.kind===k?'selected':''}>${v.label} — ${v.hint}</option>`).join('')}
       </select></div>
       <div class="row"><div class="field grow"><label>Quantity on hand</label><input class="input" id="i_q" type="number" step="0.01" value="${r.qty||0}"></div>
         <div class="field grow"><label>Unit</label><input class="input" id="i_u" value="${U.esc(r.unit||'')}" placeholder="kg / box / pcs"></div></div>
@@ -277,14 +288,14 @@ window.MKR = window.MKR || {};
           <input class="input" id="i_catNew" placeholder="e.g. Seafood"></div></div>
       <div class="row"><div class="field grow"><label>Supplier sells it by the…</label><input class="input" id="i_pl" value="${U.esc(r.packLabel||'')}" placeholder="carton / box / bag — leave blank if none"></div>
         <div class="field grow"><label>How much is in one</label><input class="input" id="i_ps" type="number" step="0.01" min="0" value="${r.packSize||''}" placeholder="e.g. 10"></div></div>
-      <div class="disclaimer"><span>📦</span><span id="i_packTxt"></span></div>
+      <div class="disclaimer"><span>${MKR.ui.icon('box')}</span><span id="i_packTxt"></span></div>
       <div class="row"><div class="field grow"><label>Usual supplier</label><select class="input" id="i_sup">
           <option value="">— none —</option>
           ${sups.map(s=>`<option value="${s.id}" ${r.supplierId===s.id?'selected':''}>${U.esc(s.name)}</option>`).join('')}
         </select></div>
         <div class="field grow"><label>Delivery lead time (days)</label><input class="input" id="i_lt" type="number" step="1" value="${r.leadTimeDays||2}"></div></div>
       <div class="field" id="i_slWrap"><label>Shelf life (days) — perishable only</label><input class="input" id="i_sl" type="number" step="1" value="${r.shelfLifeDays||''}" placeholder="e.g. 5"></div>
-      <div class="disclaimer"><span>💡</span>Changing the unit price here records a price change, so it shows up in the ▲▼ trend.</div>
+      <div class="disclaimer"><span>${MKR.ui.icon('sparkle')}</span>Changing the unit price here records a price change, so it shows up in the ▲▼ trend.</div>
     </div>`);
     const syncKind=()=>{ U.qs('#i_slWrap',wrap).style.display = U.qs('#i_k',wrap).value==='perishable'?'':'none'; };
     U.qs('#i_k',wrap).onchange=syncKind; syncKind();
@@ -446,7 +457,7 @@ window.MKR = window.MKR || {};
           <tbody>${drafts.map((d,i)=>`<tr${d.bad?' class="bulk-bad"':''}>
             <td><input class="input" data-f="name" data-i="${i}" value="${U.esc(d.name)}" placeholder="needs a name"></td>
             <td><select class="input" data-f="kind" data-i="${i}">
-              ${Object.entries(S().KIND).map(([k,v])=>`<option value="${k}" ${d.kind===k?'selected':''}>${v.em} ${v.label}</option>`).join('')}
+              ${Object.entries(S().KIND).map(([k,v])=>`<option value="${k}" ${d.kind===k?'selected':''}>${v.label}</option>`).join('')}
             </select></td>
             <td><input class="input num" type="number" step="0.01" data-f="qty" data-i="${i}" value="${d.qty}"></td>
             <td><input class="input" data-f="unit" data-i="${i}" value="${U.esc(d.unit)}"></td>
@@ -501,7 +512,7 @@ window.MKR = window.MKR || {};
       <p class="muted" style="font-size:13.5px">Walk the shelves and type what you actually count. Anything you leave blank is skipped. Counting regularly is what makes the usage forecast work — it's the only place usage comes from.</p>
       <div class="tablewrap mt12"><table class="dtable entry">
         <thead><tr><th>Item</th><th class="num">System count</th><th class="num" style="width:120px">Counted</th></tr></thead>
-        <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${U.esc(r.unit||'')}</div></td>
+        <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${MKR.ui.icon(S().KIND[r.kind].ic)} ${U.esc(r.unit||'')}</div></td>
           <td class="num faint"><span class="cell-l">System count</span>${r.qty}</td>
           <td class="num"><span class="cell-l">Counted</span><input class="input" type="number" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
       </table></div>
@@ -527,11 +538,11 @@ window.MKR = window.MKR || {};
     const wrap = U.el(`<div>
       <p class="muted" style="font-size:13.5px">Write down what went in the bin and why. This takes it off your stock straight away, and it's the only way the forecast can tell what you cooked from what you threw away.</p>
       <div class="field mt12"><label>Why</label><select class="input" id="wst_why">
-        ${Object.entries(R).map(([k,v])=>`<option value="${k}">${v.em} ${v.label}</option>`).join('')}
+        ${Object.entries(R).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
       </select></div>
       <div class="tablewrap mt12"><table class="dtable entry">
         <thead><tr><th>Item</th><th class="num">On shelf</th><th class="num" style="width:110px">Binned</th></tr></thead>
-        <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${U.esc(r.unit||'')} · ${U.money(r.price)}<span data-wamt="${r.id}"></span></div></td>
+        <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${MKR.ui.icon(S().KIND[r.kind].ic)} ${U.esc(r.unit||'')} · ${U.money(r.price)}<span data-wamt="${r.id}"></span></div></td>
           <td class="num faint"><span class="cell-l">On shelf</span>${r.qty}</td>
           <td class="num"><span class="cell-l">Binned</span><input class="input" type="number" step="0.01" min="0" data-waste="${r.id}" data-price="${+r.price||0}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
       </table></div>
@@ -610,12 +621,12 @@ window.MKR = window.MKR || {};
 
       const fact = (k,v)=> v ? `<div class="sup-fact"><span>${k}</span><b>${v}</b></div>` : '';
       return `<div class="card pad20 sup-card">
-        <div class="section-title">🚚 ${U.esc(s.name)}<button class="btn btn-ghost btn-sm" data-sup="${s.id}">Edit</button></div>
+        <div class="section-title">${MKR.ui.icon('truck')} ${U.esc(s.name)}<button class="btn btn-ghost btn-sm" data-sup="${s.id}">Edit</button></div>
 
         <div class="sup-links">
-          ${s.phone?`<a class="btn btn-ghost btn-sm" href="tel:${U.esc(s.phone)}">📞 ${U.esc(s.phone)}</a>`:''}
-          ${s.email?`<a class="btn btn-ghost btn-sm" href="mailto:${U.esc(s.email)}">✉️ Email</a>`:''}
-          ${href?`<a class="btn btn-ghost btn-sm" href="${U.esc(href)}" target="_blank" rel="noopener noreferrer">🌐 ${U.esc(webLabel(href))} ↗</a>`:''}
+          ${s.phone?`<a class="btn btn-ghost btn-sm" href="tel:${U.esc(s.phone)}">${MKR.ui.icon('phone')} ${U.esc(s.phone)}</a>`:''}
+          ${s.email?`<a class="btn btn-ghost btn-sm" href="mailto:${U.esc(s.email)}">${MKR.ui.icon('mail')} Email</a>`:''}
+          ${href?`<a class="btn btn-ghost btn-sm" href="${U.esc(href)}" target="_blank" rel="noopener noreferrer">${MKR.ui.icon('globe')} ${U.esc(webLabel(href))} ↗</a>`:''}
         </div>
 
         <div class="sup-facts">
@@ -644,16 +655,16 @@ window.MKR = window.MKR || {};
         ${s.note?`<p class="muted" style="font-size:13px;margin-top:12px">${U.esc(s.note)}</p>`:''}
 
         <div class="row gap8 wrap mt12 sup-actions">
-          <button class="btn btn-ghost btn-sm" data-dockets="${s.id}">🧾 Their dockets (${mine.length})</button>
-          ${mine.length?`<button class="btn btn-ghost btn-sm${todo(s.id)?' chip-hot':''}" data-stmt="${s.id}">📋 Check their statement${todo(s.id)?` (${todo(s.id)})`:''}</button>`:''}
-          <button class="btn btn-dark btn-sm" data-order="${s.id}">🛒 Build their order</button>
+          <button class="btn btn-ghost btn-sm" data-dockets="${s.id}">${MKR.ui.icon('receipt')} Their dockets (${mine.length})</button>
+          ${mine.length?`<button class="btn btn-ghost btn-sm${todo(s.id)?' chip-hot':''}" data-stmt="${s.id}">${MKR.ui.icon('checksq')} Check their statement${todo(s.id)?` (${todo(s.id)})`:''}</button>`:''}
+          <button class="btn btn-dark btn-sm" data-order="${s.id}">${MKR.ui.icon('inbox')} Build their order</button>
         </div>
       </div>`;
     };
 
     c.innerHTML = sups.length
       ? `<div class="sup-grid mt16">${sups.map(card).join('')}</div>`
-      : `<div class="empty mt16"><div class="em">🚚</div><p>No suppliers yet. Add the people you actually ring when you need stock — name, phone, what they bring and when they deliver.</p></div>`;
+      : `<div class="empty mt16"><div class="em">${MKR.ui.icon('truck')}</div><p>No suppliers yet. Add the people you actually ring when you need stock — name, phone, what they bring and when they deliver.</p></div>`;
 
     U.qs('#supAdd',actions).onclick = ()=> supplierModal(null, reload);
     U.qsa('[data-sup]',c).forEach(b=> b.onclick=()=> supplierModal(sups.find(x=>x.id===b.dataset.sup), reload));
@@ -671,7 +682,7 @@ window.MKR = window.MKR || {};
     try{ const k=await MKR.db.get('kitchens',(MKR.auth.current()||{}).kitchenId||'k_main'); if(k&&k.name) venue=k.name; }catch(e){}
     const wrap = U.el(`<div class="dkt-wall">${mine.map(p=>`<button class="dkt-card" data-d="${p.id}">
       ${MKR.stockReceipt.receiptHtml(p,{sup:s, venue, purch, compact:true})}</button>`).join('')}</div>`);
-    U.modal(`🧾 ${s.name} · ${mine.length} docket${mine.length===1?'':'s'}`, wrap);
+    U.modal(`${s.name} · ${mine.length} docket${mine.length===1?'':'s'}`, wrap);
     U.qsa('[data-d]',wrap).forEach(b=> b.onclick=()=>{
       MKR.stockReceipt.openReceipt(mine.find(x=>x.id===b.dataset.d), s, venue, purch);
     });
@@ -690,7 +701,7 @@ window.MKR = window.MKR || {};
 
     const wrap = U.el(`<div>
       <div class="field"><label>Which month</label><select class="input" id="st_per">
-        ${periods.map(p=>`<option value="${p.period}">${U.esc(monthLabel(p.period))} · ${p.dockets} docket${p.dockets===1?'':'s'} · ${U.money(p.ourTotal)}${p.saved?' ✓':''}</option>`).join('')}
+        ${periods.map(p=>`<option value="${p.period}">${U.esc(monthLabel(p.period))} · ${p.dockets} docket${p.dockets===1?'':'s'} · ${U.money(p.ourTotal)}${p.saved?' (saved)':''}</option>`).join('')}
       </select></div>
       <div id="st_body"></div>
     </div>`);
@@ -711,7 +722,7 @@ window.MKR = window.MKR || {};
           <input class="input" id="st_total" type="number" step="0.01" value="${st.saved?st.saved.statementTotal:''}" placeholder="the one total on their paperwork"></div>
         <div id="st_verdict"></div>
         <div class="field mt12"><label>Note (optional)</label><input class="input" id="st_note" value="${U.esc(st.saved?st.saved.note:'')}" placeholder="e.g. rang Kim, credit coming for the short crate"></div>
-        ${st.saved?`<div class="disclaimer mt8"><span>✓</span><div>Checked ${U.fmtDate(st.saved.ts)} by ${U.esc(st.saved.by||'—')}. Saving again replaces it.</div></div>`:''}`;
+        ${st.saved?`<div class="disclaimer mt8"><span>${MKR.ui.icon('check')}</span><div>Checked ${U.fmtDate(st.saved.ts)} by ${U.esc(st.saved.by||'—')}. Saving again replaces it.</div></div>`:''}`;
 
       const ticks = U.qsa('[data-tick]',body);
       function verdict(){
@@ -724,15 +735,15 @@ window.MKR = window.MKR || {};
         const gap = has ? U.round2(claimed - matched) : 0;
         U.qs('#st_verdict',body).innerHTML = `
           <div class="cart-total mt8"><span>Your dockets, ticked</span><span class="v">${U.money(matched)}</span></div>
-          ${notBilled?`<div class="alert info mt8"><span>📄</span><div>
+          ${notBilled?`<div class="alert info mt8"><span>${MKR.ui.icon('receipt')}</span><div>
             <b>${U.money(notBilled)}</b> <b>of your dockets isn't on their statement</b>
             <div class="faint">${off.map(p=>U.esc(p.invoiceNo||'no number')+' '+U.money(p.total)).join(' · ')}</div>
             <div>Not an error — they usually catch up next month. Worth knowing so you don't pay it twice when they do.</div>
           </div></div>`:''}
           ${!has ? `<div class="disclaimer mt8"><span>⌨️</span><div>Type their total above and the gap appears here.</div></div>`
             : Math.abs(gap) < 0.005
-              ? `<div class="alert green mt8"><span>✅</span><div><b>Matches to the cent.</b> <div>Nothing to chase — this month is clean.</div></div></div>`
-              : `<div class="alert ${gap>0?'red':'amber'} mt8"><span>${gap>0?'⚠️':'🔍'}</span><div>
+              ? `<div class="alert green mt8"><span>${MKR.ui.icon('checkcircle')}</span><div><b>Matches to the cent.</b> <div>Nothing to chase — this month is clean.</div></div></div>`
+              : `<div class="alert ${gap>0?'red':'amber'} mt8"><span>${MKR.ui.icon(gap>0?'warning':'search')}</span><div>
                   <b>${U.money(Math.abs(gap))}</b> <b>${gap>0?'they have billed that you have no docket for':'on your dockets that their statement is under'}</b>
                   <div>${gap>0
                     ? 'Ring them before this gets paid. Usually a delivery nobody wrote down, or a docket billed at a different price than the one on the paper.'
@@ -746,7 +757,7 @@ window.MKR = window.MKR || {};
     U.qs('#st_per',wrap).onchange = draw;
     await draw();
 
-    U.modal(`📋 ${s.name} · statement check`, wrap, {actions:[
+    U.modal(`${s.name} · statement check`, wrap, {actions:[
       {label:'Close', class:'btn-ghost', onClick:c=>c()},
       {label:'Save the check', class:'btn-dark', onClick:async(close)=>{
         const period = U.qs('#st_per',wrap).value;
@@ -854,25 +865,25 @@ window.MKR = window.MKR || {};
     };
     const wrap = U.el(`<div>
       <div class="list">${list.map(x=>{ const o=ordered(x), r=x.r; return `<div class="li">
-        <div class="ds-li-ic">${MKR.stockGame?MKR.stockGame.emojiFor(r):'📦'}</div>
+        <div class="ds-li-ic">${MKR.stockGame?MKR.stockGame.emojiFor(r):MKR.ui.icon('box')}</div>
         <div class="meta"><b>${U.esc(r.name)} · ${o.packs?plural(o.packs,U.esc(o.label)):`${o.qty} ${U.esc(r.unit||'')}`}</b>
           <span>${o.packs?`${o.qty} ${U.esc(r.unit||'')} · `:''}${r.cover!=null?`${r.cover.toFixed(1)} days left`:'no usage data yet'} · last paid ${U.money(r.price)}</span></div>
         <b>${U.money(S().lineAmount(o.qty,r.price))}</b></div>`; }).join('')}</div>
       <div class="cart-total mt8"><span>Estimated cost</span><span class="v">${U.money(total)}</span></div>
-      ${s.minOrder && total < +s.minOrder ? `<div class="alert amber mt12"><span>⚠️</span><div>Their minimum order is ${U.money0(s.minOrder)} — this comes to ${U.money(total)}.</div></div>`:''}
-      ${s.cutoff?`<div class="disclaimer"><span>⏰</span>Order by ${U.esc(s.cutoff)}${(s.deliveryDays||[]).length?` · delivers ${(s.deliveryDays||[]).map(d=>DOW[d]).join(' & ')}`:''}</div>`:''}
+      ${s.minOrder && total < +s.minOrder ? `<div class="alert amber mt12"><span>${MKR.ui.icon('warning')}</span><div>Their minimum order is ${U.money0(s.minOrder)} — this comes to ${U.money(total)}.</div></div>`:''}
+      ${s.cutoff?`<div class="disclaimer"><span>${MKR.ui.icon('clock')}</span>Order by ${U.esc(s.cutoff)}${(s.deliveryDays||[]).length?` · delivers ${(s.deliveryDays||[]).map(d=>DOW[d]).join(' & ')}`:''}</div>`:''}
     </div>`);
-    U.modal(`🛒 Order for ${s.name}`, wrap, {wide:true, actions:[
+    U.modal(`Order for ${s.name}`, wrap, {wide:true, actions:[
       {label:'Copy as a message', class:'btn-ghost', onClick:async(close)=>{
         try{ await navigator.clipboard.writeText(text); U.toast('Copied — paste it into a text or email','green'); }
         catch(e){ U.toast('Could not copy on this device','amber'); }
       }},
-      {label:'🖨 Print / PDF', class:'btn-ghost', onClick:(close)=>{
+      {label:'Print / PDF', class:'btn-ghost', onClick:(close)=>{
         // The browser's own print dialog has "Save as PDF" on every platform
         // this runs on, so there is no PDF library to ship or keep patched.
         close(); U.printHTML(printSheet());
       }},
-      {label:'🔗 Copy link', class:'btn-ghost', onClick:async(close)=>{
+      {label:'Copy link', class:'btn-ghost', onClick:async(close)=>{
         const url = shareLink();
         // Some messaging apps truncate very long links. Better to say so here
         // than to have the supplier open a half-order.
@@ -890,7 +901,7 @@ window.MKR = window.MKR || {};
       }},
       // Once it's been rung through, the same list becomes what the back door
       // checks off — nobody types these items again.
-      {label:'🚚 Expect it at the back door', class:'btn-dark', onClick:async(close)=>{
+      {label:'Expect it at the back door', class:'btn-dark', onClick:async(close)=>{
         if(!MKR.deliveries){ U.toast('Deliveries are switched off','amber'); return; }
         await MKR.deliveries.save({
           supplierId:s.id, supplierName:s.name,
@@ -923,7 +934,7 @@ window.MKR = window.MKR || {};
         <div class="field grow"><label>Your account no.</label><input class="input" id="s_acc" value="${U.esc(s.account||'')}"></div></div>
       <div class="field"><label>ABN</label><input class="input" id="s_abn" value="${U.esc(s.abn||'')}" placeholder="so it's on hand at invoice time"></div>
       <div class="field"><label>Notes</label><input class="input" id="s_note" value="${U.esc(s.note||'')}" placeholder="e.g. ring Tony directly if the truck is late"></div>
-      <div class="disclaimer"><span>🔗</span>Point your stock items at a supplier and the two link up: their card lists what they bring, and every order groups itself by who to ring.</div>
+      <div class="disclaimer"><span>${MKR.ui.icon('link')}</span>Point your stock items at a supplier and the two link up: their card lists what they bring, and every order groups itself by who to ring.</div>
     </div>`);
 
     const picked = days.slice();
@@ -962,7 +973,7 @@ window.MKR = window.MKR || {};
     const [takes, purch, wst] = await Promise.all([S().stocktakes(), S().purchases(), S().wastes()]);
     const bin = await S().wasteSince(30, wst);
     const known = rows.filter(r=>r.usageSamples>0);
-    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="fcList">🛒 Build order list</button>
+    actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="fcList">${MKR.ui.icon('inbox')} Build order list</button>
       <button class="btn btn-dark btn-sm" id="fcAsk">${MKR.ui.icon('sparkle')} Ask AI</button>`;
 
     const suggest = suggestQty;
@@ -991,38 +1002,38 @@ window.MKR = window.MKR || {};
     }
 
     c.innerHTML = `
-      <div class="alert info mt16"><span>🧮</span><div>
+      <div class="alert info mt16"><span>${MKR.ui.icon('bars')}</span><div>
         <b>Nothing here is guessed — it's your stocktakes, added up.</b>
         <div>There's no till in this app, so nobody can deduct an ingredient per dish. Instead usage is what the shelf actually shows:</div>
         <code class="fc-formula">counted last time + everything the dockets brought in − counted this time = used</code>
         <div>Divide by the days between the two counts and you have a daily rate. Two counts is the minimum; more counts, steadier number.</div>
         <div>${lastCount?`Your last count was ${U.fmtDate(lastCount)} · ${takes.length} count${takes.length===1?'':'s'} on file.`:`No stocktakes yet — that's the one thing this page needs from you.`}</div>
       </div></div>
-      ${bin.rows.length ? `<div class="alert amber mt16"><span>🗑</span><div>
+      ${bin.rows.length ? `<div class="alert amber mt16"><span>${MKR.ui.icon('trash')}</span><div>
         <b>${U.money(bin.cost)}</b> <b>went in the bin in the last 30 days</b>
         <div>${bin.byItem.slice(0,3).map(b=>`${U.esc(b.name)} ${U.money(b.cost)}`).join(' · ')}${bin.byItem.length>3?` · +${bin.byItem.length-3} more`:''}</div>
         <div class="faint">That's stock you paid for and sold none of. It's inside the usage figures below, not on top of them.</div>
       </div></div>` : ''}
       ${worked}
       <div class="card pad20 mt16">
-        <div class="section-title">📈 Usage &amp; days of cover<span class="faint" style="font-size:12px;font-weight:500">tap a row to see its working</span></div>
+        <div class="section-title">${MKR.ui.icon('trend')} Usage &amp; days of cover<span class="faint" style="font-size:12px;font-weight:500">tap a row to see its working</span></div>
         ${rows.length?`<div class="tablewrap"><table class="dtable">
           <thead><tr><th>Item</th><th class="num">On hand</th><th class="num">Used / day</th><th class="num">Days of cover</th><th class="num">Suggest order</th><th class="num">Est. cost</th></tr></thead>
           <tbody>${rows.map(r=>{
             const sg = suggest(r), cost = S().lineAmount(sg, r.price);
             const cover = r.cover==null ? '<span class="faint">needs 2 counts</span>'
               : `<b style="color:${r.short?'var(--red)':'inherit'}">${r.cover.toFixed(1)}</b>`;
-            return `<tr class="clickable" data-why="${r.id}"><td><b>${U.esc(r.name)}</b> ${r.low?'<span class="pill warn">Low</span>':''}<div class="faint" style="font-size:11.5px">${S().KIND[r.kind].em} ${r.usageSamples?`measured across ${r.usageSamples} stretch${r.usageSamples===1?'':'es'} between counts`:'no usage data yet'}</div></td>
+            return `<tr class="clickable" data-why="${r.id}"><td><b>${U.esc(r.name)}</b> ${r.low?'<span class="pill warn">Low</span>':''}<div class="faint" style="font-size:11.5px">${MKR.ui.icon(S().KIND[r.kind].ic)} ${r.usageSamples?`measured across ${r.usageSamples} stretch${r.usageSamples===1?'':'es'} between counts`:'no usage data yet'}</div></td>
               <td class="num">${r.qty} <small class="faint">${U.esc(r.unit||'')}</small></td>
               <td class="num">${r.daily?r.daily.toFixed(2):'—'}</td>
               <td class="num">${cover}</td>
               <td class="num">${sg?`<b>${sg}</b> <small class="faint">${U.esc(r.unit||'')}</small>`:'—'}</td>
               <td class="num">${sg?U.money(cost):'—'}</td></tr>`;
           }).join('')}</tbody></table></div>`
-          :`<div class="empty" style="padding:18px"><div class="em">📈</div><p>No stock items yet</p></div>`}
+          :`<div class="empty" style="padding:18px"><div class="em">${MKR.ui.icon('trend')}</div><p>No stock items yet</p></div>`}
         <div class="kv-hint" style="text-align:left;margin-top:12px">Suggested order = enough to cover the delivery lead time plus a week, less what's already on the shelf. With no usage history yet it falls back to twice your reorder point.</div>
       </div>
-      <div class="card pad20 mt16"><div class="section-title">✨ What the assistant says</div><div id="fcAi"><p class="muted" style="font-size:13.5px">Tap Ask AI for a plain-English read on what to order and what's creeping up in price.</p></div></div>`;
+      <div class="card pad20 mt16"><div class="section-title">${MKR.ui.icon('sparkle')} What the assistant says</div><div id="fcAi"><p class="muted" style="font-size:13.5px">Tap Ask AI for a plain-English read on what to order and what's creeping up in price.</p></div></div>`;
 
     U.qsa('[data-why]',c).forEach(tr=> tr.onclick = async()=>{
       const r = rows.find(x=>x.id===tr.dataset.why);
@@ -1041,20 +1052,20 @@ window.MKR = window.MKR || {};
           ${good.length?`<tfoot><tr><td class="num"><b>Averaged</b></td><td colspan="3" class="num faint">${dys.toFixed(1)} days counted</td>
             <td class="num"><b>${U.round2(used)}</b>${binned>0?`<div class="faint" style="font-size:11.5px"><span class="pw-worse">${U.round2(binned)} binned</span></div>`:''}</td><td class="num"><b>${r.daily.toFixed(2)}</b></td></tr></tfoot>`:''}
         </table></div>
-        ${binned>0?`<div class="disclaimer mt12"><span>🗑</span><div>
+        ${binned>0?`<div class="disclaimer mt12"><span>${MKR.ui.icon('warning')}</span><div>
           <b>${U.round2(binned)} ${U.esc(r.unit||'')} · ${U.money(S().lineAmount(binned, r.price))}</b>
           <div>went in the bin rather than into a dish. The daily rate above deliberately still counts it — you have to buy it either way.</div>
         </div></div>`:''}
-        ${good.length?`<div class="disclaimer mt12"><span>📏</span>${r.qty} ${U.esc(r.unit||'')} on the shelf ÷ ${r.daily.toFixed(2)} a day = <b>${r.cover!=null?r.cover.toFixed(1):'—'} days of cover</b>. Order lead time is ${r.leadTimeDays||2} day${(r.leadTimeDays||2)===1?'':'s'}, so the suggestion is ${suggest(r)} ${U.esc(r.unit||'')}.</div>`
-          :`<div class="alert amber mt12"><span>⚠️</span><div>Every interval had to be skipped, so there's no usable rate yet. The reasons are listed above.</div></div>`}`
-        : `<div class="empty"><div class="em">📋</div><p>${r.name} has been counted ${takes.filter(t=>(t.lines||[]).some(l=>l.itemId===r.id)).length} time(s). Two counts of the same item is the minimum — count it again next week and the rate appears here.</p></div>`}`);
+        ${good.length?`<div class="disclaimer mt12"><span>${MKR.ui.icon('bars')}</span>${r.qty} ${U.esc(r.unit||'')} on the shelf ÷ ${r.daily.toFixed(2)} a day = <b>${r.cover!=null?r.cover.toFixed(1):'—'} days of cover</b>. Order lead time is ${r.leadTimeDays||2} day${(r.leadTimeDays||2)===1?'':'s'}, so the suggestion is ${suggest(r)} ${U.esc(r.unit||'')}.</div>`
+          :`<div class="alert amber mt12"><span>${MKR.ui.icon('warning')}</span><div>Every interval had to be skipped, so there's no usable rate yet. The reasons are listed above.</div></div>`}`
+        : `<div class="empty"><div class="em">${MKR.ui.icon('checksq')}</div><p>${r.name} has been counted ${takes.filter(t=>(t.lines||[]).some(l=>l.itemId===r.id)).length} time(s). Two counts of the same item is the minimum — count it again next week and the rate appears here.</p></div>`}`);
     });
 
     U.qs('#fcList',actions).onclick = ()=>{
       const list = rows.map(r=>({r, q:suggestQty(r)})).filter(x=>x.q>0);
       if(!list.length){ U.toast('Nothing needs ordering','green'); return; }
       U.modal('Order list', `<div class="list">${list.map(({r,q})=>`
-        <div class="li"><div class="ds-li-ic">${S().KIND[r.kind].em}</div>
+        <div class="li"><div class="ds-li-ic">${MKR.ui.icon(S().KIND[r.kind].ic)}</div>
           <div class="meta"><b>${U.esc(r.name)} · ${q} ${U.esc(r.unit||'')}</b>
             <span>${r.supplier?U.esc(r.supplier.name)+(r.supplier.phone?' · '+U.esc(r.supplier.phone):''):'no supplier set'}</span></div>
           <b>${U.money(S().lineAmount(q,r.price))}</b></div>`).join('')}</div>
@@ -1078,7 +1089,7 @@ window.MKR = window.MKR || {};
               + `In 4-6 short bullet points: what should I order in the next few days, what is at risk of running out or going off, and which ingredient prices are creeping up? Keep it practical for a small restaurant owner. Do not give financial or legal advice.`;
       let out=null;
       try{ out = MKR.assistant && MKR.assistant.llm ? await MKR.assistant.llm(q,{role:'owner'}) : null; }catch(e){}
-      box.innerHTML = out || `<div class="alert amber"><span>⚠️</span><div>The AI assistant isn't reachable right now. The table above still tells you what's short — sort by days of cover.</div></div>`;
+      box.innerHTML = out || `<div class="alert amber"><span>${MKR.ui.icon('warning')}</span><div>The AI assistant isn't reachable right now. The table above still tells you what's short — sort by days of cover.</div></div>`;
     };
   }
 

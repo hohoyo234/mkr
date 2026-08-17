@@ -9,18 +9,18 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
 
   MKR.portals.manager = {
-    home:'schedule', subtitle:'Run the floor · roster / stock / deliveries / team',
+    home:'schedule',
     nav:[
-      {id:'schedule', label:'Rostering',   em:'📅', short:'Roster', feature:'schedule'},
-      {id:'myshifts', label:'My shifts',   em:'🙋', short:'Mine'},
-      {id:'availability', label:'My availability', em:'🗓️', short:'Available', feature:'availability'},
-      {id:'tasks',    label:'Tasks',       em:'✅', short:'Tasks',  feature:'tasks'},
-      {id:'stock',    label:'Stock & costs',em:'📦', short:'Stock', feature:'stock'},
-      {id:'deliveries',label:'Deliveries', em:'🚚', short:'Delivery',feature:'deliveries'},
-      {id:'training', label:'Training',    em:'📘', short:'Training',feature:'training'},
-      {id:'swaps',    label:'Swaps / SOS', em:'🔁', short:'Swaps',  feature:'swaps'},
-      {id:'hire',     label:'Add Users',   em:'➕', short:'Add',    feature:'hire'},
-      {id:'bookings', label:'Bookings',    em:'📖', short:'Bookings',feature:'bookings'},
+      {id:'schedule', label:'Rostering', short:'Roster', feature:'schedule'},
+      {id:'myshifts', label:'My shifts', short:'Mine'},
+      {id:'availability', label:'My availability', short:'Available', feature:'availability'},
+      {id:'tasks',    label:'Tasks', short:'Tasks',  feature:'tasks'},
+      {id:'stock',    label:'Stock & costs', short:'Stock', feature:'stock'},
+      {id:'deliveries',label:'Deliveries', short:'Delivery',feature:'deliveries'},
+      {id:'training', label:'Training', short:'Training',feature:'training'},
+      {id:'swaps',    label:'Swaps / SOS', short:'Swaps',  feature:'swaps'},
+      {id:'hire',     label:'Add Users', short:'Add',    feature:'hire'},
+      {id:'bookings', label:'Bookings', short:'Bookings',feature:'bookings'},
     ],
     async badges(){
       const b={};
@@ -59,7 +59,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       <div class="section-head"><div><h2>My availability</h2><p>Pick the times you can work each day — the auto-roster uses this to schedule you too</p></div>
         <button class="btn btn-dark btn-sm" id="saveAv">Save</button></div>
       <div class="card" style="padding:6px 18px"><div id="avlist"></div></div>
-      <div class="disclaimer mt16"><span>🗓️</span>Tap a quick slot, or set your own start/end time per day. The owner/auto-roster uses this to schedule you — managers can be rostered just like staff.</div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('calendar')}</span>Tap a quick slot, or set your own start/end time per day. The owner/auto-roster uses this to schedule you — managers can be rostered just like staff.</div>`;
     buildAvailability(c, av, ()=> MKR.db.put('users',{id:sess.id, availability:av}));
   }
 
@@ -108,13 +108,13 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       c.innerHTML = `
         <div class="section-head"><div><h2>Bookings &amp; queue</h2><p>Table reservations and the live walk-in waitlist</p></div></div>
         <div class="grid g3" style="margin-bottom:16px">
-          <div class="card stat"><div class="k">📅 Upcoming bookings</div><div class="v">${upcoming.length}</div></div>
+          <div class="card stat"><div class="k">${MKR.ui.icon('calendar')} Upcoming bookings</div><div class="v">${upcoming.length}</div></div>
           <div class="card stat"><div class="k">⏳ Waiting now</div><div class="v">${waiting.filter(q=>q.status==='waiting').length}</div></div>
-          <div class="card stat"><div class="k">🔔 Called</div><div class="v">${waiting.filter(q=>q.status==='called').length}</div></div>
+          <div class="card stat"><div class="k">${MKR.ui.icon('bell')} Called</div><div class="v">${waiting.filter(q=>q.status==='called').length}</div></div>
         </div>
         <div class="grid g2">
           <div class="card pad20">
-            <div class="section-head" style="margin-bottom:10px"><div class="section-title" style="margin:0">📅 Reservations</div>
+            <div class="section-head" style="margin-bottom:10px"><div class="section-title" style="margin:0">${MKR.ui.icon('calendar')} Reservations</div>
               <button class="btn btn-dark btn-sm" id="addResv">＋ New booking</button></div>
             <div id="resvList"></div>
           </div>
@@ -132,18 +132,18 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <span>${r.date===today?'Today':r.date} ${r.time} · ${r.partySize} ppl${r.phone?' · '+U.esc(r.phone):''}${r.note?' · '+U.esc(r.note):''}</span></div>
           <div class="row gap6 wrap"><button class="btn btn-green btn-sm" data-seat="${r.id}">Seat</button>
             <button class="btn btn-ghost btn-sm" data-noshow="${r.id}">No-show</button>
-            <button class="btn btn-ghost btn-sm" data-cancelr="${r.id}">✕</button></div>
-        </div>`).join('') : '<div class="empty"><div class="em">📅</div><p>No upcoming bookings</p></div>';
+            <button class="btn btn-ghost btn-sm" data-cancelr="${r.id}">${MKR.ui.icon('minus')}</button></div>
+        </div>`).join('') : `<div class="empty"><div class="em">${MKR.ui.icon('calendar')}</div><p>No upcoming bookings</p></div>`;
 
       const ql = U.qs('#qList',c);
       ql.innerHTML = waiting.length ? waiting.map(q=>`
         <div class="li"><div class="ava">${q.num}</div>
           <div class="meta"><b>${U.esc(q.name||('#'+q.num))} ${q.status==='called'?'<span class="pill warn">Called</span>':''}</b>
             <span>${q.partySize} ppl${q.phone?' · '+U.esc(q.phone):''} · waiting ${U.ago(q.createdAt)}</span></div>
-          <div class="row gap6 wrap">${q.status==='waiting'?`<button class="btn btn-accent btn-sm" data-call="${q.id}">🔔 Call</button>`:''}
+          <div class="row gap6 wrap">${q.status==='waiting'?`<button class="btn btn-accent btn-sm" data-call="${q.id}">${MKR.ui.icon('bell')} Call</button>`:''}
             <button class="btn btn-green btn-sm" data-qseat="${q.id}">Seat</button>
             <button class="btn btn-ghost btn-sm" data-qleft="${q.id}">Left</button></div>
-        </div>`).join('') : '<div class="empty"><div class="em">⏳</div><p>Queue is empty</p></div>';
+        </div>`).join('') : `<div class="empty"><div class="em">${MKR.ui.icon('clock')}</div><p>Queue is empty</p></div>`;
 
       U.qs('#addResv',c).onclick = resvModal;
       U.qs('#addQ',c).onclick = queueModal;
@@ -216,9 +216,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           <div class="row gap8 center"><span class="pill ghost">${U.hrs(total)} this week</span><button class="btn btn-accent btn-sm" id="addMine">＋ Add my shift</button></div></div>
         ${shifts.length?`<div class="alert info" style="margin-bottom:16px"><span>⏰</span><div>Next shift <b>${DAYS[shifts[0].day]} ${shifts[0].start}</b> — you'll get a reminder 1 hour before.</div></div>`:''}
         <div class="list card" style="padding:8px 18px" id="slist"></div>
-        <div class="disclaimer mt16"><span>📅</span>The owner can also place your shifts. Anything here syncs with the team roster.</div>`;
+        <div class="disclaimer mt16"><span>${MKR.ui.icon('calendar')}</span>The owner can also place your shifts. Anything here syncs with the team roster.</div>`;
       const el=U.qs('#slist',c);
-      if(!shifts.length){ el.innerHTML=`<div class="empty"><div class="em">🌴</div><p>No shifts rostered for you this week — tap “Add my shift”.</p></div>`; }
+      if(!shifts.length){ el.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('checkcircle')}</div><p>No shifts rostered for you this week — tap “Add my shift”.</p></div>`; }
       else el.innerHTML=shifts.map(s=>{
         const ck=clockins.find(k=>k.shiftId===s.id); const isToday=s.day===todayIdx;
         let right;
@@ -236,7 +236,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const lateMins=Math.max(0,Math.round((Date.now()-startTs)/60000)); const late=lateMins>5;
       await MKR.db.put('clockins',{staffId:sess.id, shiftId:shift.id, date:U.todayISO(), scheduledTs:startTs, clockTs:Date.now(), lateMins, late});
       const ns=(await MKR.db.getAll('alerts')).find(a=>a.key==='noshow-'+shift.id && !a.read); if(ns) await MKR.db.put('alerts',{id:ns.id, read:true});
-      U.toast(late?`Clocked in · ${lateMins} min late`:'Clocked in · on time 👍', late?'amber':'green');
+      U.toast(late?`Clocked in · ${lateMins} min late`:'Clocked in · on time', late?'amber':'green');
       await reload(); draw();
     }
     function addMine(){
@@ -269,7 +269,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     c.innerHTML = `
       <div class="section-head"><div><h2>One-Click Add Users</h2><p>Approve phone join requests, or add a new starter directly by phone</p></div></div>
       <div class="card" id="jreqCard" style="padding:8px 18px;margin-bottom:16px;display:none">
-        <div class="section-title" style="padding-top:12px">🙋 Join requests · approval needed</div>
+        <div class="section-title" style="padding-top:12px">${MKR.ui.icon('userplus')} Join requests · approval needed</div>
         <div class="list" id="jreqList"></div>
       </div>
       <div class="grid g2" style="align-items:start">
@@ -282,9 +282,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           </div>
           <div class="field"><label>Skills — what they can be rostered onto</label>
             <div class="row gap6 wrap">${Object.entries(MKR.roster.SKILLS).map(([k,v])=>`
-              <label class="skill-chip"><input type="checkbox" data-hsk="${k}">${v.em} ${v.label}</label>`).join('')}</div></div>
-          <button class="btn btn-accent btn-block" id="hbtn">📩 Create account &amp; send link</button>
-          <div class="disclaimer mt12"><span>📋</span>They'll be asked for an ID, their tax file number, their work-rights status and an emergency contact. They enter all of it themselves. This app doesn't collect TFN, super or bank details.${MKR.features.can('au_workrights','manager')?' Check work rights separately on VEVO.':''}</div>
+              <label class="skill-chip"><input type="checkbox" data-hsk="${k}">${MKR.ui.icon(v.ic)} ${v.label}</label>`).join('')}</div></div>
+          <button class="btn btn-accent btn-block" id="hbtn">${MKR.ui.icon('mail')} Create account &amp; send link</button>
+          <div class="disclaimer mt12"><span>${MKR.ui.icon('checksq')}</span>They'll be asked for an ID, their tax file number, their work-rights status and an emergency contact. They enter all of it themselves. This app doesn't collect TFN, super or bank details.${MKR.features.can('au_workrights','manager')?' Check work rights separately on VEVO.':''}</div>
         </div>
         <div class="card" style="padding:22px">
           <div class="section-title">Pending / onboarding</div>
@@ -293,7 +293,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       </div>`;
     function drawPending(list){
       const el = U.qs('#plist',c);
-      if(!list.length){ el.innerHTML = `<div class="empty"><div class="em">👥</div><p>No new starters waiting</p></div>`; return; }
+      if(!list.length){ el.innerHTML = `<div class="empty"><div class="em">${MKR.ui.icon('users')}</div><p>No new starters waiting</p></div>`; return; }
       el.innerHTML = list.map(u=>`<div class="li"><div class="ava">${U.initials(u.name)}</div>
         <div class="meta"><b>${U.esc(u.name)}</b><span>ID ${U.esc(u.id)} · ${u.position||''} · ${({casual:'Casual',parttime:'PT',fulltime:'FT'})[u.employment]} · ${u.onboarded?'Complete':'Waiting on details'}</span></div>
         <button class="btn btn-ghost btn-sm" data-link="${u.username}">Copy link</button></div>`).join('');
@@ -311,7 +311,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       card.style.display = reqs.length? '' : 'none';
       if(!reqs.length){ el.innerHTML=''; return; }
       el.innerHTML = reqs.map(u=>`<div class="li"><div class="ava">${U.initials(u.name)}</div>
-        <div class="meta"><b>${U.esc(u.name)} <span class="pill warn">Pending</span></b><span>📱 ${U.esc(u.phone||u.username||'—')} · wants to join as ${u.role==='manager'?'Manager':'Staff'} · ${U.ago(u.requestedAt||u.createdAt||Date.now())}</span></div>
+        <div class="meta"><b>${U.esc(u.name)} <span class="pill warn">Pending</span></b><span>${MKR.ui.icon('phone')} ${U.esc(u.phone||u.username||'—')} · wants to join as ${u.role==='manager'?'Manager':'Staff'} · ${U.ago(u.requestedAt||u.createdAt||Date.now())}</span></div>
         <div class="row gap6"><button class="btn btn-green btn-sm" data-ap="${u.id}">Approve</button><button class="btn btn-ghost btn-sm" data-rj="${u.id}">Reject</button></div></div>`).join('');
       U.qsa('[data-ap]',el).forEach(b=>b.onclick=async()=>{
         const u=reqs.find(x=>x.id===b.dataset.ap);
@@ -355,14 +355,13 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const kitchenId = (MKR.auth.current()&&MKR.auth.current().kitchenId)||'k_main';
       await MKR.db.put('users',{ id:staffId, role:'staff', name, username, kitchenId,
         employment:U.qs('#htype',c).value, position:U.qs('#hpos',c).value,
-        skills:U.qsa('[data-hsk]',c).filter(i=>i.checked).map(i=>i.dataset.hsk),
-        emoji:'🧑‍🍳', onboarded:false, age:null, createdAt:Date.now() });
-      if(uid && MKR.supa.client) await MKR.supa.client.from('profiles').upsert({id:uid, username, name, role:'staff', staff_id:staffId, emoji:'🧑‍🍳', active:true, kitchen_id:kitchenId});
+        skills:U.qsa('[data-hsk]',c).filter(i=>i.checked).map(i=>i.dataset.hsk), onboarded:false, age:null, createdAt:Date.now() });
+      if(uid && MKR.supa.client) await MKR.supa.client.from('profiles').upsert({id:uid, username, name, role:'staff', staff_id:staffId, active:true, kitchen_id:kitchenId});
       await MKR.audit.log({action:'staff.hire', desc:`Added user ${name}`});
-      btn.disabled=false; btn.textContent='📩 Create account & send link';
+      btn.disabled=false; btn.textContent='Create account & send link';
 
-      U.modal('✅ Staff account created', `
-        ${authMsg?`<div class="alert amber"><span>⚠️</span><div>Account note: ${U.esc(authMsg)} (staff data saved — you can retry creating the login later)</div></div>`:`<div class="alert green"><span>🔑</span><div>Created an independent login for <b>${U.esc(name)}</b>.</div></div>`}
+      U.modal('Staff account created', `
+        ${authMsg?`<div class="alert amber"><span>${MKR.ui.icon('warning')}</span><div>Account note: ${U.esc(authMsg)} (staff data saved — you can retry creating the login later)</div></div>`:`<div class="alert green"><span>${MKR.ui.icon('key')}</span><div>Created an independent login for <b>${U.esc(name)}</b>.</div></div>`}
         <div class="field mt12"><label>Send these details to the new starter</label>
           <input class="input" value="Username ${U.esc(username)} · password ${U.esc(password)} · staff ID ${U.esc(staffId)}" readonly onclick="this.select()"></div>
         <p class="muted" style="font-size:13px">After signing in to the Staff portal, they complete onboarding (Passport / TFN / Super / bank) under “My profile”.</p>`,
@@ -384,8 +383,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       <div class="section-head"><div><h2>Daily task checklist</h2><p>Publish cleaning / prep / temperature checks · review the digital logs and photos staff submit</p></div>
         <div class="row gap8 wrap center">
           <div class="viewswitch" role="group" aria-label="How to show today's tasks">
-            <button class="${tasksView==='room'?'on':''}" data-tview="room">🍳 Kitchen</button>
-            <button class="${tasksView==='list'?'on':''}" data-tview="list">☰ List</button>
+            <button class="${tasksView==='room'?'on':''}" data-tview="room">${MKR.ui.icon('pan')}Kitchen</button>
+            <button class="${tasksView==='list'?'on':''}" data-tview="list">${MKR.ui.icon('list')}List</button>
           </div>
           <button class="btn btn-ghost btn-sm" id="addTask">+ Add task</button>
         </div></div>
@@ -397,7 +396,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       el.innerHTML = `<div class="card stat" style="margin-bottom:16px"><div class="k">Today's progress</div>
         <div class="v">${done}<small> / ${list.length}</small></div><div class="bar"><i style="width:${list.length?done/list.length*100:0}%"></i></div></div>` +
         list.map(t=>`<div class="task-item ${t.done?'done':''}">
-          <div class="task-check ${t.done?'done':''}">${t.done?'✓':''}</div>
+          <div class="task-check ${t.done?'done':''}">${t.done?MKR.ui.icon('check'):''}</div>
           <div class="grow"><b>${U.esc(t.name)}</b><div class="faint" style="font-size:12px">${t.done?`${U.esc(t.by||'')} · ${t.value?U.esc(t.value)+' · ':''}submitted`:'Waiting on staff'}</div></div>
           ${t.photo?`<img class="thumb" src="${t.photo}" data-img="${t.id}">`:'<span class="pill ghost">No photo</span>'}
         </div>`).join('');
@@ -436,7 +435,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       </div>`;
     function drawSwaps(){
       const el=U.qs('#swlist',c); const pend=sw.filter(s=>s.status==='pending');
-      if(!pend.length){ el.innerHTML=`<div class="empty"><div class="em">🔁</div><p>No swaps to approve</p></div>`; return; }
+      if(!pend.length){ el.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('repeat')}</div><p>No swaps to approve</p></div>`; return; }
       el.innerHTML=pend.map(s=>`<div class="li"><div class="ava">${U.initials(nameOf(s.staffId))}</div>
         <div class="meta"><b>${U.esc(nameOf(s.staffId))} wants to drop a shift</b><span>${U.esc(s.label||'')} · ${U.esc(s.reason||'something came up')}</span></div>
         <div class="row gap6"><button class="btn btn-green btn-sm" data-ap="${s.id}">Approve</button><button class="btn btn-ghost btn-sm" data-rj="${s.id}">Reject</button></div></div>`).join('');
@@ -445,9 +444,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     }
     function drawSos(){
       const el=U.qs('#soslist',c);
-      if(!sos.length){ el.innerHTML=`<div class="empty"><div class="em">📣</div><p>No active SOS</p></div>`; return; }
+      if(!sos.length){ el.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('bell')}</div><p>No active SOS</p></div>`; return; }
       el.innerHTML=sos.map(s=>`<div class="li"><div class="ava">🆘</div>
-        <div class="meta"><b>${U.esc(s.title)}</b><span>Reward ${U.esc(s.reward)} · ${s.claimedBy?('claimed by '+nameOf(s.claimedBy)+' ✅'):'waiting for a taker'}</span></div>
+        <div class="meta"><b>${U.esc(s.title)}</b><span>Reward ${U.esc(s.reward)} · ${s.claimedBy?('claimed by '+nameOf(s.claimedBy)):'waiting for a taker'}</span></div>
         ${s.claimedBy?'<span class="pill ok">Covered</span>':'<span class="pill warn">Recruiting</span>'}</div>`).join('');
     }
     drawSwaps(); drawSos();

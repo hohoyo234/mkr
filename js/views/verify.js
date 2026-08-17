@@ -12,7 +12,7 @@ window.MKR = window.MKR || {};
     const email = decodeURIComponent(String(emailArg||'').split('?')[0]||'').trim();
     root.innerHTML = `
       <div class="cust-wrap">
-        <header class="cust-head"><div><div class="cust-brand">My Kitchen</div><div class="cust-table">✉️ 邮箱验证 · Verify email</div></div></header>
+        <header class="cust-head"><div><div class="cust-brand">My Kitchen</div><div class="cust-table">邮箱验证 · Verify email</div></div></header>
         <div class="card pad20" style="max-width:420px;margin:18px auto">
           <p class="muted" style="font-size:13.5px;margin-bottom:12px">输入邮件里的 6 位验证码完成验证。<br><span class="faint">Enter the 6-digit code from your email.</span></p>
           <div class="field"><label>邮箱 Email</label><input class="input" id="vEmail" value="${U().esc(email)}" placeholder="you@email.com" autocomplete="off"></div>
@@ -31,7 +31,7 @@ window.MKR = window.MKR || {};
       let data=null, error=null;
       try{ const r=await MKR.supa.client.rpc('confirm_email_code',{ p_email:em, p_code:code }); data=r.data; error=r.error; }catch(e){ error=e; }
       if(error){ res.innerHTML=note('amber','此功能尚未启用，请稍后再试。'); return; }
-      if(data && data.ok){ res.innerHTML=`<div class="alert green"><span>✅</span><div><b>邮箱已验证！</b><br>Your email is verified. 你可以关闭此页面了。</div></div>`; }
+      if(data && data.ok){ res.innerHTML=`<div class="alert green"><span>${MKR.ui.icon('checkcircle')}</span><div><b>邮箱已验证！</b><br>Your email is verified. 你可以关闭此页面了。</div></div>`; }
       else { res.innerHTML=note('red','验证码不正确或已过期。Code is wrong or expired.'); }
     }
     U().qs('#vGo',root).onclick=go;

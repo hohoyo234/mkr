@@ -8,17 +8,17 @@ window.MKR = window.MKR || {};
   // rows via the dashboard or MKR.setup.createDemoAccounts(). See SECURITY.md.
   // `skills` is what the AI roster plans around — see js/roster.js.
   S.USERS = [
-    {id:'u_boss', role:'owner',   name:'James Carter', username:'boss', status:'active', emoji:'👑'},
-    {id:'u_mgr',  role:'manager', name:'Maria Lopez',  username:'mgr',  status:'active', emoji:'📋',
+    {id:'u_boss', role:'owner',   name:'James Carter', username:'boss', status:'active'},
+    {id:'u_mgr',  role:'manager', name:'Maria Lopez',  username:'mgr',  status:'active',
       skills:['open','close','lead','floor'], availability:{0:'all',1:'all',2:'all',3:'all',4:'all',5:'off',6:'off'}},
     // Staff
-    {id:'u_amy',  role:'staff', name:'Amy',  username:'amy',  status:'active', emoji:'🧑‍🍳',
+    {id:'u_amy',  role:'staff', name:'Amy',  username:'amy',  status:'active',
       age:22, employment:'casual', position:'Front of House', onboarded:true,
       skills:['open','floor','coffee'], availability:{0:'am',1:'am',2:'am',3:'am',4:'am',5:'all',6:'off'}},
-    {id:'u_kevin',role:'staff', name:'Kevin',username:'kevin',status:'active', emoji:'🧑‍🍳',
+    {id:'u_kevin',role:'staff', name:'Kevin',username:'kevin',status:'active',
       age:31, employment:'parttime', position:'Kitchen', onboarded:true,
       skills:['kitchen','close'], availability:{0:'pm',1:'off',2:'pm',3:'pm',4:'pm',5:'pm',6:'all'}},
-    {id:'u_leo',  role:'staff', name:'Leo',  username:'leo',  status:'active', emoji:'🧑‍🍳',
+    {id:'u_leo',  role:'staff', name:'Leo',  username:'leo',  status:'active',
       age:19, employment:'casual', position:'Kitchen', onboarded:false,
       skills:['kitchen','floor'], availability:{0:'all',1:'pm',2:'off',3:'all',4:'off',5:'all',6:'all'}},
   ];

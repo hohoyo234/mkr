@@ -26,6 +26,17 @@ window.MKR = window.MKR || {};
     ],
   };
 
+  // The second line on a block. Says what the number means, so the owner never
+  // has to open a block to find out whether it wants them.
+  const SUBS = {
+    stock:'to top up', deliveries:'to check', x_tasks:'jobs left', tasks:'jobs left',
+    x_schedule:'gaps this week', schedule:'gaps this week', training:'to sign off',
+    alerts:'unread', team:'people', swaps:'to approve', hire:'applications',
+    my:'shifts', myshifts:'shifts', availability:'to fill in', feedback:'new',
+  };
+  // Blocks that mean "act today" when they carry a number; the rest are amber.
+  const URGENT = ['alerts','x_schedule','schedule','swaps'];
+
   // Tiles you'd want on day one, in the order an owner actually works.
   const DEFAULTS = {
     owner:   ['stock','deliveries','x_tasks','x_schedule','training','alerts'],
@@ -88,10 +99,17 @@ window.MKR = window.MKR || {};
 
   function tileHtml(t, badge, editing){
     const label = U.esc(t.label);
-    return `<a class="tile" data-tile="${t.id}" ${editing?'':`href="${t.href}"`} aria-label="${label}">
-      ${editing?`<button class="tile-x" data-off="${t.id}" aria-label="Take ${label} off the home screen">−</button>`:''}
-      <span class="tile-ic">${iconOf(t)}${badge?`<span class="tile-badge">${badge}</span>`:''}</span>
+    const tone  = MKR.ui.tone(t.icon);
+    const state = MKR.ui.tier(badge, URGENT.includes(t.id));
+    // A block that wants you says so in words as well as colour — colour alone
+    // is not a status anyone can read in a hurry, or at all if they can't see it.
+    const line  = badge ? `${badge} ${SUBS[t.id] || 'waiting'}` : 'All clear';
+    const aria  = `${label} — ${line}`;
+    return `<a class="tile t-${tone} is-${state}" data-tile="${t.id}" ${editing?'':`href="${t.href}"`} aria-label="${aria}">
+      ${editing?`<button class="tile-x" data-off="${t.id}" aria-label="Take ${label} off the home screen">${MKR.ui.icon('minus')}</button>`:''}
+      <span class="tile-ic">${iconOf(t)}</span>
       <span class="tile-label">${label}</span>
+      <span class="tile-sub">${badge?`<b>${badge}</b> ${U.esc(SUBS[t.id]||'waiting')}`:`${MKR.ui.icon('check')}All clear`}</span>
     </a>`;
   }
 
@@ -107,18 +125,29 @@ window.MKR = window.MKR || {};
 
     function draw(){
       const tiles = ids.map(id=>cat.find(t=>t.id===id)).filter(Boolean);
+      // The same greeting and count the floor view opens with, so switching
+      // between the two home views doesn't change what today looks like.
+      const total = tiles.reduce((t,x)=>t+(badgeOf(x, badges)||0), 0);
+      const mins = Math.max(1, Math.round(total*1.5));
       host.innerHTML = `
         <div class="tiles-wrap${editing?' tiles-edit':''}">
           <div class="tiles-head">
-            <div><b>Your home screen</b><span>${editing?'Drag to move · − to take one off':'The pages you use, one tap away'}</span></div>
+            <div>
+              <h2>${editing ? 'Arrange your blocks' : MKR.gameMap ? MKR.gameMap.greeting() : 'Hello'}</h2>
+              ${editing
+                ? `<p class="fp-count">Drag to move · − to take one off</p>`
+                : total
+                ? `<p class="fp-count">${total} thing${total===1?'':'s'} waiting on you · about ${mins} minute${mins===1?'':'s'}</p>`
+                : `<p class="fp-count">Nothing is waiting on you. Go and run your restaurant.</p>`}
+            </div>
             <button class="btn ${editing?'btn-dark':'btn-ghost'} btn-sm" id="tilesEdit">${editing?'Done':'Edit'}</button>
           </div>
           <div class="tiles-grid" id="tilesGrid">
             ${tiles.map(t=>tileHtml(t, badgeOf(t, badges), editing)).join('')}
-            ${editing?`<button class="tile tile-add" id="tileAdd" aria-label="Add a tile"><span class="tile-ic">${MKR.ui.icon('plus')}</span><span class="tile-label">Add</span></button>`:''}
+            ${editing?`<button class="tile tile-add" id="tileAdd" aria-label="Add a block"><span class="tile-ic">${MKR.ui.icon('plus')}</span><span class="tile-label">Add</span></button>`:''}
           </div>
-          ${tiles.length?'':`<div class="tiles-empty">No tiles yet — hit Edit and add the pages you open most.</div>`}
-          <div class="kv-hint">${editing?'This layout is saved on this device only — nothing goes to the cloud.':'Tap Edit to add, drop or re-order the blocks.'}</div>
+          ${tiles.length?'':`<div class="tiles-empty">No blocks yet — hit Edit and add the pages you open most.</div>`}
+          ${editing?`<div class="kv-hint">This layout is saved on this device only — nothing goes to the cloud.</div>`:''}
         </div>`;
       bind();
     }
@@ -197,12 +226,12 @@ window.MKR = window.MKR || {};
       const missing = cat.filter(t=> !ids.includes(t.id));
       if(!missing.length){ U.toast('Every page is already on your home screen','green'); return; }
       const wrap = U.el(`<div class="tiles-pick">
-        ${missing.map(t=>`<button class="tile" data-add="${t.id}">
+        ${missing.map(t=>`<button class="tile t-${MKR.ui.tone(t.icon)}" data-add="${t.id}">
           <span class="tile-ic">${iconOf(t)}</span>
           <span class="tile-label">${U.esc(t.label)}</span>
         </button>`).join('')}
       </div>`);
-      U.modal('Add a tile', wrap);
+      U.modal('Add a block', wrap);
       U.qsa('[data-add]', wrap).forEach(b=> b.onclick = ()=>{
         ids = ids.concat([b.dataset.add]);
         writeLayout(role, ids);

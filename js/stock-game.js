@@ -106,7 +106,7 @@ window.MKR = window.MKR || {};
         <span class="gv-glass">
           <span class="gv-fill" style="height:${pct}%"></span>
           ${mk!=null?`<span class="gv-mark" style="bottom:${mk}%" title="Reorder at ${r.safety} ${U.esc(r.unit||'')}"></span>`:''}
-          <span class="gv-qty">${U.esc(String(r.qty))}<i>${U.esc(r.unit||'')}</i></span>
+          <span class="gv-qty">${U.esc(shortQty(r.qty))}<i>${U.esc(r.unit||'')}</i></span>
         </span>
       </span>`;
   }
@@ -125,13 +125,22 @@ window.MKR = window.MKR || {};
 
   // Worst first. A shelf sorted alphabetically makes you read every jar; a shelf
   // sorted by how empty it is means the answer is always in the top-left corner.
+  // Precision that fits the jar: two decimals matter at 6.18 kg, not at 1525 pcs.
+  function shortQty(q){
+    const n = +q || 0;
+    if(Math.abs(n) >= 1000) return Math.round(n).toLocaleString();
+    if(Math.abs(n) >= 100)  return String(Math.round(n));
+    if(Math.abs(n) >= 10)   return String(Math.round(n*10)/10);
+    return String(Math.round(n*100)/100);
+  }
+
   const RANK = {low:0, warn:1, ok:2};
   const byUrgency = (a,b)=> (RANK[stateOf(a)]-RANK[stateOf(b)]) || (fillPct(a)-fillPct(b))
                             || String(a.name).localeCompare(String(b.name));
 
-  function zoneHtml(key, title, hint, list){
+  function zoneHtml(key, ic, title, hint, list){
     return `<section class="gv-room ${key}">
-      <header class="gv-room-head"><b>${title}</b><span>${hint}</span></header>
+      <header class="gv-room-head"><span class="gv-room-ic">${MKR.ui.icon(ic)}</span><b>${title}</b><span>${hint}</span></header>
       ${list.length
         ? `<div class="gv-shelf">${list.slice().sort(byUrgency).map(slotHtml).join('')}</div>`
         : `<div class="gv-empty">Nothing on this shelf yet — add an item and it shows up here.</div>`}
@@ -160,7 +169,7 @@ window.MKR = window.MKR || {};
         <span class="gv-needs-h">Needs you today</span>
         ${needs.slice().sort(byUrgency).map(r=>`<button class="chip chip-hot" data-need="${r.id}">
           ${emojiFor(r)} ${U.esc(r.name)} <i>${U.esc(why(r))}</i></button>`).join('')}
-        <button class="btn btn-dark btn-sm" id="gvFill">🧺 Basket the lot</button>
+        <button class="btn btn-dark btn-sm" id="gvFill">${MKR.ui.icon('inbox')} Basket the lot</button>
       </div>` : '';
 
     c.innerHTML = `
@@ -168,11 +177,11 @@ window.MKR = window.MKR || {};
         <div class="gv-top">
           <div class="gv-top-num ${needs.length?'hot':''}"><b>${needs.length}</b><i>need topping up</i></div>
           <div class="gv-top-num"><b>${U.money0(value)}</b><i>on the shelves</i></div>
-          ${needs.length?'':`<button class="btn btn-ghost btn-sm" id="gvFill">🧺 Fill the basket for me</button>`}
+          ${needs.length?'':`<button class="btn btn-ghost btn-sm" id="gvFill">${MKR.ui.icon('inbox')} Fill the basket for me</button>`}
         </div>
         ${needStrip}
-        ${zoneHtml('cold','🧊 Cold room','fresh food — the clock is running', perish)}
-        ${zoneHtml('dry','🧺 Dry store','tools and consumables — counted, never goes off', durable)}
+        ${zoneHtml('cold','inbox','Cold room','fresh food — the clock is running', perish)}
+        ${zoneHtml('dry','box','Dry store','tools and consumables — counted, never goes off', durable)}
         <div class="gv-hint">Tap a jar to look at it · tap <b>+</b> to drop it straight in the basket</div>
         <div class="gv-bar" id="gvBar" hidden>
           <span class="gv-bar-txt"><b id="gvBarN">0</b> <i>in the basket</i></span>
@@ -245,7 +254,7 @@ window.MKR = window.MKR || {};
         <div class="gv-sheet-meta">
           <span class="pill ${st==='low'?'danger':(st==='warn'?'warn':'ok')}">${STATE_LABEL[st]}</span>
           <p>${U.esc(String(r.qty))} ${U.esc(r.unit||'')} on the shelf · reorder at ${r.safety} ${U.esc(r.unit||'')}</p>
-          ${r.expiring?`<p class="gv-warnline">⚠️ Near the end of its ${r.shelfLifeDays}-day shelf life</p>`:''}
+          ${r.expiring?`<p class="gv-warnline">${MKR.ui.icon('warning')} Near the end of its ${r.shelfLifeDays}-day shelf life</p>`:''}
         </div>
       </div>
       <div class="list mt12">
@@ -323,7 +332,7 @@ window.MKR = window.MKR || {};
     const total = ()=> lines.reduce((t,x)=>t+S().lineAmount(x.q, x.r.price), 0);
     const wrap = U.el(`<div>
       ${groups.map(g=>`<div class="gv-group">
-        <div class="gv-group-head">🚚 ${g.sup?U.esc(g.sup.name):'No supplier set'}${g.sup&&g.sup.phone?` <a class="linkish" href="tel:${U.esc(g.sup.phone)}">${U.esc(g.sup.phone)}</a>`:''}</div>
+        <div class="gv-group-head">${MKR.ui.icon('truck')} ${g.sup?U.esc(g.sup.name):'No supplier set'}${g.sup&&g.sup.phone?` <a class="linkish" href="tel:${U.esc(g.sup.phone)}">${U.esc(g.sup.phone)}</a>`:''}</div>
         <div class="list">${g.lines.map(l=>`
           <div class="li" data-line="${l.r.id}">
             <div class="ds-li-ic">${emojiFor(l.r)}</div>
@@ -337,7 +346,7 @@ window.MKR = window.MKR || {};
           </div>`).join('')}</div>
       </div>`).join('')}
       <div class="cart-total mt8"><span>Estimated cost</span><span class="v" id="gv_total">${U.money(total())}</span></div>
-      <div class="disclaimer"><span>🚚</span><div>Two ways out of here. <b>Expect it at the back door</b> when you've just placed the order — whoever takes the delivery counts it off the truck, and the docket files itself. <b>Already arrived</b> is for stock that's standing in front of you right now.</div></div>
+      <div class="disclaimer"><span>${MKR.ui.icon('truck')}</span><div>Two ways out of here. <b>Expect it at the back door</b> when you've just placed the order — whoever takes the delivery counts it off the truck, and the docket files itself. <b>Already arrived</b> is for stock that's standing in front of you right now.</div></div>
     </div>`);
 
     function recalc(){
@@ -362,7 +371,7 @@ window.MKR = window.MKR || {};
       l.q = Math.max(0, Number(i.value)||0); setBasket(l.r.id, l.q); recalc();
     });
 
-    U.modal('🧺 The basket', wrap, {actions:[
+    U.modal('The basket', wrap, {actions:[
       {label:'Empty it', class:'btn-ghost', onClick:async(close)=>{
         if(!(await U.confirm('Empty the basket', 'Clear everything you picked off the shelves?', {ok:'Empty it', danger:true}))) return;
         writeBasket({}); close(); U.toast('Basket emptied','amber'); if(reload) reload();
@@ -392,7 +401,7 @@ window.MKR = window.MKR || {};
       // The order you just placed becomes the delivery someone will take in —
       // so the same list gets checked off at the back door instead of typed out
       // a second time.
-      {label:'🚚 Expect it at the back door', class:'btn-dark', onClick:async(close)=>{
+      {label:'Expect it at the back door', class:'btn-dark', onClick:async(close)=>{
         const live = groups.map(g=>({g, ls:g.lines.filter(l=>l.q>0)})).filter(x=>x.ls.length);
         if(!live.length){ U.toast('Nothing in the basket','amber'); return; }
         if(!MKR.deliveries){ U.toast('Deliveries are switched off','amber'); return; }

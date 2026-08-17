@@ -14,8 +14,6 @@ window.MKR = window.MKR || {};
 (function(){
   const LS = 'mkr.localsess';                  // cached profile (UI hint only — never trusted for access)
   const SUPER_EMAIL = (MKR.supa && MKR.supa.SUPER_ADMIN_EMAIL) || 'hyy7010@gmail.com';
-  const EMO = {superadmin:'🛡️', owner:'👑', manager:'📋', staff:'🧑‍🍳'};
-
   const Auth = {
     _profile: null,
     _realProfile: null,                        // saved while a Super Admin impersonates
@@ -45,7 +43,7 @@ window.MKR = window.MKR || {};
         id: p.staff_id || p.id,           // the app's business id (sess.id), e.g. u_amy
         uid: authUser.id,                 // the auth.uid() — what RLS actually checks
         name: p.name, role: p.role,
-        emoji: p.emoji || EMO[p.role] || '',
+        emoji: p.emoji || '',
         username: p.username,
         kitchenId: p.kitchen_id || 'k_main'
       });
@@ -90,7 +88,7 @@ window.MKR = window.MKR || {};
       if(!this.isSuperAdmin() && !(this._realProfile && this._realProfile.role==='superadmin')) return this._profile;
       if(!this._realProfile) this._realProfile = this._profile;
       this._profile = { id:this._realProfile.id, uid:this._realProfile.uid, name: name||('Preview · '+this.roleName(role)),
-        role, emoji: EMO[role]||'🛡️', kitchenId: kitchenId||'k_main', _impersonating:true };
+        role, kitchenId: kitchenId||'k_main', _impersonating:true };
       return this._profile;
     },
     exitImpersonate(){ if(this._realProfile){ this._profile=this._realProfile; this._realProfile=null; this._cache(this._profile); } },
@@ -112,7 +110,7 @@ window.MKR = window.MKR || {};
                     manager:{id:'u_mgr', name:'Maria Lopez'},
                     staff:{id:'u_amy', name:'Amy'}};
       const d = DEMO[role];
-      this._profile = { id:d.id, uid:null, name:d.name, role, emoji:EMO[role]||'',
+      this._profile = { id:d.id, uid:null, name:d.name, role,
                         kitchenId:'k_main', _preview:true };
       try{ await MKR.seed.ensure(); }catch(e){}
       try{ await MKR.features.load(); }catch(e){}

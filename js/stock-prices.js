@@ -97,17 +97,17 @@ window.MKR = window.MKR || {};
       </div>`;
 
     c.innerHTML = `
-      <div class="alert ${!t.compared?'info':(worse?'amber':'green')} mt16"><span>${!t.compared?'🧾':(worse?'📈':'📉')}</span><div>${headline}</div></div>
+      <div class="alert ${!t.compared?'info':(worse?'amber':'green')} mt16"><span>${MKR.ui.icon(!t.compared?'receipt':'trend')}</span><div>${headline}</div></div>
       <div class="statline">
         <span class="statcell"><b>${U.money0(t.spendThis)}</b><i>spent this ${label}</i></span>
         <span class="statcell"><b>${U.money0(t.spendPrev)}</b><i>the ${label} before</i></span>
-        <span class="statcell"${t.up?' style="color:#8a6410"':''}><b>${t.up}</b><i>went up</i></span>
+        <span class="statcell"${t.up?' style="color:var(--amber-ink)"':''}><b>${t.up}</b><i>went up</i></span>
         <span class="statcell"${t.down?' style="color:var(--green)"':''}><b>${t.down}</b><i>came down</i></span>
       </div>
-      ${table('📈 What moved', 'ordered by what the move cost you, not by percent', movers)}
-      ${table('➖ Held their price', 'same money as last '+label, steady)}
+      ${table(`${MKR.ui.icon('trend')} What moved`, 'ordered by what the move cost you, not by percent', movers)}
+      ${table(`${MKR.ui.icon('minus')} Held their price`, 'same money as last '+label, steady)}
       ${table('🆕 No comparison yet', 'only appears on one '+label+"'s dockets", fresh)}
-      ${!w.rows.length?`<div class="empty mt16"><div class="em">🏷️</div><p>No purchases in the last ${days*2} days. Record your dockets and prices start comparing themselves.</p></div>`:''}
+      ${!w.rows.length?`<div class="empty mt16"><div class="em">${MKR.ui.icon('ticket')}</div><p>No purchases in the last ${days*2} days. Record your dockets and prices start comparing themselves.</p></div>`:''}
       <div class="disclaimer mt16"><span>ℹ️</span><div>
         <div>Every figure is the price you actually paid, weighted by quantity, taken straight off your dockets. Nothing here is a market rate or a forecast of one.</div>
         <div>Prices are per unit, never per carton. A docket booked in packs is converted first, so a supplier changing their pack size cannot show up here as a price rise.</div>

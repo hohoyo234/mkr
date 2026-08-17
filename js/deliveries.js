@@ -26,12 +26,12 @@ window.MKR = window.MKR || {};
     wrong:   {label:'Wrong item',      pill:'danger'},
   };
   const STATUS = {
-    expected:  {label:'Expected',  pill:'ghost', em:'🕒'},
-    confirmed: {label:'Confirmed', pill:'ok',    em:'✅'},
+    expected:  {label:'Expected',  pill:'ghost', ic:'clock'},
+    confirmed: {label:'Confirmed', pill:'ok',    ic:'checkcircle'},
     // "Turned away", not "Rejected" — a rejected kitchen application elsewhere
     // means something else entirely, and one shared key can only be translated
     // right in one of them. Matches the wording already used in detailModal.
-    rejected:  {label:'Turned away',  pill:'danger',em:'⛔'},
+    rejected:  {label:'Turned away',  pill:'danger',ic:'warning'},
   };
   // Same list the Purchases form offers, so a docket says the same thing
   // whichever door it came in through.
@@ -41,10 +41,10 @@ window.MKR = window.MKR || {};
   // only worth noticing if somebody chases the money, and "they said they'd fix
   // it" is where that money quietly dies.
   const CLAIM = {
-    open:    {label:'Still to raise',   pill:'warn',  em:'📌'},
-    claimed: {label:'Raised with them', pill:'ghost', em:'📞'},
-    settled: {label:'Settled',          pill:'ok',    em:'✅'},
-    dropped: {label:'Written off',      pill:'ghost', em:'✖️'},
+    open:    {label:'Still to raise',   pill:'warn',  ic:'dot'},
+    claimed: {label:'Raised with them', pill:'ghost', ic:'phone'},
+    settled: {label:'Settled',          pill:'ok',    ic:'checkcircle'},
+    dropped: {label:'Written off',      pill:'ghost', ic:'minus'},
   };
 
   async function all(){ return (await MKR.db.getAll('deliveries')).filter(d=>(d.kitchenId||'k_main')===kid()).sort((a,b)=>(b.ts||0)-(a.ts||0)); }
@@ -172,7 +172,7 @@ window.MKR = window.MKR || {};
         <span class="statcell"${probs?' style="color:var(--red)"':''}><b>${probs}</b><i>problems</i></span>
         <span class="statcell"${owed?' style="color:var(--red)"':''}><b>${U.money0(owed)}</b><i>still to get back</i></span>
       </div>
-      ${chasing.length?`<div class="alert amber mt16"><span>💸</span><div>
+      ${chasing.length?`<div class="alert amber mt16"><span>${MKR.ui.icon('receipt')}</span><div>
         <b>${chasing.length===1?'One claim is still open':`${chasing.length} claims are still open`}</b>
         <div class="faint">${chasing.slice(0,4).map(x=>`<div>${U.esc(x.supplierName||'Supplier')} ${U.money(x.amount)} · <span>${CLAIM[x.status].label}</span></div>`).join('')}</div>
         <div>Open the delivery to log what they said, or mark it settled once the credit lands.</div>
@@ -184,16 +184,16 @@ window.MKR = window.MKR || {};
           const bad=(d.lines||[]).filter(l=>l.condition&&l.condition!=='ok').length;
           const dk=docketOf(d), cl=claimOf(d);
           return `<div class="li clickable" data-dlv="${d.id}">
-            <div class="ds-li-ic">${st.em}</div>
+            <div class="ds-li-ic">${MKR.ui.icon(st.ic)}</div>
             <div class="meta"><b>${U.esc(d.supplierName||supName(d.supplierId))}${d.docketNo?' · '+U.esc(d.docketNo):''}</b>
               <span>${U.fmtDateTime(d.ts)} · ${(d.lines||[]).length} line${(d.lines||[]).length===1?'':'s'}${d.receivedBy?' · signed '+U.esc(d.receivedBy):''}${bad?` · ${bad} problem`:''}</span></div>
             ${dk?`<b class="dlv-amt">${U.money(dk.total)}</b>`:''}
-            ${cl?`<span class="pill ${CLAIM[cl.status].pill}">${CLAIM[cl.status].em} ${cl.amount?U.money(cl.amount):CLAIM[cl.status].label}</span>`:''}
+            ${cl?`<span class="pill ${CLAIM[cl.status].pill}">${MKR.ui.icon(CLAIM[cl.status].ic)} ${cl.amount?U.money(cl.amount):CLAIM[cl.status].label}</span>`:''}
             <span class="pill ${st.pill}">${st.label}</span></div>`;
         }).join('')}</div>`
-        : `<div class="empty"><div class="em">🚚</div><p>No deliveries logged yet. Create one when a driver pulls up — or ahead of time so whoever's on shift just has to tick it off.</p></div>`}
+        : `<div class="empty"><div class="em">${MKR.ui.icon('truck')}</div><p>No deliveries logged yet. Create one when a driver pulls up — or ahead of time so whoever's on shift just has to tick it off.</p></div>`}
       </div>
-      <div class="disclaimer mt16"><span>✍️</span><div>Confirming a delivery is the whole job in one go: received quantities go into stock, the prices you were charged are recorded, and the docket files itself into Purchases. Short and damaged lines are flagged for you to chase.</div></div>`;
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('pencil')}</span><div>Confirming a delivery is the whole job in one go: received quantities go into stock, the prices you were charged are recorded, and the docket files itself into Purchases. Short and damaged lines are flagged for you to chase.</div></div>`;
 
     U.qs('#dlvNew',c).onclick = ()=>{
       if(!its.length){ U.toast('Add some stock items first','amber'); return; }
@@ -220,7 +220,7 @@ window.MKR = window.MKR || {};
         <thead><tr><th>Item</th><th class="num" style="width:110px">Ordered</th><th></th></tr></thead>
         <tbody id="d_lines">${lineHtml()}</tbody></table></div>
       <button class="btn btn-ghost btn-sm mt8" id="d_add">${MKR.ui.icon('plus')} Add line</button>
-      <div class="disclaimer"><span>🕒</span>This creates an <b>expected</b> delivery. Whoever takes it in opens it and confirms what actually arrived.</div>
+      <div class="disclaimer"><span>${MKR.ui.icon('clock')}</span>This creates an <b>expected</b> delivery. Whoever takes it in opens it and confirms what actually arrived.</div>
     </div>`);
     const body = U.qs('#d_lines',wrap);
     const bindRow = tr=>{ U.qs('.dl-del',tr).onclick=()=>{ if(U.qsa('.dl-row',body).length>1) tr.remove(); }; };
@@ -292,9 +292,9 @@ window.MKR = window.MKR || {};
       ${hasPerishable?`<div class="field"><label>Chilled/frozen temperature on arrival (°C)</label><input class="input" id="d_temp" type="number" step="0.1" placeholder="e.g. 3.5"></div>`:''}
       <div class="field"><label>Received by</label><input class="input" id="d_by" value="${U.esc(me())}"></div>
       <div class="field"><label>Note (optional)</label><input class="input" id="d_note" placeholder="e.g. 2 boxes short, driver to redeliver Friday"></div>
-      <label class="img-drop" id="d_drop"><div class="img-preview" id="d_prev"><span id="d_photoLabel">📷 Photo of the docket or the problem</span></div><input type="file" id="d_photo" accept="image/*" hidden></label>
-      <div class="disclaimer" id="d_photoWhy" hidden><span>📸</span>A short or damaged line needs the photo. Suppliers refuse claims they can't see, and by the time anyone chases it the crate has been thrown out.</div>
-      <div class="disclaimer mt12"><span>🧾</span>Signing here files the docket as well: received quantities go into stock at the prices above, and the whole thing lands in Purchases. You never type it twice.</div>
+      <label class="img-drop" id="d_drop"><div class="img-preview" id="d_prev"><span id="d_photoLabel">${MKR.ui.icon('camera')} Photo of the docket or the problem</span></div><input type="file" id="d_photo" accept="image/*" hidden></label>
+      <div class="disclaimer" id="d_photoWhy" hidden><span>${MKR.ui.icon('camera')}</span>A short or damaged line needs the photo. Suppliers refuse claims they can't see, and by the time anyone chases it the crate has been thrown out.</div>
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('receipt')}</span>Signing here files the docket as well: received quantities go into stock at the prices above, and the whole thing lands in Purchases. You never type it twice.</div>
     </div>`);
     let photo=null;
 
@@ -375,8 +375,8 @@ window.MKR = window.MKR || {};
       // down with it. The red outline is cleared below either way.
       const lbl = U.qs('#d_photoLabel',wrap);
       if(lbl) lbl.textContent = need
-        ? '📷 Photo of the problem — required'
-        : '📷 Photo of the docket or the problem (optional)';
+        ? 'Photo of the problem — required'
+        : 'Photo of the docket or the problem (optional)';
       U.qs('#d_drop',wrap).classList.toggle('needs', need && !photo);
     }
 
@@ -398,7 +398,7 @@ window.MKR = window.MKR || {};
         const why = prompt('Why is this delivery being turned away?'); if(why==null) return;
         await reject(d, why.trim()); close(); U.toast('Delivery rejected','amber'); after();
       }},
-      {label:'✍️ Confirm', class:'btn-dark', onClick:async(close)=>{
+      {label:'Confirm', class:'btn-dark', onClick:async(close)=>{
         const lines = U.qsa('.dc-row',wrap).map((tr,i)=>{
           const st = rowState(tr);
           // `received` and `unitPrice` are always the item's own unit, whichever
@@ -452,7 +452,7 @@ window.MKR = window.MKR || {};
         <b>${U.money(l.amount)}</b></div>`).join('')}</div>`
       : `<div class="disclaimer"><span>ℹ️</span><div>Nothing on this docket was charged for and unusable, so there's no refund to ask for. Track it here anyway if they owe you a replacement.</div></div>`}
 
-      ${cl.short.length?`<div class="alert info mt12"><span>📄</span><div>
+      ${cl.short.length?`<div class="alert info mt12"><span>${MKR.ui.icon('receipt')}</span><div>
         <b>${cl.short.length===1?'One line came up short':`${cl.short.length} lines came up short`}</b>
         <div class="faint">${cl.short.map(l=>`<div>${U.esc(l.name)} · <span>ordered ${l.ordered}, took ${l.received!=null?l.received:0}</span></div>`).join('')}</div>
         <div>You were only charged for what turned up, so there's nothing to refund here. Check their monthly statement bills it the same way.</div>
@@ -461,7 +461,7 @@ window.MKR = window.MKR || {};
       <div class="row mt12">
         <div class="field grow"><label>What you're chasing</label><input class="input" id="cl_amt" type="number" step="0.01" value="${cur.amount||0}"></div>
         <div class="field grow"><label>Where it's up to</label><select class="input" id="cl_st">
-          ${Object.entries(CLAIM).map(([k,v])=>`<option value="${k}" ${cur.status===k?'selected':''}>${v.em} ${v.label}</option>`).join('')}
+          ${Object.entries(CLAIM).map(([k,v])=>`<option value="${k}" ${cur.status===k?'selected':''}>${v.label}</option>`).join('')}
         </select></div>
       </div>
       <div class="field"><label>What they said</label><input class="input" id="cl_note" value="${U.esc(cur.note||'')}" placeholder="e.g. Kim will credit it on the next invoice"></div>
@@ -470,7 +470,7 @@ window.MKR = window.MKR || {};
         <div class="meta"><b>${U.esc((CLAIM[h.status]||{}).label||h.status)}</b><span>${U.fmtDateTime(h.ts)} · ${U.esc(h.by||'—')}${h.note?' · '+U.esc(h.note):''}</span></div></div>`).join('')}</div>`:''}
     </div>`);
 
-    U.modal('💸 Chasing this delivery', wrap, {actions:[
+    U.modal('Chasing this delivery', wrap, {actions:[
       {label:'Cancel', class:'btn-ghost', onClick:c=>c()},
       {label:'Save', class:'btn-dark', onClick:async(close)=>{
         await saveClaim({id:claim?claim.id:undefined, deliveryId:d.id, supplierId:d.supplierId,
@@ -486,7 +486,7 @@ window.MKR = window.MKR || {};
     const st=STATUS[d.status]||STATUS.expected;
     const wrap = U.el(`<div>`+`
       <div class="faint" style="font-size:12.5px;margin-bottom:8px">${U.fmtDateTime(d.ts)}${d.docketNo?' · docket '+U.esc(d.docketNo):''} · <span class="pill ${st.pill}">${st.label}</span></div>
-      ${d.status==='rejected' ? `<div class="alert red"><span>⛔</span><div>Turned away · ${U.esc(d.note||'no reason recorded')}</div></div>` : `
+      ${d.status==='rejected' ? `<div class="alert red"><span>${MKR.ui.icon('warning')}</span><div>Turned away · ${U.esc(d.note||'no reason recorded')}</div></div>` : `
       <div class="tablewrap"><table class="dtable">
         <thead><tr><th>Item</th><th class="num">Ordered</th><th class="num">Received</th><th class="num">Unit price</th><th>Condition</th></tr></thead>
         <tbody>${(d.lines||[]).map(l=>{ const cd=COND[l.condition]||COND.ok;
@@ -501,7 +501,7 @@ window.MKR = window.MKR || {};
         ${claim?`<div class="li"><div class="meta"><span>Money being chased</span><b>${claim.amount?U.money(claim.amount):'nothing to refund'} · ${U.esc(CLAIM[claim.status].label)}</b></div></div>`:''}
         ${d.note?`<div class="li"><div class="meta"><span>Note</span><b>${U.esc(d.note)}</b></div></div>`:''}
       </div>
-      ${claim && claim.note ? `<div class="disclaimer mt12"><span>${CLAIM[claim.status].em}</span><div>${U.esc(claim.note)}</div></div>`:''}
+      ${claim && claim.note ? `<div class="disclaimer mt12"><span>${MKR.ui.icon(CLAIM[claim.status].ic)}</span><div>${U.esc(claim.note)}</div></div>`:''}
       ${d.photo?`<img src="${d.photo}" style="max-width:100%;border-radius:12px;margin-top:12px">`:''}`}
     </div>`);
 
@@ -509,10 +509,10 @@ window.MKR = window.MKR || {};
     // other rather than making anyone go looking.
     const actions = [];
     const bad = (d.lines||[]).some(l=>l.condition && l.condition!=='ok');
-    if(bad || claim) actions.push({label: claim?'💸 Update the claim':'💸 Chase it', class:'btn-ghost', onClick:(close)=>{
+    if(bad || claim) actions.push({label: claim?'Update the claim':'Chase it', class:'btn-ghost', onClick:(close)=>{
       close(); claimModal(d, claim, after);
     }});
-    if(docket && MKR.stockReceipt) actions.push({label:'🧾 See the docket', class:'btn-dark', onClick:async(close)=>{
+    if(docket && MKR.stockReceipt) actions.push({label:'See the docket', class:'btn-dark', onClick:async(close)=>{
       close();
       let venue='My Kitchen';
       try{ const k=await MKR.db.get('kitchens',(MKR.auth.current()||{}).kitchenId||'k_main'); if(k&&k.name) venue=k.name; }catch(e){}

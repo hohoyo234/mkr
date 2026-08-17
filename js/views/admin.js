@@ -38,10 +38,10 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
     let waiting=0, bookings=0;
     try{ waiting=(await MKR.db.getAll('waitlist')).filter(q=>q.status==='waiting'||q.status==='called').length;
          bookings=(await MKR.db.getAll('reservations')).filter(r=>r.status==='booked'&&r.date>=today).length; }catch(e){}
-    return `📊 <b>今日运营总结</b><br>
+    return `${MKR.ui.icon('bars')} <b>今日运营总结</b><br>
       • 今天 <b>${onToday.length}</b> 个班 · 团队 ${staff.filter(u=>u.role==='staff').length} 员工 / ${staff.filter(u=>u.role==='manager').length} 经理<br>
       • 今日任务 ${tasks.filter(t=>t.done).length}/${tasks.length} 完成<br>
-      • 库存价值 <b>${U.money(val)}</b>（${rows.length} 项）${low.length?` · ⚠️ ${low.length} 项偏低/临期：${low.slice(0,4).map(r=>r.name).join('、')}`:' · 暂无告急'}<br>
+      • 库存价值 <b>${U.money(val)}</b>（${rows.length} 项）${low.length?` · ${MKR.ui.icon('warning')} ${low.length} 项偏低/临期：${low.slice(0,4).map(r=>r.name).join('、')}`:' · 暂无告急'}<br>
       • ${pend.length} 单待确认送货 · ${tr.length} 项培训未完成<br>
       • ${waiting} 桌等位 · ${bookings} 个预订`;
   }
@@ -57,8 +57,8 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
         if(!rows.length) return '还没有建立库存项目。';
         const val=rows.reduce((a,r)=>a+r.value,0);
         const need=rows.filter(r=>r.low||r.short||r.expiring);
-        if(!need.length) return `📦 库存价值 <b>${U.money(val)}</b>（${rows.length} 项），目前没有需要补的。`;
-        return `📦 库存价值 <b>${U.money(val)}</b>（${rows.length} 项）。建议关注：<br>`
+        if(!need.length) return `${MKR.ui.icon('box')} 库存价值 <b>${U.money(val)}</b>（${rows.length} 项），目前没有需要补的。`;
+        return `${MKR.ui.icon('box')} 库存价值 <b>${U.money(val)}</b>（${rows.length} 项）。建议关注：<br>`
           + need.map(r=>`• ${U.esc(r.name)} — 还剩 ${r.qty} ${U.esc(r.unit||'')}${r.cover!=null?`（约 ${r.cover.toFixed(1)} 天）`:''}${r.expiring?' · 临期':''}${r.supplier?` · ${U.esc(r.supplier.name)}${r.supplier.phone?' '+U.esc(r.supplier.phone):''}`:''}`).join('<br>');
       } };
     },
@@ -67,7 +67,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
       const low=t.toLowerCase();
       if(!/(盘点|点货|数库存|stocktake|count stock)/.test(low)) return null;
       return { desc:'说明怎么盘点（只读）', readOnly:true, run:async()=>
-        '🔢 打开 <b>库存与成本 → 🔢 盘点</b>，把实际数到的数量填进去。这个 app 没有收银系统，用量完全来自两次盘点之间的差额，所以盘点做得越勤，需求预测越准。' };
+        '打开 <b>库存与成本 → 盘点</b>，把实际数到的数量填进去。这个 app 没有收银系统，用量完全来自两次盘点之间的差额，所以盘点做得越勤，需求预测越准。' };
     },
     // 加排队
     async function(t){
@@ -89,7 +89,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
       let time=''; const tm=low.match(/(\d{1,2})\s*[:点]\s*(\d{0,2})/); if(tm){ time=String(+tm[1]).padStart(2,'0')+':'+(tm[2]?tm[2].padStart(2,'0'):'00'); }
       const name = t.replace(/(预订|订位|订桌|book a table|book|reservation|reserve|帮我|明天|后天|今天|tomorrow|today)/gi,'').replace(/(\d+)\s*(人|位|pax|people|ppl)/g,'').replace(/(\d{1,2})\s*[:点]\s*(\d{0,2})/g,'').trim();
       return { desc:`新建预订：${name||'客人'} · ${dateLabel} ${time||'(时间未填)'} · ${party} 人`,
-        run:async()=>{ await MKR.db.put('reservations',{name:name||'客人', partySize:party, date, time, status:'booked', kitchenId:kid()}); await MKR.audit.log({action:'booking.create', desc:`New booking · ${name||'客人'} · AI`}); return `📅 预订已建：${name||'客人'} · ${dateLabel} ${time} · ${party} 人。`; } };
+        run:async()=>{ await MKR.db.put('reservations',{name:name||'客人', partySize:party, date, time, status:'booked', kitchenId:kid()}); await MKR.audit.log({action:'booking.create', desc:`New booking · ${name||'客人'} · AI`}); return `${MKR.ui.icon('calendar')} 预订已建：${name||'客人'} · ${dateLabel} ${time} · ${party} 人。`; } };
     },
     // 日报 / 周报 / 总结 (read-only)
     async function(t){
@@ -105,7 +105,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
       const isVerify = /验证|verify/i.test(t);
       return { desc:`给 <b>${U.esc(to)}</b> 发一封${isVerify?'<b>验证</b>':'通知'}邮件`,
         run:async()=>{
-          if(!MKR.email || !MKR.email.send) return '✉️ 发信功能尚未启用（需部署 send-email 边缘函数）。';
+          if(!MKR.email || !MKR.email.send) return '发信功能尚未启用（需部署 send-email 边缘函数）。';
           const brand = ((await MKR.db.meta('brand'))||{}).name || 'My Kitchen';
           let subject, html;
           if(isVerify){
@@ -123,7 +123,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
             html = MKR.email.template({ brand, title:'通知 / Message', intro:body });
           }
           const r = await MKR.email.send({ to, subject, html });
-          return r && r.ok ? `✉️ 已发送${isVerify?'验证码':''}到 ${U.esc(to)}。${isVerify?'（让对方查收邮件、输入验证码即可）':''}` : `✉️ 发送失败：${U.esc((r&&r.error)||'未知错误（多半是 send-email 还没部署）')}。`;
+          return r && r.ok ? `已发送${isVerify?'验证码':''}到 ${U.esc(to)}。${isVerify?'（让对方查收邮件、输入验证码即可）':''}` : `发送失败：${U.esc((r&&r.error)||'未知错误（多半是 send-email 还没部署）')}。`;
         } };
     },
   ];
@@ -163,7 +163,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
       logEl.scrollTop=logEl.scrollHeight; return;
     }
     // manual mode → confirmation card
-    thinking.innerHTML = `<div class="aa-confirm"><div>🤔 ${action.desc}？</div>
+    thinking.innerHTML = `<div class="aa-confirm"><div>${MKR.ui.icon('search')} ${action.desc}？</div>
       <div class="row gap8 mt8"><button class="btn btn-green btn-sm" data-ok>确认执行</button><button class="btn btn-ghost btn-sm" data-no>取消</button></div></div>`;
     thinking.querySelector('[data-ok]').onclick=async()=>{
       thinking.innerHTML='<span class="ai-dots"><i></i><i></i><i></i></span>';
@@ -177,13 +177,13 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
     c.innerHTML = `
       <div class="ai-admin">
         <div class="aa-head">
-          <div class="row center gap8"><div class="aa-orb">✨</div>
+          <div class="row center gap8"><div class="aa-orb">${MKR.ui.icon('sparkle')}</div>
             <div><h2 style="margin:0;font-size:20px">全能助手</h2><div class="faint" id="aaMode" style="font-size:12px">${mode()==='auto'?'自动式':'手动式'} · AI 驱动</div></div></div>
-          <button class="btn btn-ghost btn-sm" id="aaToggle">${mode()==='auto'?'🤖 自动模式':'✋ 手动模式'}</button>
+          <button class="btn btn-ghost btn-sm" id="aaToggle">${mode()==='auto'?'自动模式':'手动模式'}</button>
         </div>
         <div class="aa-log" id="aaLog"></div>
         <div class="aa-chips" id="aaChips">${CHIPS.map(q=>`<button class="aa-chip" data-q="${U.esc(q)}">${U.esc(q)}</button>`).join('')}</div>
-        <form class="aa-input" id="aaForm"><input class="input" id="aaInput" placeholder="把事情交给我…" autocomplete="off"><button class="btn btn-dark" type="submit" aria-label="发送">➤</button></form>
+        <form class="aa-input" id="aaForm"><input class="input" id="aaInput" placeholder="把事情交给我…" autocomplete="off"><button class="btn btn-dark" type="submit" aria-label="发送">${MKR.ui.icon('send')}</button></form>
       </div>`;
     logEl = U.qs('#aaLog',c);
     bubble('bot', intro());

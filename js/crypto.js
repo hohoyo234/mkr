@@ -82,7 +82,7 @@ window.MKR = window.MKR || {};
       try{
         if(blob.startsWith('srv:')){
           const v = await callServer('decrypt', blob.slice(4), userId);
-          return v!=null ? v : '⚠️ reveal unavailable — deploy the reveal-field function (see SECURITY.md)';
+          return v!=null ? v : 'Reveal unavailable — deploy the reveal-field function (see SECURITY.md)';
         }
         if(blob.startsWith('aes:') && subtle){
           const key=await getKey();
@@ -91,7 +91,7 @@ window.MKR = window.MKR || {};
           return new TextDecoder().decode(await subtle.decrypt({name:'AES-GCM',iv},key,ct));
         }
         if(blob.startsWith('xor:')){ const raw=decodeURIComponent(escape(atob(blob.slice(4)))); return xorCipher(raw, await fallbackKey()); }
-      }catch(e){ return '⚠️ decrypt failed (this value was encrypted on another device — see SECURITY.md)'; }
+      }catch(e){ return 'Decrypt failed (this value was encrypted on another device — see SECURITY.md)'; }
       return blob;
     },
     mask(){ return '••• ••• •••'; }

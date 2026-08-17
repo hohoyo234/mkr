@@ -19,7 +19,7 @@ Then open <http://localhost:8899/index.html>. Double-clicking `index.html` also 
 (`file://` is supported).
 
 **No account? Use the preview.** At the bottom of the sign-in page there is a
-**👀 Preview without an account** box — pick Owner / Manager / Staff and it opens the
+**Preview without an account** box — pick Owner / Manager / Staff and it opens the
 app against sample data on that device. There is no auth session in preview mode, so
 every cloud query is refused by Row Level Security; it can only ever see local data.
 
@@ -33,10 +33,13 @@ a matching row in `profiles`.
 
 | Area | What it covers |
 |---|---|
-| **The restaurant floor** | The owner's home screen. Six rooms — cold room, back door, kitchen, staff area, training room, office — each with a live badge counting what's waiting in it, and each linking to the page that does the work. Counts come from the same modules the list dashboard reads. `☰ List` switches back to the old list, and the choice sticks. There is no front-of-house/takings room on purpose: no till, nothing honest to show. |
+| **Home, three ways** | **Blocks** is the default: every page as a block the owner arranges themselves, each carrying its own count and what that count means ("3 to top up", "All clear"). **Floor** draws the same numbers as six rooms — cold room, back door, kitchen, staff area, training room, office — each linking to the page that does the work. **List** is the plain rundown. Same data underneath; the choice sticks per device. There is no front-of-house/takings room on purpose: no till, nothing honest to show. |
+| **One colour per module** | A module's colour is its identity (cold room blue, kitchen green, rostering violet) and is the same on its block, its room, its kitchen station and its menu row. A *badge's* colour is only ever status, on one three-step scale: green all clear · amber worth a look · red do it today. The two never borrow each other's palette. Defined once in `js/ui.js` (`TONE`, `tier()`). What is *inside* a jar on the shelf is a third thing again — a data graphic, on its own `--fill-*` scale, mid-tone enough to hold the quantity label on top of it. |
+| **One icon set** | Interface glyphs are inline SVG from `js/ui.js`, never emoji — emoji can't take a colour, don't align to a baseline and render differently on every OS. Three deliberate exceptions: the shelf's ~45 ingredient pictograms (identifying a jar at a glance is the shelf's whole job, and 45 line icons would all look alike at 22px), push-notification titles (the OS renders those as plain text), and `<option>` / modal-title / toast text, which is escaped before it reaches the DOM — those simply lost their glyph. |
+| **Light & dark** | Follows the OS; overridable per device in Settings → Appearance. Every colour in the app is a token, so the dark theme is one `:root[data-theme="dark"]` block and no per-component overrides. The docket and receipt facsimiles stay on white — they are pretending to be paper — and `@media print` forces the light tokens back so a docket printed in dark mode isn't a blank page. |
 | **AI rostering** | Asks the owner a preference questionnaire first, then plans from staff availability, skills and how many people were actually rostered in past weeks. Warnings only — never blocks. |
 | **Stock & costs** | Ingredients and non-perishable tools. Quantity, unit price, amount, total value, and a price history per item with ▲▼ movement. |
-| **Shelf view** | The default way the Stock tab draws that data: a cold room and a dry store with every item standing on a shelf, where how full the jar is *is* the quantity. Tap a jar to count it or drop it in the basket; the basket groups itself by supplier and becomes the order. `☰ List` switches back to the table, and the choice sticks. |
+| **Shelf view** | The default way the Stock tab draws that data: a cold room and a dry store with every item standing on a shelf, where how full the jar is *is* the quantity. Tap a jar to count it or drop it in the basket; the basket groups itself by supplier and becomes the order. `List` switches back to the table, and the choice sticks. |
 | **Suppliers & purchases** | Who you buy from, who you actually ring, and every invoice. |
 | **Usage forecasting** | Derived from stocktakes, not sales: `last count + purchases since − this count`. Days of cover and a suggested order list. |
 | **Deliveries** | Back-door confirmation form: ordered vs received, condition, chilled temperature, photo, signature. |
@@ -84,18 +87,21 @@ opens VEVO. The app itself never interprets either.
 ## Layout
 
 ```
-index.html            app shell — loads every module in order
+index.html            app shell — loads every module in order (also resolves the theme before first paint)
 landing.html          marketing page
 sw.js                 service worker (offline shell + push)
-assets/css/styles.css single stylesheet
+assets/css/styles.css single stylesheet — every colour is a token, so the dark
+                      theme is one `:root[data-theme="dark"]` block and no
+                      per-component overrides
 js/
-  util.js ui.js i18n.js        helpers, icons, EN/中文 dictionary
+  util.js ui.js i18n.js        helpers, icons + module colours + theme, EN/中文 dictionary
   supa.js db.js                Supabase config; local-first data layer + sync
   auth.js features.js          sessions & roles; module on/off switches
   roster.js roster-view.js     rostering engine + page
   stock.js stock-view.js       stock/cost model + page
   stock-game.js                shelf view — the same stock data drawn as the room
-  game-map.js                  the restaurant floor — the owner's home screen
+  game-map.js                  the restaurant floor — the owner's home screen (Floor view)
+  tiles.js                     the blocks the owner arranges — the default home (Blocks view)
   deliveries.js training.js    delivery confirmation; SOPs & training
   partners.js                  optional lawyer / VEVO referrals
   assistant.js                 in-app AI assistant

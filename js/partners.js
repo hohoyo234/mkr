@@ -43,7 +43,7 @@ window.MKR = window.MKR || {};
     u.modal('Australian awards — get proper advice', `
       <p class="muted" style="font-size:14px">My Kitchen Rules does not calculate award rates, penalty rates or entitlements, and nothing in this app is legal advice. If you need a real answer, we hand you to a qualified employment lawyer.</p>
       <div class="list mt12">
-        <div class="li"><div class="ds-li-ic">⚖️</div><div class="meta"><b>${u.esc(L.name||'Partner employment lawyer')}</b><span>${u.esc(L.email||L.phone||'Contact details not set yet')}</span></div></div>
+        <div class="li"><div class="ds-li-ic">${MKR.ui.icon('shield')}</div><div class="meta"><b>${u.esc(L.name||'Partner employment lawyer')}</b><span>${u.esc(L.email||L.phone||'Contact details not set yet')}</span></div></div>
       </div>
       ${L.url?'':'<div class="alert amber mt12"><span>ℹ️</span><div>No partner link is configured yet — the owner can add one in <b>Settings → Optional Australian add-ons</b>.</div></div>'}`,
       {actions:[
@@ -60,7 +60,7 @@ window.MKR = window.MKR || {};
     const u = U();
     u.modal('Check work rights (VEVO)', `
       <p class="muted" style="font-size:14px">Work rights are checked on the Department of Home Affairs' own VEVO service — not here. You'll need the person's consent plus their passport / visa details.</p>
-      <div class="alert info mt12"><span>🛂</span><div>This app stores no visa data and applies no visa hour limits. Rostering only shows you warnings; what you do with them is your call.</div></div>`,
+      <div class="alert info mt12"><span>${MKR.ui.icon('idcard')}</span><div>This app stores no visa data and applies no visa hour limits. Rostering only shows you warnings; what you do with them is your call.</div></div>`,
       {actions:[
         {label:'Close', class:'btn-ghost', onClick:c=>c()},
         {label:'Open VEVO →', class:'btn-dark', onClick:async(c)=>{
@@ -75,8 +75,8 @@ window.MKR = window.MKR || {};
   function buttons(role){
     const can = (k)=> MKR.features && MKR.features.can(k, role);
     const b=[];
-    if(can('au_awards'))     b.push(`<button class="btn btn-ghost btn-sm" data-partner="awards">⚖️ Awards help</button>`);
-    if(can('au_workrights')) b.push(`<button class="btn btn-ghost btn-sm" data-partner="vevo">🛂 Check work rights</button>`);
+    if(can('au_awards'))     b.push(`<button class="btn btn-ghost btn-sm" data-partner="awards">${MKR.ui.icon('shield')} Awards help</button>`);
+    if(can('au_workrights')) b.push(`<button class="btn btn-ghost btn-sm" data-partner="vevo">${MKR.ui.icon('idcard')} Check work rights</button>`);
     return b.join('');
   }
   function bind(root){

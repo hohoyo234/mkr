@@ -61,7 +61,7 @@ window.MKR = window.MKR || {};
         <div class="dkt-line-top"><span class="dkt-name">${U.esc(l.name||'')}</span><b>${U.money(l.amount)}</b></div>
         <div class="dkt-line-sub"><span>${sub}</span>${move}</div>
         ${pk?`<div class="dkt-line-sub"><span class="faint">= ${l.qty} ${U.esc(l.unit||'')} · ${U.money(l.unitPrice)}/${U.esc(l.unit||'unit')}</span></div>`:''}
-        ${short||flag ? `<div class="dkt-flag">⚠ ${short?`ordered ${l.ordered} ${U.esc(l.unit||'')}, took ${l.qty}`:''}${short&&flag?' · ':''}${flag?U.esc(flag):''}</div>`:''}
+        ${short||flag ? `<div class="dkt-flag">${MKR.ui.icon('warning')} ${short?`ordered ${l.ordered} ${U.esc(l.unit||'')}, took ${l.qty}`:''}${short&&flag?' · ':''}${flag?U.esc(flag):''}</div>`:''}
       </div>`;
     };
 
@@ -89,7 +89,7 @@ window.MKR = window.MKR || {};
       </div>
       ${p.note?`<div class="dkt-note">${U.esc(p.note)}</div>`:''}
       ${p.deliveryId ? `<div class="dkt-stamp">
-          <b>✔ Checked in at the back door</b>
+          <b>${MKR.ui.icon('check')} Checked in at the back door</b>
           <span>${U.esc(p.by||'—')} counted it off the truck${o.dlv&&o.dlv.tempC!=null&&o.dlv.tempC!==''?` · ${U.esc(String(o.dlv.tempC))}°C on arrival`:''}</span>
         </div>` : `<div class="dkt-stamp plain">
           <b>Typed up from the paper</b>
@@ -131,7 +131,7 @@ window.MKR = window.MKR || {};
       <div class="statline">
         <span class="statcell"><b>${purch.length}</b><i>dockets kept</i></span>
         <span class="statcell"><b>${U.money0(spendThis)}</b><i>spent this month</i></span>
-        <span class="statcell"${monthDelta!=null&&monthDelta>0?' style="color:#8a6410"':''}><b>${monthDelta==null?'—':(monthDelta>0?'+':'')+monthDelta.toFixed(0)+'%'}</b><i>vs the same days last month</i></span>
+        <span class="statcell"${monthDelta!=null&&monthDelta>0?' style="color:var(--amber-ink)"':''}><b>${monthDelta==null?'—':(monthDelta>0?'+':'')+monthDelta.toFixed(0)+'%'}</b><i>vs the same days last month</i></span>
         <span class="statcell"><b>${U.money0(avg)}</b><i>average docket</i></span>
       </div>
 
@@ -145,7 +145,7 @@ window.MKR = window.MKR || {};
       </div>
       <div class="dkt-wall" id="dktWall"></div>
       <div class="dkt-none" id="dktNone" hidden>Nothing matches that.</div>`
-      : `<div class="empty mt16"><div class="em">🧾</div><p>No dockets yet. Record the first delivery and this becomes the pile of receipts you'd otherwise keep in a drawer — with the price of every line compared against last time.</p></div>`}`;
+      : `<div class="empty mt16"><div class="em">${MKR.ui.icon('receipt')}</div><p>No dockets yet. Record the first delivery and this becomes the pile of receipts you'd otherwise keep in a drawer — with the price of every line compared against last time.</p></div>`}`;
 
     function draw(){
       const wall = U.qs('#dktWall', c); if(!wall) return;
@@ -204,18 +204,18 @@ window.MKR = window.MKR || {};
     const photo = p.photo || (dlv && dlv.photo) || null;
     const wrap = U.el(`<div>${html}
       ${photo?`<div class="dkt-photo"><img src="${photo}" alt="Photo of the docket"></div>`:''}
-      ${dlv?`<div class="alert ${problems?'amber':'green'} mt12"><span>${problems?'⚠️':'✅'}</span><div>
+      ${dlv?`<div class="alert ${problems?'amber':'green'} mt12"><span>${MKR.ui.icon(problems?'warning':'checkcircle')}</span><div>
         ${problems?`${problems} ${problems===1?'line was':'lines were'} short or damaged when this arrived — worth checking before you pay the invoice.`
                   :'Everything on this docket was counted off the truck and matched.'}
         <button class="linkish" id="dktToDlv">Open the delivery →</button></div></div>`:''}
-      ${sup?`<div class="disclaimer mt12"><span>🚚</span>${U.esc(sup.name)}${sup.phone?' · '+U.esc(sup.phone):''}${sup.terms?' · pays on '+U.esc(sup.terms):''}</div>`:''}
+      ${sup?`<div class="disclaimer mt12"><span>${MKR.ui.icon('truck')}</span>${U.esc(sup.name)}${sup.phone?' · '+U.esc(sup.phone):''}${sup.terms?' · pays on '+U.esc(sup.terms):''}</div>`:''}
     </div>`);
     const jump = U.qs('#dktToDlv', wrap);
     if(jump) jump.onclick = ()=>{
       const back = wrap.closest('.modal-back'); if(back) back.remove();
       location.hash = `#/${(MKR.auth.current()||{}).role==='manager'?'manager':'owner'}/deliveries`;
     };
-    U.modal('🧾 Docket', wrap, {actions:[
+    U.modal('Docket', wrap, {actions:[
       {label:'Export CSV', class:'btn-ghost', onClick:(close)=>{
         const out=[['Item','Qty','Unit','Unit price','Amount']];
         (p.lines||[]).forEach(l=>out.push([l.name,l.qty,l.unit||'',(+l.unitPrice||0).toFixed(2),(+l.amount||0).toFixed(2)]));
@@ -273,7 +273,7 @@ window.MKR = window.MKR || {};
       <div class="field"><label>Photo of the docket (optional)</label>
         <input class="input" id="p_photo" type="file" accept="image/*">
         <div id="p_prev" class="dkt-photo"></div></div>
-      <div class="disclaimer"><span>📦</span>Saving adds these quantities to stock, updates each item's unit price and files the docket. Type only what the paper says — the app works nothing out for tax.</div>
+      <div class="disclaimer"><span>${MKR.ui.icon('box')}</span>Saving adds these quantities to stock, updates each item's unit price and files the docket. Type only what the paper says — the app works nothing out for tax.</div>
     </div>`);
 
     const body = U.qs('#p_lines',wrap);
@@ -326,7 +326,7 @@ window.MKR = window.MKR || {};
       // Supplier names and docket numbers stay on their own line: the dictionary
       // translates by exact match, so interpolated values must never sit inside
       // a sentence that needs translating.
-      dlvBox.innerHTML = !open.length ? '' : `<div class="alert amber"><span>🚚</span><div>
+      dlvBox.innerHTML = !open.length ? '' : `<div class="alert amber"><span>${MKR.ui.icon('truck')}</span><div>
         <b>This may already be waiting at the back door</b>
         <div class="faint">${open.map(d=>U.esc(d.supplierName||'Supplier')+(d.docketNo?' · '+U.esc(d.docketNo):'')).join('<br>')}</div>
         <div>Checking it in there files the docket and moves the stock. Typing it up here as well counts the same goods twice.</div>

@@ -65,9 +65,9 @@ window.MKR = window.MKR || {};
   }
 
   const STATUS = {
-    open:     {label:'Open',      pill:'warn',  em:'📌'},
-    resolved: {label:'Resolved',  pill:'ok',    em:'✅'},
-    escalated:{label:'With the manager', pill:'danger', em:'⬆️'},
+    open:     {label:'Open',      pill:'warn',  ic:'dot'},
+    resolved: {label:'Resolved',  pill:'ok',    ic:'checkcircle'},
+    escalated:{label:'With the manager', pill:'danger', ic:'trend'},
   };
 
   async function save(rec){
@@ -168,7 +168,7 @@ window.MKR = window.MKR || {};
     const localDT = (ts)=>{ const d=new Date(ts); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16); };
 
     const wrap = U.el(`<div>
-      <div class="disclaimer" style="margin-top:0"><span>🤝</span><div id="cf_intro">${U.esc(p.intro)}</div></div>
+      <div class="disclaimer" style="margin-top:0"><span>${MKR.ui.icon('users')}</span><div id="cf_intro">${U.esc(p.intro)}</div></div>
 
       <div class="section-title mt16">About you</div>
       <div class="row"><div class="field grow"><label>Your name</label>
@@ -190,7 +190,7 @@ window.MKR = window.MKR || {};
           <option value="">— choose —</option>
           ${p.levels.map(l=>`<option value="${l.id}" ${String(r.level)===String(l.id)?'selected':''}>Level ${l.id} · ${U.esc(l.label)}</option>`).join('')}
         </select></div>
-      <div class="disclaimer" id="cf_remedy" hidden><span>💬</span><div></div></div>
+      <div class="disclaimer" id="cf_remedy" hidden><span>${MKR.ui.icon('sparkle')}</span><div></div></div>
       <div class="field"><label>What was actually done</label>
         <input class="input" id="cf_action" value="${U.esc(r.actionTaken||'')}" placeholder="e.g. replaced the dish and refunded the drink"></div>
 
@@ -211,7 +211,7 @@ window.MKR = window.MKR || {};
           <span class="faint" style="font-size:12px;align-self:center">Sign with a finger or the mouse — optional, but it is what makes this a record</span>
         </div></div>
 
-      <div class="disclaimer mt12"><span>🔒</span>Kept for the venue only. Nothing here is posted anywhere, and the contact details are used to call this person back, nothing else.</div>
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('lock')}</span>Kept for the venue only. Nothing here is posted anywhere, and the contact details are used to call this person back, nothing else.</div>
     </div>`);
 
     let pad = null;

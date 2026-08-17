@@ -5,7 +5,7 @@
       link to the relevant screen.
    2. Personal queries — "what's my roster / hours / pay / tasks / TFN / super" —
       answered by reading the live local data for the signed-in user.
-   It renders as a floating 💬 button + chat panel mounted on <body>, so it
+   It renders as a floating button + chat panel mounted on <body>, so it
    survives route re-renders. Hidden on the public customer/join pages.
 
    (Pluggable: if MKR.assistant.llm is set to an async fn, free-form questions can
@@ -20,19 +20,19 @@ window.MKR = window.MKR || {};
   // ---------- Feature knowledge base (role-aware; EN + 中文 keywords) ----------
   const KB = [
     {id:'roster', roles:['owner','manager'], go:'#/manager/schedule', k:['roster','rostering','schedule','rota','排班','排班表'],
-      a:'Open <b>Rostering</b> to plan the week. Tap ✨ AI auto-roster — the first time it asks how you like your roster (how many people per day-part, what to warn you about, who can open/close/cook), then plans from availability, skills and how many people you rostered in past weeks. Drag chips between days to adjust. Nothing is ever blocked; you just get warnings.'},
+      a:'Open <b>Rostering</b> to plan the week. Tap <b>AI auto-roster</b> — the first time it asks how you like your roster (how many people per day-part, what to warn you about, who can open/close/cook), then plans from availability, skills and how many people you rostered in past weeks. Drag chips between days to adjust. Nothing is ever blocked; you just get warnings.'},
     {id:'rosterprefs', roles:['owner','manager'], go:'#/manager/schedule', k:['preference','preferences','warning','warnings','limit','max hours','偏好','提醒','警告','工时上限'],
-      a:'In <b>Rostering → ⚙️ Preferences</b> you set what the AI optimises for and <b>when it should warn you</b> — long weeks, too many days straight, short breaks between shifts. These are warnings, never limits: the roster always saves.'},
+      a:'In <b>Rostering → Preferences</b> you set what the AI optimises for and <b>when it should warn you</b> — long weeks, too many days straight, short breaks between shifts. These are warnings, never limits: the roster always saves.'},
     {id:'skills', roles:['owner','manager'], go:'#/manager/schedule', k:['skill','skills','open','close','技能','会开店','会关店'],
-      a:'Skills (🔑 open · 🌙 close · 🍳 kitchen · ☕ coffee · ⭐ shift lead) drive the plan. Set them in <b>Rostering → Preferences</b> or on anyone\'s profile — the roster then makes sure each day has someone who can open, close and cook.'},
+      a:'Skills (open · close · kitchen · coffee · shift lead) drive the plan. Set them in <b>Rostering → Preferences</b> or on anyone\'s profile — the roster then makes sure each day has someone who can open, close and cook.'},
     {id:'addusers', roles:['owner','manager'], go:'#/manager/hire', k:['add user','add staff','hire','new starter','加人','添加员工','招聘'],
       a:'Use <b>Add Users</b>: enter a phone number, role and skills, and it creates a staff login plus an onboarding link. To add a <b>manager</b>, share the “Manager join link” from the owner Team page.'},
     {id:'stock', roles:['owner','manager'], go:'#/manager/stock', k:['stock','inventory','ingredient','cost','price','库存','原料','食材','成本','价格'],
       a:'<b>Stock &amp; costs</b> tracks raw ingredients and the tools that run out (chopsticks, containers, gloves) — quantity, unit price, amount and a total value. Each item keeps a price history, so you can see ▲ / ▼ against what you paid last time.'},
     {id:'stocktake', roles:['owner','manager','staff'], go:'#/manager/stock', k:['stocktake','count','盘点','点存货','数库存'],
-      a:'In <b>Stock</b> tap 🔢 Stocktake and type what you actually count. This is the only place usage comes from — there is no till in this app — so counting regularly is what makes the forecast work.'},
+      a:'In <b>Stock</b> tap <b>Stocktake</b> and type what you actually count. This is the only place usage comes from — there is no till in this app — so counting regularly is what makes the forecast work.'},
     {id:'forecast', roles:['owner','manager'], go:'#/manager/stock', k:['forecast','how much used','running out','order list','预测','用了多少','要订货'],
-      a:'The <b>Forecast</b> tab works out how much of each ingredient you get through per day (last count + purchases − this count), how many days of cover you have left, and how much to order. Tap ✨ Ask AI for a plain-English read.'},
+      a:'The <b>Forecast</b> tab works out how much of each ingredient you get through per day (last count + purchases − this count), how many days of cover you have left, and how much to order. Tap <b>Ask AI</b> for a plain-English read.'},
     {id:'suppliers', roles:['owner','manager'], go:'#/manager/stock', k:['supplier','who to call','purchase','buy','供应商','在哪买','采购','联系人'],
       a:'The <b>Suppliers</b> tab keeps who you buy from, who you actually ring and their number. <b>Purchases</b> keeps every invoice — what you bought, from whom and at what price.'},
     {id:'deliveries', roles:['owner','manager','staff'], go:'#/manager/deliveries', k:['delivery','deliveries','receive','docket','送货','收货','确认'],
@@ -52,9 +52,9 @@ window.MKR = window.MKR || {};
     {id:'onboarding', roles:['staff'], go:'#/staff/me', k:['onboard','onboarding','passport','documents','入职','护照','资料'],
       a:'In <b>My profile</b> there are two things to complete: a photo of your ID, and an emergency contact. That\'s it — this app never asks for your TFN, super fund or bank details.'},
     {id:'pay', roles:['owner','manager','staff'], k:['pay','wage','salary','award','penalty rate','super','tfn','tax','工资','薪水','税','退休金'],
-      a:'This app does <b>not</b> do pay. It doesn\'t calculate wages, interpret awards, or file anything with the government — that stays with your payroll process. If the owner has switched it on, ⚖️ <b>Awards help</b> hands you to a qualified employment lawyer.'},
+      a:'This app does <b>not</b> do pay. It doesn\'t calculate wages, interpret awards, or file anything with the government — that stays with your payroll process. If the owner has switched it on, <b>Awards help</b> hands you to a qualified employment lawyer.'},
     {id:'workrights', roles:['owner','manager'], k:['visa','work rights','vevo','签证','工作权利','工时限制'],
-      a:'The app applies no visa hour limits and stores no visa data. If the owner switches on the optional add-on, 🛂 <b>Check work rights</b> opens VEVO — the Department of Home Affairs\' own checker — with the person\'s consent.'},
+      a:'The app applies no visa hour limits and stores no visa data. If the owner switches on the optional add-on, <b>Check work rights</b> opens VEVO — the Department of Home Affairs\' own checker — with the person\'s consent.'},
     {id:'export', roles:['owner'], go:'#/owner/settings', k:['export','csv','pdf','download report','导出','下载','报表'],
       a:'In <b>Settings → Data export</b> you can download the roster, stock, purchases or the audit log as CSV, or print to PDF. They\'re your own records — nothing is filed anywhere.'},
     {id:'branches', roles:['owner'], go:'#/owner/branches', k:['branch','branches','分店','另一家','second store','multiple venues','add restaurant','加餐厅'],
@@ -98,7 +98,7 @@ window.MKR = window.MKR || {};
     const list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO());
     const open=list.filter(t=>!t.done);
     if(!list.length) return `No tasks published for today.`;
-    if(!open.length) return `🎉 All ${list.length} of today's tasks are done.`;
+    if(!open.length) return `${MKR.ui.icon('checkcircle')} All ${list.length} of today's tasks are done.`;
     return `Today's tasks — ${list.length-open.length}/${list.length} done. Still to do:<br>${open.map(t=>'• '+U.esc(t.name)).join('<br>')} ${jump(roleOf()==='manager'?'#/manager/tasks':'#/staff/tasks','Open tasks')}`;
   }
   async function myProfileInfo(which){
@@ -111,7 +111,7 @@ window.MKR = window.MKR || {};
   async function onboardStatus(){
     const s=MKR.auth.current(); if(!s) return signIn();
     const me=await MKR.db.get('users',s.id)||{};
-    return me.onboarded ? `✅ Your onboarding is complete.` : `Your onboarding is still in progress. ${jump('#/staff/me','Finish it')}`;
+    return me.onboarded ? `${MKR.ui.icon('checkcircle')} Your onboarding is complete.` : `Your onboarding is still in progress. ${jump('#/staff/me','Finish it')}`;
   }
   // Owner / manager aggregates
   async function staffCount(){
@@ -141,7 +141,7 @@ window.MKR = window.MKR || {};
     const shifts=(await MKR.db.getAll('shifts')).filter(x=>x.day===todayIdx).sort((a,b)=>a.start.localeCompare(b.start));
     const onNow=new Set((await MKR.db.getAll('clockins')).filter(c=>c.date===U.todayISO()).map(c=>c.staffId));
     if(!shifts.length) return `今天没有人排班。${jump('#/manager/schedule','打开排班')}`;
-    const rows=shifts.map(x=>`• ${x.start}–${x.end} ${U.esc(nameOf(x.staffId))}${onNow.has(x.staffId)?' <b>✅ 已打卡</b>':''}`).join('<br>');
+    const rows=shifts.map(x=>`• ${x.start}–${x.end} ${U.esc(nameOf(x.staffId))}${onNow.has(x.staffId)?' <b>· 已打卡</b>':''}`).join('<br>');
     return `今天上班的人（共 ${shifts.length} 个班，${onNow.size} 人已打卡）：<br>${rows} ${jump('#/manager/schedule','打开排班')}`;
   }
   async function myBranches(){
@@ -163,7 +163,7 @@ window.MKR = window.MKR || {};
   // data. db.put already stamps the kitchen + obeys Row Level Security.
   let pendingAction=null;
   function confirmCard(text){
-    return `${text}<div class="ai-chips"><button class="ai-chip" data-q="yes, do it">✅ Yes, do it</button><button class="ai-chip" data-q="cancel">Cancel</button></div>`;
+    return `${text}<div class="ai-chips"><button class="ai-chip" data-q="yes, do it">${MKR.ui.icon('checkcircle')} Yes, do it</button><button class="ai-chip" data-q="cancel">Cancel</button></div>`;
   }
   async function runPending(){ const a=pendingAction; pendingAction=null; if(!a) return `Nothing to confirm.`;
     try{ return await a.run(); }catch(e){ return `Sorry — that didn't go through. Please try it from the screen directly.`; } }
@@ -184,7 +184,7 @@ window.MKR = window.MKR || {};
   }
   async function addTask(name){
     await MKR.db.put('tasks',{name, date:U.todayISO(), done:false, photo:null, by:null});
-    return `✅ Added today's task: <b>${U.esc(name)}</b>. ${jump('#/manager/tasks','Open tasks')}`;
+    return `${MKR.ui.icon('checkcircle')} Added today's task: <b>${U.esc(name)}</b>. ${jump('#/manager/tasks','Open tasks')}`;
   }
 
   // Staff: ask the manager to cover a shift (same mechanic as dropping a shift).
@@ -203,7 +203,7 @@ window.MKR = window.MKR || {};
       await MKR.db.put('swaps',{staffId:s.id, shiftId:target.id, label, reason:'Requested via assistant', status:'pending', ts:Date.now()});
       await MKR.db.put('alerts',{type:'swap', level:'amber', title:'Shift swap requested', desc:`${s.name} asked to swap ${label}`, read:false, ts:Date.now()});
       try{ if(MKR.notify&&MKR.notify.push) MKR.notify.push({role:'manager'},'🔁 Swap requested',`${s.name}: ${label}`,'swap'); }catch(e){}
-      return `✅ Done — I've asked your manager to cover <b>${label}</b>. You'll be notified once it's approved. ${jump('#/staff/swaps','View swaps')}`;
+      return `${MKR.ui.icon('checkcircle')} Done — I've asked your manager to cover <b>${label}</b>. You'll be notified once it's approved. ${jump('#/staff/swaps','View swaps')}`;
     }};
     return confirmCard(`I'll ask your manager to cover your <b>${label}</b> shift. Send the request?`);
   }
@@ -299,7 +299,7 @@ window.MKR = window.MKR || {};
   function greeting(){
     const role=roleOf();
     const name=(MKR.auth.current()||{}).name||'there';
-    return `Hi ${U.esc(name)} 👋 I'm your My Kitchen assistant. Ask me how a feature works, or about your own info. Try:<br>${chips()}`;
+    return `Hi ${U.esc(name)} — I'm your My Kitchen assistant. Ask me how a feature works, or about your own info. Try:<br>${chips()}`;
   }
   function chips(){
     const role=roleOf();
@@ -346,14 +346,15 @@ window.MKR = window.MKR || {};
 
   function mount(){
     if(mounted) return; mounted=true;
-    btn=document.createElement('button'); btn.className='ai-fab'; btn.setAttribute('aria-label','Assistant'); btn.innerHTML='💬';
+    btn=document.createElement('button'); btn.className='ai-fab'; btn.setAttribute('aria-label','Assistant');
+    btn.innerHTML=MKR.ui.icon('sparkle');
     panel=document.createElement('div'); panel.className='ai-panel';
     panel.innerHTML=`
-      <div class="ai-head"><b>🤖 Assistant</b><button class="ai-x" aria-label="Close">×</button></div>
+      <div class="ai-head"><b>${MKR.ui.icon('sparkle')} Assistant</b><button class="ai-x" aria-label="Close">×</button></div>
       <div class="ai-log" id="aiLog"></div>
       <form class="ai-input-row" id="aiForm">
         <input class="input" id="aiInput" placeholder="Ask about a feature or your shifts…" autocomplete="off">
-        <button class="btn btn-dark" type="submit" aria-label="Send">➤</button>
+        <button class="btn btn-dark" type="submit" aria-label="Send">${MKR.ui.icon('send')}</button>
       </form>`;
     document.body.appendChild(panel); document.body.appendChild(btn);
     log=panel.querySelector('#aiLog');
@@ -424,7 +425,7 @@ window.MKR = window.MKR || {};
       const out = await res.json().catch(()=>null);
       if(!out || !out.text) return null;
       const html = U.esc(out.text).replace(/\n/g,'<br>');
-      return html + '<div class="faint" style="font-size:11px;margin-top:6px">🤖 AI</div>';
+      return html + `<div class="faint" style="font-size:11px;margin-top:6px">${MKR.ui.icon('sparkle')} AI</div>`;
     }catch(e){ return null; }
   }
 

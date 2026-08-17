@@ -18,13 +18,15 @@ window.MKR = window.MKR || {};
   // Every room maps to a module that exists. There is no "front of house /
   // takings" room on purpose — this app has no point of sale, so it would have
   // nothing honest to show.
+  // `tone` is the module's colour from MKR.ui — the same one its block on the
+  // home screen uses, so a room and its block are recognisably the same thing.
   const ROOMS = [
-    {id:'stock',     em:'📦', name:'Cold room & store', note:'Stock to top up',    href:'#/owner/stock',      cls:'r-stock'},
-    {id:'delivery',  em:'🚚', name:'Back door',         note:'Deliveries to check',href:'#/owner/deliveries', cls:'r-delivery'},
-    {id:'kitchen',   em:'🍳', name:'Kitchen',           note:"Today's checklist",  href:'#/manager/tasks',    cls:'r-kitchen'},
-    {id:'team',      em:'👥', name:'Staff area',        note:'Roster for the week',href:'#/manager/schedule', cls:'r-team'},
-    {id:'training',  em:'📘', name:'Training room',     note:'Sign-offs waiting',  href:'#/owner/training',   cls:'r-training'},
-    {id:'office',    em:'📈', name:'Your office',       note:'Alerts and the week', href:'#/owner/alerts',    cls:'r-office'},
+    {id:'stock',    ic:'box',      tone:'blue',   name:'Cold room & store', note:'Stock to top up',     href:'#/owner/stock',      cls:'r-stock'},
+    {id:'delivery', ic:'truck',    tone:'amber',  name:'Back door',         note:'Deliveries to check', href:'#/owner/deliveries', cls:'r-delivery'},
+    {id:'kitchen',  ic:'pan',      tone:'green',  name:'Kitchen',           note:"Today's checklist",   href:'#/manager/tasks',    cls:'r-kitchen'},
+    {id:'team',     ic:'calendar', tone:'violet', name:'Staff area',        note:'Roster for the week', href:'#/manager/schedule', cls:'r-team'},
+    {id:'training', ic:'book',     tone:'teal',   name:'Training room',     note:'Sign-offs waiting',   href:'#/owner/training',   cls:'r-training'},
+    {id:'office',   ic:'bell',     tone:'red',    name:'Your office',       note:'Alerts and the week', href:'#/owner/alerts',     cls:'r-office'},
   ];
 
   function greeting(){
@@ -91,11 +93,20 @@ window.MKR = window.MKR || {};
     return bits.length ? bits.join(' ') : 'Nothing is running short and no supplier has moved a price on you.';
   }
 
+  // Rooms where a number means "today", not "this week". Same list the home
+  // blocks use, so a room and its block never disagree about how loud to be.
+  const URGENT = ['office','team'];
+
   function roomHtml(r, c){
     const done = !c.n;
-    return `<a class="rm ${r.cls}${done?' rm-done':' rm-live'}" href="${r.href}" data-room="${r.id}">
-      <span class="rm-badge${done?' ok':''}">${done?'✓':c.n}</span>
-      <span class="rm-em">${r.em}</span>
+    // The icon chip carries which room this is; the badge carries how it is
+    // going. Letting the badge take the room's colour too meant the kitchen's
+    // "5 jobs left" was the same green as "all clear".
+    const state = MKR.ui.tier(c.n, URGENT.includes(r.id));
+    return `<a class="rm t-${r.tone} is-${state} ${r.cls}${done?' rm-done':' rm-live'}" href="${r.href}" data-room="${r.id}"
+       aria-label="${U.esc(r.name)} — ${done?'all clear':c.n+' waiting'}">
+      <span class="rm-badge${done?' ok':''}">${done?MKR.ui.icon('check'):c.n}</span>
+      <span class="rm-ic">${MKR.ui.icon(r.ic)}</span>
       <b>${r.name}</b>
       <small>${r.note}</small>
     </a>`;
@@ -111,14 +122,14 @@ window.MKR = window.MKR || {};
       <div class="fp">
         <div class="fp-hello">
           <div>
-            <h2>${greeting()} 👋</h2>
+            <h2>${greeting()}</h2>
             ${m.total
               // One text node, no inner markup: the translator matches whole
               // nodes, so a <b> in the middle would split the sentence in two.
               ? `<p class="fp-count">${m.total} thing${m.total===1?'':'s'} waiting on you · about ${minutesFor(m.total)} minute${minutesFor(m.total)===1?'':'s'}</p>`
               : `<p class="fp-count">Nothing is waiting on you. Go and run your restaurant.</p>`}
           </div>
-          ${first ? `<a class="btn btn-green" href="${first.href}">Start with ${first.name} →</a>` : ''}
+          ${first ? `<a class="btn btn-accent" href="${first.href}">Start with ${first.name} →</a>` : ''}
         </div>
 
         <div class="fp-prog card">
@@ -132,25 +143,25 @@ window.MKR = window.MKR || {};
           <div class="fp-rooms">${ROOMS.map(r=>roomHtml(r, m.rooms[r.id])).join('')}</div>
           <div class="fp-boss">
             ${first ? `<span class="fp-think">${U.esc(firstC.why || 'Start here')}</span>` : `<span class="fp-think">All done for today</span>`}
-            <span class="fp-head">${m.total?'🙂':'😄'}</span>
             <span class="fp-body">MKR</span>
           </div>
-          <span class="fp-deco d1">🪴</span><span class="fp-deco d2">🌿</span>
-          <span class="fp-deco d3">🍽️</span><span class="fp-deco d4">🍽️</span>
         </div>
 
         <div class="fp-insight">
-          <span class="fp-insight-ic">✨</span>
+          <span class="fp-insight-ic">${MKR.ui.icon('sparkle')}</span>
           <div><b>What changed since you last looked</b><p>${U.esc(insight(m))}</p></div>
           <a class="btn btn-ghost btn-sm" href="#/owner/stock">Open the cold room →</a>
         </div>
 
-        <div class="disclaimer mt16"><span>ℹ️</span>Every number on this floor is read from your own records. This app tracks your operations only — it has no till, so it never shows takings, and it doesn't calculate pay or talk to any government system.</div>
+        <details class="disclaimer-fold mt16">
+          <summary>Where these numbers come from</summary>
+          <p>Every number on this floor is read from your own records. This app tracks your operations only — it has no till, so it never shows takings, and it doesn't calculate pay or talk to any government system.</p>
+        </details>
       </div>`;
 
     // Nothing to bind: the rooms are real links, so they work with the back
     // button, middle-click and the router exactly like the rest of the app.
   }
 
-  MKR.gameMap = { render, ROOMS, counts };
+  MKR.gameMap = { render, ROOMS, counts, greeting };
 })();

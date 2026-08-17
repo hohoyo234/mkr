@@ -16,17 +16,17 @@ window.MKR = window.MKR || {};
       <div class="field"><label>New password</label><input class="input" id="np1" type="password" autocomplete="new-password" placeholder="new password"></div>
       <div class="field"><label>Confirm new password</label><input class="input" id="np2" type="password" autocomplete="new-password" placeholder="repeat it"></div>
       <div id="pwerr" class="alert red hidden" style="margin-bottom:2px"></div>`;
-    U.modal('🔑 Change password', body, { actions:[
+    U.modal('Change password', body, { actions:[
       { label:'Cancel', class:'btn-ghost', onClick:(close)=>close() },
       { label:'Update password', class:'btn-dark', onClick:async(close)=>{
-          const err=U.qs('#pwerr'); const show=(m)=>{ err.textContent='⚠️ '+m; err.classList.remove('hidden'); };
+          const err=U.qs('#pwerr'); const show=(m)=>{ err.textContent=''+m; err.classList.remove('hidden'); };
           const p1=(U.qs('#np1').value||''), p2=(U.qs('#np2').value||'');
           if(p1.length<6) return show('Password must be at least 6 characters');
           if(p1!==p2)     return show("The two passwords don't match");
           const {error}=await MKR.supa.client.auth.updateUser({password:p1});
           if(error) return show(error.message);
           try{ MKR.audit.log({action:'settings.update', desc:'Changed own password'}); }catch(e){}
-          close(); U.toast('Password updated ✓','green');
+          close(); U.toast('Password updated','green');
       }}
     ]});
   }
