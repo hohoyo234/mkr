@@ -422,6 +422,80 @@ window.MKR = window.MKR || {};
     return row;
   }
 
+
+  // ---------- dish cost cards ----------
+  /* The link that was missing between the shelf and the menu. Stock knows beef
+     went up 18%; the menu knows the bowl sells for $18.50; nothing joined them,
+     so "is this dish still worth cooking" was a question the app held both
+     halves of and could not answer.
+
+     Deliberately coarse. A recipe here is the three to five things that
+     actually move the cost, in the unit the shelf already uses — not a
+     gram-accurate spec. An owner will type "0.2 kg beef, 0.15 kg noodles" once;
+     nobody types a full bill of materials for forty dishes, and a costing that
+     is 5% out still tells you the same thing about an 18% price rise.
+
+     This is NOT a menu. Nothing here is displayed to a customer, nothing is
+     ordered, nothing is sold. It is a calculator that reads the prices already
+     in stock. */
+  async function recipes(){ return (await mineOf('recipes'))
+    .sort((a,b)=> String(a.name).localeCompare(String(b.name))); }
+
+  async function saveRecipe(r){
+    const row = await MKR.db.put('recipes', {
+      id: r.id || U.uid('rcp'), name:(r.name||'').trim(), price:U.round2(r.price||0),
+      lines: (r.lines||[]).filter(l=>l.itemId && +l.qty>0).map(l=>({itemId:l.itemId, qty:U.round2(l.qty)})),
+      note:(r.note||'').trim(), kitchenId:kid(),
+    });
+    try{ await MKR.audit.log({action:'stock.item', desc:`Cost card saved · ${row.name}`, amount:row.price}); }catch(e){}
+    return row;
+  }
+
+  // Menu prices in Australia are quoted GST-inclusive; the prices on the shelf
+  // are not. Comparing the two straight makes every dish look about a tenth
+  // better than it is, which is the wrong direction to be wrong about when the
+  // question is whether to put a price up. Divided out by default, and it is a
+  // switch because not every venue is registered.
+  async function gstSettings(){
+    const s = (await MKR.db.meta('settings')) || {};
+    return { inc: s.dishGstInc !== false, rate: +s.dishGstRate > 0 ? +s.dishGstRate : 10 };
+  }
+  async function setGstInc(on){
+    const s = (await MKR.db.meta('settings')) || {}; s.dishGstInc = !!on;
+    await MKR.db.meta('settings', s); return s.dishGstInc;
+  }
+  const exGst = (price, g)=> g && g.inc ? U.round2((+price||0)/(1+(g.rate/100))) : U.round2(+price||0);
+
+  // A price rise only says something while it is news. Past this the "was"
+  // column is the same as the "is" column and the card stops shouting about a
+  // change the owner already priced around.
+  const MOVE_WINDOW = 30*DAY;
+
+  function dishCost(r, its, g){
+    const lines = (r.lines||[]).map(l=>{
+      const it = its.find(i=>i.id===l.itemId) || null;
+      const price = it ? (+it.price||0) : 0;
+      const mv = it ? priceMove(it) : null;
+      const recent = mv && mv.dir!=='flat' && mv.from!=null && mv.ts > Date.now()-MOVE_WINDOW;
+      return { itemId:l.itemId, qty:+l.qty||0, item:it,
+               name: it ? it.name : 'removed from stock', unit: it ? (it.unit||'') : '',
+               price, amount: lineAmount(l.qty, price),
+               wasAmount: lineAmount(l.qty, recent ? mv.from : price),
+               move: recent ? mv : null };
+    });
+    const cost  = U.round2(lines.reduce((t,l)=>t+l.amount, 0));
+    const was   = U.round2(lines.reduce((t,l)=>t+l.wasAmount, 0));
+    const net   = exGst(r.price, g);
+    return {
+      recipe:r, lines, cost, was, price:U.round2(r.price||0), net,
+      pct:    net ? U.round2(cost/net*100) : null,
+      wasPct: net ? U.round2(was /net*100) : null,
+      margin: U.round2(net - cost),
+      moved:  lines.filter(l=>l.move),
+      missing:lines.filter(l=>!l.item).length,
+    };
+  }
+
   // ---------- statement reconciliation ----------
   // Suppliers on account send one statement a month with a single total on it.
   // You hold a pile of dockets. Checking one against the other is the job nobody
@@ -598,6 +672,7 @@ window.MKR = window.MKR || {};
     KIND, WASTE_REASONS, items, suppliers, purchases, stocktakes, wastes,
     overview, usageOf, usageIntervals, saveWaste, wasteSince,
     reconciliations, statementFor, statementPeriods, saveReconciliation, periodOf,
+    recipes, saveRecipe, dishCost, gstSettings, setGstInc, exGst,
     saveItem, removeItem, savePurchase, saveStocktake, shrinkSince, priceWatch, previousPrice,
     priceMove, moveBadge, itemValue, lineAmount, totalValue, scanWarnings,
     packSizeOf, packLabelOf, packHint, packLine, unitOf,

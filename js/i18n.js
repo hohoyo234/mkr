@@ -905,6 +905,25 @@ window.MKR = window.MKR || {};
     "Today's snapshot":"今日概览", "Tasks due today":"今日待办任务", "Upcoming deliveries":"待确认到货",
     "Expiring items":"临期物料", "Team on shift":"今日在班人数", "Takings today":"今日营业额",
     "Enter takings":"录入营业额",
+    // ---- Dish cost cards ----
+    "Dish costs":"菜品成本", "Add a dish":"添加菜品",
+    "dishes costed":"张成本卡", "average food cost":"平均食材成本占比",
+    "moved this month":"本月成本变了",
+    "Food cost":"食材成本占比", "Ingredients":"原料成本", "You keep":"你落袋",
+    "What goes in it":"这碗里有什么", "Add an ingredient":"添加一样原料",
+    "The three to five things that actually move the cost, in the unit the shelf uses. Rough is fine — a costing a few per cent out still tells you what a price rise did.":"填真正影响成本的三到五样，用库存里的单位。填个大概就行 —— 差几个百分点，照样看得出涨价把成本推到哪去了。",
+    "New dish cost card":"新建菜品成本卡", "Dish cost card":"菜品成本卡",
+    "Cost card saved":"成本卡已保存", "Cost card updated":"成本卡已更新",
+    "Delete cost card":"删除成本卡", "Give the dish a name":"给这道菜起个名字",
+    "Nothing yet.":"还没有。", "Sells for":"售价",
+    "No ingredients on this card yet — tap the pencil.":"这张卡还没填原料 —— 点铅笔。",
+    "No dishes costed yet. Start with the three you sell most of — the ones where a price rise actually costs you money.":"还没有成本卡。先做卖得最多的那三道 —— 涨价真正会让你掉钱的那几道。",
+    "GST is taken off the selling price on the card itself, not here.":"GST 是在成本卡上从售价里扣的，这里不扣。",
+    "Ingredient prices moved under them. Nothing has changed on your menu board.":"是原料价在下面动了。你菜单上的价一个字都没改。",
+    "Cost is your recipe times the last price you actually paid for each ingredient, so it moves when your supplier moves.":"成本 = 你的配方 × 每样原料你最后一次实付的价，所以供应商一动它就动。",
+    "Menu prices are treated as GST-inclusive and the GST is taken out before the ratio — comparing a GST-inclusive price against GST-free ingredient costs makes every dish look about a tenth better than it is. Tap the GST cell to change that.":"菜单价按含 GST 处理，算占比前先把 GST 扣掉 —— 拿含 GST 的售价去比不含 GST 的原料成本，每道菜都会好看约一成。点上面那格 GST 可以改。",
+    "Menu prices are treated as GST-free. Tap the GST cell to change that.":"菜单价按不含 GST 处理。点上面那格 GST 可以改。",
+    "35% is a common line in the trade, not your line — read it against the food cost on your Takings page, which is the one that is actually yours.":"35% 是行业里常说的线，不是你的线 —— 对着营业额页上那个食材成本占比看，那个才是你自己的。",
     // ---- Stocktake variance, in money ----
     "Difference":"差异", "matches":"一致",
     "Type a count and the gap against the book appears here.":"填一个实盘数，和账面的差就会显示在这里。",
@@ -1232,6 +1251,16 @@ window.MKR = window.MKR || {};
   // Templated strings (numbers / names interpolated) — exact match can't catch
   // these, so match by pattern and re-insert the captured dynamic bits.
   const PATTERNS = [
+    // Dish cost cards
+    [/^menu prices (include|exclude) GST$/, m => m[1]==='include' ? '菜单价含 GST' : '菜单价不含 GST'],
+    [/^(\d+) dish costs? more than it did a month ago$/, m => `有 ${m[1]} 道菜比一个月前贵了`],
+    [/^(\d+) dishes cost more than they did a month ago$/, m => `有 ${m[1]} 道菜比一个月前贵了`],
+    [/^was ([\d.]+)% a month ago$/, m => `一个月前是 ${m[1]}%`],
+    [/^(\d+) ingredients? no longer in stock — counted as \$0\.$/, m => `有 ${m[1]} 样原料已不在库存里 —— 按 $0 计。`],
+    [/^Sells for (\$[\d,.]+)$/, m => `售价 ${m[1]}`],
+    [/^Sells for (\$[\d,.]+) · (\$[\d,.]+) after GST$/, m => `售价 ${m[1]} · 扣掉 GST 后 ${m[2]}`],
+    [/^in the bowl ·$/, () => '在这碗里 ·'],
+    [/^of the (\$[\d,.]+) it sells for$/, m => `占 ${m[1]} 售价`],
     // Stocktake variance — the money figure is live
     [/^(\d+) counted · dead on the book$/, m => `已盘 ${m[1]} 项 · 和账面完全一致`],
     [/^(\d+) counted ·$/, m => `已盘 ${m[1]} 项 ·`],

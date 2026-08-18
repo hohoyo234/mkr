@@ -873,6 +873,25 @@
       "Today's snapshot":"今日概覽", "Tasks due today":"今日待辦任務", "Upcoming deliveries":"待確認到貨",
       "Expiring items":"臨期物料", "Team on shift":"今日在班人數", "Takings today":"今日營業額",
       "Enter takings":"錄入營業額",
+      // ---- Dish cost cards ----
+      "Dish costs":"菜品成本", "Add a dish":"添加菜品",
+      "dishes costed":"張成本卡", "average food cost":"平均食材成本佔比",
+      "moved this month":"本月成本變了",
+      "Food cost":"食材成本佔比", "Ingredients":"原料成本", "You keep":"你落袋",
+      "What goes in it":"這碗裏有什麼", "Add an ingredient":"添加一樣原料",
+      "The three to five things that actually move the cost, in the unit the shelf uses. Rough is fine — a costing a few per cent out still tells you what a price rise did.":"填真正影響成本的三到五樣，用庫存裏的單位。填個大概就行 —— 差幾個百分點，照樣看得出漲價把成本推到哪去了。",
+      "New dish cost card":"新建菜品成本卡", "Dish cost card":"菜品成本卡",
+      "Cost card saved":"成本卡已保存", "Cost card updated":"成本卡已更新",
+      "Delete cost card":"刪除成本卡", "Give the dish a name":"給這道菜起個名字",
+      "Nothing yet.":"還沒有。", "Sells for":"售價",
+      "No ingredients on this card yet — tap the pencil.":"這張卡還沒填原料 —— 點鉛筆。",
+      "No dishes costed yet. Start with the three you sell most of — the ones where a price rise actually costs you money.":"還沒有成本卡。先做賣得最多的那三道 —— 漲價真正會讓你掉錢的那幾道。",
+      "GST is taken off the selling price on the card itself, not here.":"GST 是在成本卡上從售價里扣的，這裏不扣。",
+      "Ingredient prices moved under them. Nothing has changed on your menu board.":"是原料價在下面動了。你菜單上的價一個字都沒改。",
+      "Cost is your recipe times the last price you actually paid for each ingredient, so it moves when your supplier moves.":"成本 = 你的配方 × 每樣原料你最後一次實付的價，所以供應商一動它就動。",
+      "Menu prices are treated as GST-inclusive and the GST is taken out before the ratio — comparing a GST-inclusive price against GST-free ingredient costs makes every dish look about a tenth better than it is. Tap the GST cell to change that.":"菜單價按含 GST 處理，算佔比前先把 GST 扣掉 —— 拿含 GST 的售價去比不含 GST 的原料成本，每道菜都會好看約一成。點上面那格 GST 可以改。",
+      "Menu prices are treated as GST-free. Tap the GST cell to change that.":"菜單價按不含 GST 處理。點上面那格 GST 可以改。",
+      "35% is a common line in the trade, not your line — read it against the food cost on your Takings page, which is the one that is actually yours.":"35% 是行業裏常說的線，不是你的線 —— 對着營業額頁上那個食材成本佔比看，那個纔是你自己的。",
       // ---- Stocktake variance, in money ----
       "Difference":"差異", "matches":"一致",
       "Type a count and the gap against the book appears here.":"填一個實盤數，和賬面的差就會顯示在這裏。",
@@ -1197,6 +1216,16 @@
       "more on the shelf than could have arrived — looks like a miscount":"貨架上的比進的還多 —— 像是盤錯了",
     };
     const PATTERNS = [
+      // Dish cost cards
+      [/^menu prices (include|exclude) GST$/, m => m[1]==='include' ? '菜單價含 GST' : '菜單價不含 GST'],
+      [/^(\d+) dish costs? more than it did a month ago$/, m => `有 ${m[1]} 道菜比一個月前貴了`],
+      [/^(\d+) dishes cost more than they did a month ago$/, m => `有 ${m[1]} 道菜比一個月前貴了`],
+      [/^was ([\d.]+)% a month ago$/, m => `一個月前是 ${m[1]}%`],
+      [/^(\d+) ingredients? no longer in stock — counted as \$0\.$/, m => `有 ${m[1]} 樣原料已不在庫存裏 —— 按 $0 計。`],
+      [/^Sells for (\$[\d,.]+)$/, m => `售價 ${m[1]}`],
+      [/^Sells for (\$[\d,.]+) · (\$[\d,.]+) after GST$/, m => `售價 ${m[1]} · 扣掉 GST 後 ${m[2]}`],
+      [/^in the bowl ·$/, () => '在這碗裏 ·'],
+      [/^of the (\$[\d,.]+) it sells for$/, m => `佔 ${m[1]} 售價`],
       // Stocktake variance — the money figure is live
       [/^(\d+) counted · dead on the book$/, m => `已盤 ${m[1]} 項 · 和賬面完全一致`],
       [/^(\d+) counted ·$/, m => `已盤 ${m[1]} 項 ·`],

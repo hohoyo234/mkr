@@ -115,7 +115,7 @@ const U = window.MKR.util, T = window.MKR.tasks, S = window.MKR.stock, R = windo
   assert.equal((await MKRdb.getAll('clockins')).length, 2, 'clocking off opened a new row instead of closing the shift');
 
   const lab2 = await R.labour(WK, '2026-08-23');
-  assert.equal(lab2.actual, 292.5 + off.hours*30, 'clocked cost is not worked hours at the rate that applied');
+  assert.equal(lab2.actual, U.round2(292.5 + U.round2(off.hours*30)), 'clocked cost is not worked hours at the rate that applied');
   assert.equal(lab2.planned, lab.planned, 'clocking on changed what had been planned');
 
   // 9. The fortnight cap. It counts a number the OWNER recorded against the
@@ -173,6 +173,35 @@ const U = window.MKR.util, T = window.MKR.tasks, S = window.MKR.stock, R = windo
   const g2 = await S.shrinkSince(30);
   assert.equal(g2.legacy, 1, 'an unpriced legacy line was not flagged');
   assert.equal(g2.value, -63, 'the legacy line was not valued at today\'s price');
+
+  // 12. A dish cost card. Coarse recipe × the price actually paid, against a
+  //     menu price that is quoted GST-inclusive.
+  await MKRdb.put('inventory', {id:'i4', name:'Noodles', kind:'nonperishable', qty:20, unit:'kg', price:5, kitchenId:'k_main'});
+  await MKRdb.put('inventory', {id:'i2', name:'Beef', kind:'perishable', qty:7, unit:'kg', price:20,
+    priceHistory:[{ts:Date.now()-5*864e5, price:20}], kitchenId:'k_main'});
+  const bowl = await S.saveRecipe({name:'Beef noodle soup', price:18.7,
+    lines:[{itemId:'i2', qty:0.2}, {itemId:'i4', qty:0.15}]});
+  const its = await S.items();
+
+  const inc = await S.dishCost(bowl, its, {inc:true, rate:10});
+  assert.equal(inc.cost, 4.75, '0.2kg beef at $20 + 0.15kg noodles at $5 is not $4.75');
+  assert.equal(inc.net, 17, 'a $18.70 GST-inclusive price is not $17.00 net');
+  assert.equal(inc.pct, 27.94, 'the ratio was not taken against the ex-GST price');
+
+  // Off the switch and the same dish reads a tenth better — which is the whole
+  // reason the default is on.
+  const ex = await S.dishCost(bowl, its, {inc:false, rate:10});
+  assert.equal(ex.net, 18.7);
+  assert.ok(ex.pct < inc.pct, 'treating the price as GST-free did not flatter the dish');
+
+  // Beef goes up. The card has to move, and has to remember where it came from.
+  await MKRdb.put('inventory', {id:'i2', price:23.6,
+    priceHistory:[{ts:Date.now()-5*864e5, price:20}, {ts:Date.now(), price:23.6}]});
+  const after = await S.dishCost(bowl, await S.items(), {inc:true, rate:10});
+  assert.equal(after.cost, 5.47, 'an 18% beef rise did not reach the bowl');
+  assert.equal(after.moved.length, 1, 'the risen ingredient was not flagged');
+  assert.equal(after.was, 4.75, 'the card forgot what it cost before the rise');
+  assert.ok(after.pct > after.wasPct, 'the cost percentage did not move with the price');
 
   console.log('all good');
 })().catch(e=>{ console.error(e.message); process.exit(1); });
