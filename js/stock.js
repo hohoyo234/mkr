@@ -520,12 +520,29 @@ window.MKR = window.MKR || {};
   }
 
   // ---------- stocktake ----------
+  /* A count that only says "book 12, shelf 9" is a fact nobody acts on. Priced,
+     it becomes "you are $340 short this month", which is a number an owner does
+     something about.
+
+     What that gap is NOT is waste: recorded waste already took the shelf down
+     when it was written into the bin, so the book has it. What is left over is
+     the stuff nobody wrote down — over-portioning, a short delivery that was
+     never claimed, staff meals off the books, a miscount, or theft. The app
+     names the size of it and does not guess which.
+
+     Each line carries the price AT THE TIME OF COUNTING. Prices move; a March
+     count re-valued at August's beef price is a different number than the one
+     the owner acted on, and history that changes behind you is worse than no
+     history. */
   async function saveStocktake(lines, note){
     const all = await items();
     const rows = lines.filter(l=>l.counted!=null && l.counted!=='').map(l=>{
       const it=all.find(x=>x.id===l.itemId)||{};
-      return {itemId:l.itemId, name:it.name||'', counted:U.round2(l.counted), expected:U.round2(it.qty||0),
-              diff:U.round2((+l.counted||0)-(+it.qty||0))};
+      const diff = U.round2((+l.counted||0)-(+it.qty||0));
+      return {itemId:l.itemId, name:it.name||'', unit:it.unit||'',
+              counted:U.round2(l.counted), expected:U.round2(it.qty||0), diff,
+              // Signed: negative is stock the book had and the shelf didn't.
+              unitPrice:U.round2(it.price||0), amount:lineAmount(diff, it.price||0)};
     });
     if(!rows.length) return null;
     // A shelf cannot hold −5 kg. A typo like that went straight into inventory
@@ -533,18 +550,55 @@ window.MKR = window.MKR || {};
     // saved until it's fixed — silently clamping to 0 would be a second lie.
     const bad = rows.filter(l=>!isFinite(l.counted) || l.counted<0);
     if(bad.length) return {error:'negative', lines:bad};
-    const row = await MKR.db.put('stocktakes', {id:U.uid('stk'), ts:Date.now(), by:me(), note:note||'', lines:rows, kitchenId:kid()});
+    const value = U.round2(rows.reduce((t,l)=>t+(+l.amount||0), 0));
+    const row = await MKR.db.put('stocktakes', {id:U.uid('stk'), ts:Date.now(), by:me(), note:note||'',
+                                                lines:rows, value, kitchenId:kid()});
     for(const l of rows) await MKR.db.put('inventory', {id:l.itemId, qty:l.counted, lastCountAt:row.ts});
-    try{ await MKR.audit.log({action:'stock.count', desc:`Stocktake · ${rows.length} item(s) counted`}); }catch(e){}
+    try{ await MKR.audit.log({action:'stock.count',
+      desc:`Stocktake · ${rows.length} item(s) counted${value?` · ${U.money(value)} against the book`:' · matched the book'}`,
+      amount:Math.abs(value)}); }catch(e){}
     await scanWarnings();
     return row;
+  }
+
+  // What the counts said over a window. Same shape as wasteSince() so the two
+  // panels that sit next to each other are built the same way.
+  //
+  // Counts saved before this carried no prices, so they are valued at today's —
+  // flagged rather than silently mixed in, because a re-valued old count is not
+  // the number anyone acted on at the time.
+  async function shrinkSince(days, allTakes, allItems){
+    const from  = Date.now() - (+days||30)*DAY;
+    const its   = allItems || await items();
+    const takes = (allTakes || await stocktakes()).filter(t=>t.ts>=from);
+    const byItem = {}; let legacy = 0;
+    takes.forEach(t=>(t.lines||[]).forEach(l=>{
+      if(!l.diff) return;
+      const priced = l.amount!=null;
+      if(!priced) legacy++;
+      const price = priced ? 0 : ((its.find(i=>i.id===l.itemId)||{}).price || 0);
+      const amount = priced ? (+l.amount||0) : lineAmount(l.diff, price);
+      const a = byItem[l.itemId] = byItem[l.itemId] || {itemId:l.itemId, name:l.name, unit:l.unit||'', qty:0, amount:0};
+      a.qty = U.round2(a.qty + (+l.diff||0)); a.amount = U.round2(a.amount + amount);
+    }));
+    const rows = Object.values(byItem);
+    return {
+      days:(+days||30), counts:takes.length, takes, legacy,
+      // Negative = short. Kept signed all the way through; a screen that wants
+      // "$340 short" can take the absolute value, one that wants the direction
+      // still has it.
+      value: U.round2(rows.reduce((t,r)=>t+r.amount, 0)),
+      short: rows.filter(r=>r.amount<0).sort((a,b)=>a.amount-b.amount),
+      over:  rows.filter(r=>r.amount>0).sort((a,b)=>b.amount-a.amount),
+      byItem: rows.sort((a,b)=>Math.abs(b.amount)-Math.abs(a.amount)),
+    };
   }
 
   MKR.stock = {
     KIND, WASTE_REASONS, items, suppliers, purchases, stocktakes, wastes,
     overview, usageOf, usageIntervals, saveWaste, wasteSince,
     reconciliations, statementFor, statementPeriods, saveReconciliation, periodOf,
-    saveItem, removeItem, savePurchase, saveStocktake, priceWatch, previousPrice,
+    saveItem, removeItem, savePurchase, saveStocktake, shrinkSince, priceWatch, previousPrice,
     priceMove, moveBadge, itemValue, lineAmount, totalValue, scanWarnings,
     packSizeOf, packLabelOf, packHint, packLine, unitOf,
     categories, saveCategories, renameCategory, moveToCategory,

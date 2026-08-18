@@ -958,6 +958,12 @@ table.rgrid{border-collapse:separate;border-spacing:0;width:100%;min-width:780px
 .rgrid th,.rgrid td{border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:6px 8px;vertical-align:top}
 .rgrid thead th{background:var(--paper-2);position:sticky;top:0;z-index:3;text-align:center;font-weight:700;white-space:nowrap}
 .rgrid .rg-date{font-weight:500;font-size:10.5px;color:var(--ink-faint)}
+/* Running total under the stocktake table — the gap as it is being typed. */
+.stk-running{margin-top:10px;padding:10px 14px;border-radius:12px;background:var(--paper-2);
+  border:1px solid var(--line-2);font-size:13px;color:var(--ink-soft)}
+.stk-running.short{background:var(--red-soft);border-color:var(--red);color:var(--red-ink)}
+.stk-running.over{background:var(--green-soft);border-color:var(--green);color:var(--green-ink)}
+
 /* A public holiday is information, not a status, so it takes the module's
    own colour rather than a warning colour. */
 .rgrid .rg-hol{display:inline-block;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;

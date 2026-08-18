@@ -873,6 +873,12 @@
       "Today's snapshot":"今日概覽", "Tasks due today":"今日待辦任務", "Upcoming deliveries":"待確認到貨",
       "Expiring items":"臨期物料", "Team on shift":"今日在班人數", "Takings today":"今日營業額",
       "Enter takings":"錄入營業額",
+      // ---- Stocktake variance, in money ----
+      "Difference":"差異", "matches":"一致",
+      "Type a count and the gap against the book appears here.":"填一個實盤數，和賬面的差就會顯示在這裏。",
+      "What the count found":"這次盤點查出什麼",
+      "Book":"賬面", "Counted":"實盤", "Worth":"摺合金額",
+      "This is not the bin. Waste you wrote down already took the stock off the book, so what\u2019s left here is what nobody recorded — over-portioning, a short delivery never claimed, staff meals, a miscount. The app tells you the size of it; it doesn\u2019t guess which.":"這不是報損。你寫下來的損耗已經從賬面扣掉了，所以這裏剩下的是沒人記錄的部分 —— 出品超量、少送沒索賠、員工餐、或者數錯了。本應用只告訴你有多大，不猜是哪一種。",
       // ---- Work-hour caps, VIC public holidays, certificates ----
       "4 · Anyone on a work-hour limit?":"4 · 有人有工時上限嗎？",
       "Hours per fortnight. Rostering someone past a condition on their visa is the venue\u2019s problem, not theirs — so the roster warns you, in the same list as everything else, and blocks nothing.":"每兩週多少小時。把人排超簽證條件，違規的是店，不是員工 —— 所以排班會提醒你，和其它提醒放在同一張單子裏，但不會攔你。",
@@ -1191,6 +1197,21 @@
       "more on the shelf than could have arrived — looks like a miscount":"貨架上的比進的還多 —— 像是盤錯了",
     };
     const PATTERNS = [
+      // Stocktake variance — the money figure is live
+      [/^(\d+) counted · dead on the book$/, m => `已盤 ${m[1]} 項 · 和賬面完全一致`],
+      [/^(\d+) counted ·$/, m => `已盤 ${m[1]} 項 ·`],
+      [/^less on the shelf than the book says$/, () => '實盤比賬面少'],
+      [/^more on the shelf than the book says$/, () => '實盤比賬面多'],
+      [/^less on the shelf than the book said$/, () => '實盤比賬面少'],
+      [/^more on the shelf than the book said$/, () => '實盤比賬面多'],
+      [/^went missing between the book and the shelf$/, () => '在賬面和貨架之間不見了'],
+      [/^turned up that the book didn.t have$/, () => '是賬面上沒有、實盤多出來的'],
+      [/^(\d+) of (\d+) items? didn.t match\. The shelf is right — the book has been corrected to what you counted\.$/,
+        m => `${m[2]} 項裏有 ${m[1]} 項對不上。以實盤爲準 —— 賬面已按你數的改過來了。`],
+      [/^Across (\d+) counts? in the last 30 days\. This is not the bin — waste you wrote down already came off the book\. What's left is what nobody recorded: over-portioning, a short delivery never claimed, staff meals, or a miscount\.$/,
+        m => `來自近 30 天的 ${m[1]} 次盤點。這不是報損 —— 你記下來的損耗已經從賬面扣了。剩下的是沒人記錄的：出品超量、少送沒索賠、員工餐，或者數錯了。`],
+      [/^(\d+) lines? counted before prices were kept on counts, valued at today's price\.$/,
+        m => `有 ${m[1]} 行是在盤點開始留存單價之前錄的，按今天的價折算。`],
       // Work-hour caps & certificates — live numbers, so patterns not flat keys
       [/^(.+?) is on ([\d.]+)h in a fortnight$/, m => `${m[1]} 兩週排了 ${m[2]} 小時`],
       [/^(.+?) goes over the (\d+)h fortnight you recorded for them\. Rostering past a work-hour condition is the venue's problem, not theirs\. This counts your number against your roster — it does not read anyone's visa, and it blocks nothing\.$/,

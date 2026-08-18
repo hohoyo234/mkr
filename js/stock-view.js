@@ -511,13 +511,41 @@ window.MKR = window.MKR || {};
     const wrap = U.el(`<div>
       <p class="muted" style="font-size:13.5px">Walk the shelves and type what you actually count. Anything you leave blank is skipped. Counting regularly is what makes the usage forecast work — it's the only place usage comes from.</p>
       <div class="tablewrap mt12"><table class="dtable entry">
-        <thead><tr><th>Item</th><th class="num">System count</th><th class="num" style="width:120px">Counted</th></tr></thead>
+        <thead><tr><th>Item</th><th class="num">System count</th><th class="num" style="width:120px">Counted</th><th class="num">Difference</th></tr></thead>
         <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${MKR.ui.icon(S().KIND[r.kind].ic)} ${U.esc(r.unit||'')}</div></td>
           <td class="num faint"><span class="cell-l">System count</span>${r.qty}</td>
-          <td class="num"><span class="cell-l">Counted</span><input class="input" type="number" min="0" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
+          <td class="num"><span class="cell-l">Counted</span><input class="input" type="number" min="0" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td>
+          <td class="num" data-diff="${r.id}"><span class="cell-l">Difference</span><span class="faint">—</span></td></tr>`).join('')}</tbody>
       </table></div>
+      <div class="stk-running" id="stk_run">Type a count and the gap against the book appears here.</div>
       <div class="field mt12"><label>Note (optional)</label><input class="input" id="stk_note" placeholder="e.g. Monday morning count"></div>
     </div>`);
+
+    // The gap shown AS IT IS TYPED, not after saving. Someone keying 90 for 9
+    // has one chance to notice, and it is while they are still standing at the
+    // shelf looking at the jar.
+    const recount = ()=>{
+      let total = 0, counted = 0;
+      rows.forEach(r=>{
+        const inp = U.qs(`[data-count="${r.id}"]`, wrap);
+        const cell = U.qs(`[data-diff="${r.id}"]`, wrap);
+        if(inp.value===''){ cell.innerHTML = `<span class="cell-l">Difference</span><span class="faint">—</span>`; return; }
+        counted++;
+        const d = U.round2(Number(inp.value) - (+r.qty||0));
+        const amount = S().lineAmount(d, r.price);
+        total = U.round2(total + amount);
+        cell.innerHTML = `<span class="cell-l">Difference</span>${d===0
+          ? '<span class="faint">matches</span>'
+          : `<b style="color:${d<0?'var(--red)':'var(--green)'}">${d>0?'+':''}${d} ${U.esc(r.unit||'')}</b>
+             <div class="faint" style="font-size:11px">${d<0?'−':'+'}${U.money(Math.abs(amount))}</div>`}`;
+      });
+      const run = U.qs('#stk_run', wrap);
+      run.className = 'stk-running' + (total<0 ? ' short' : (total>0 ? ' over' : ''));
+      run.innerHTML = !counted ? 'Type a count and the gap against the book appears here.'
+        : (total===0 ? `${counted} counted · dead on the book`
+          : `${counted} counted · <b>${U.money(Math.abs(total))}</b> ${total<0?'less on the shelf than the book says':'more on the shelf than the book says'}`);
+    };
+    U.qsa('[data-count]', wrap).forEach(i=> i.addEventListener('input', recount));
     U.modal('Stocktake', wrap, {actions:[
       {label:'Cancel', class:'btn-ghost', onClick:c=>c()},
       {label:'Save count', class:'btn-dark', onClick:async(close)=>{
@@ -525,9 +553,30 @@ window.MKR = window.MKR || {};
         const saved = await S().saveStocktake(lines, U.qs('#stk_note',wrap).value.trim());
         if(!saved){ U.toast('Nothing counted','amber'); return; }
         if(saved.error==='negative'){ U.toast(`A count can't be negative — check ${saved.lines.map(l=>l.name).join(', ')}`,'red'); return; }
-        close(); U.toast(`Counted ${saved.lines.length} item(s)`,'green'); after();
+        close(); after(); countResult(saved);
       }}
     ]});
+  }
+
+  // A toast that says "counted 14 items" is a receipt. This is the finding: what
+  // the shelf disagreed with the book about, and what that disagreement is worth.
+  function countResult(t){
+    const off = (t.lines||[]).filter(l=>l.diff).sort((a,b)=>Math.abs(b.amount||0)-Math.abs(a.amount||0));
+    const v = +t.value || 0;
+    if(!off.length){ U.toast(`Counted ${t.lines.length} item(s) · dead on the book`,'green'); return; }
+    U.modal('What the count found', `
+      <div class="alert ${v<0?'amber':'info'}"><span>${MKR.ui.icon(v<0?'warning':'checkcircle')}</span><div>
+        <b>${U.money(Math.abs(v))}</b> <b>${v<0?'less on the shelf than the book said':'more on the shelf than the book said'}</b>
+        <div>${off.length} of ${t.lines.length} item${t.lines.length===1?'':'s'} didn't match. The shelf is right — the book has been corrected to what you counted.</div>
+      </div></div>
+      <div class="tablewrap mt12"><table class="dtable">
+        <thead><tr><th>Item</th><th class="num">Book</th><th class="num">Counted</th><th class="num">Worth</th></tr></thead>
+        <tbody>${off.map(l=>`<tr><td><b>${U.esc(l.name)}</b></td>
+          <td class="num faint">${l.expected} ${U.esc(l.unit||'')}</td>
+          <td class="num">${l.counted} ${U.esc(l.unit||'')}</td>
+          <td class="num"><b style="color:${(l.amount||0)<0?'var(--red)':'var(--green)'}">${(l.amount||0)<0?'−':'+'}${U.money(Math.abs(l.amount||0))}</b></td></tr>`).join('')}</tbody>
+      </table></div>
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('trash')}</span>This is not the bin. Waste you wrote down already took the stock off the book, so what's left here is what nobody recorded — over-portioning, a short delivery never claimed, staff meals, a miscount. The app tells you the size of it; it doesn't guess which.</div>`);
   }
 
   // Recording the bin. Same shape as a stocktake — type quantities against the
@@ -973,6 +1022,7 @@ window.MKR = window.MKR || {};
     const rows = await S().overview();
     const [takes, purch, wst] = await Promise.all([S().stocktakes(), S().purchases(), S().wastes()]);
     const bin = await S().wasteSince(30, wst);
+    const gap = await S().shrinkSince(30, takes, rows);
     const known = rows.filter(r=>r.usageSamples>0);
     actions.innerHTML = `<button class="btn btn-ghost btn-sm" id="fcList">${MKR.ui.icon('inbox')} Build order list</button>
       <button class="btn btn-dark btn-sm" id="fcAsk">${MKR.ui.icon('sparkle')} Ask AI</button>`;
@@ -1014,6 +1064,12 @@ window.MKR = window.MKR || {};
         <b>${U.money(bin.cost)}</b> <b>went in the bin in the last 30 days</b>
         <div>${bin.byItem.slice(0,3).map(b=>`${U.esc(b.name)} ${U.money(b.cost)}`).join(' · ')}${bin.byItem.length>3?` · +${bin.byItem.length-3} more`:''}</div>
         <div class="faint">That's stock you paid for and sold none of. It's inside the usage figures below, not on top of them.</div>
+      </div></div>` : ''}
+      ${gap.counts && gap.value ? `<div class="alert ${gap.value<0?'amber':'info'} mt16"><span>${MKR.ui.icon('checksq')}</span><div>
+        <b>${U.money(Math.abs(gap.value))}</b> <b>${gap.value<0?'went missing between the book and the shelf':'turned up that the book didn\u2019t have'}</b>
+        <div>${gap.byItem.slice(0,3).map(b=>`${U.esc(b.name)} ${(b.amount<0?'−':'+')+U.money(Math.abs(b.amount))}`).join(' · ')}${gap.byItem.length>3?` · +${gap.byItem.length-3} more`:''}</div>
+        <div class="faint">Across ${gap.counts} count${gap.counts===1?'':'s'} in the last 30 days. This is not the bin — waste you wrote down already came off the book. What's left is what nobody recorded: over-portioning, a short delivery never claimed, staff meals, or a miscount.</div>
+        ${gap.legacy?`<div class="faint">${gap.legacy} line${gap.legacy===1?'':'s'} counted before prices were kept on counts, valued at today's price.</div>`:''}
       </div></div>` : ''}
       ${worked}
       <div class="card pad20 mt16">

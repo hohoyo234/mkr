@@ -905,6 +905,12 @@ window.MKR = window.MKR || {};
     "Today's snapshot":"今日概览", "Tasks due today":"今日待办任务", "Upcoming deliveries":"待确认到货",
     "Expiring items":"临期物料", "Team on shift":"今日在班人数", "Takings today":"今日营业额",
     "Enter takings":"录入营业额",
+    // ---- Stocktake variance, in money ----
+    "Difference":"差异", "matches":"一致",
+    "Type a count and the gap against the book appears here.":"填一个实盘数，和账面的差就会显示在这里。",
+    "What the count found":"这次盘点查出什么",
+    "Book":"账面", "Counted":"实盘", "Worth":"折合金额",
+    "This is not the bin. Waste you wrote down already took the stock off the book, so what\u2019s left here is what nobody recorded — over-portioning, a short delivery never claimed, staff meals, a miscount. The app tells you the size of it; it doesn\u2019t guess which.":"这不是报损。你写下来的损耗已经从账面扣掉了，所以这里剩下的是没人记录的部分 —— 出品超量、少送没索赔、员工餐、或者数错了。本应用只告诉你有多大，不猜是哪一种。",
     // ---- Work-hour caps, VIC public holidays, certificates ----
     "4 · Anyone on a work-hour limit?":"4 · 有人有工时上限吗？",
     "Hours per fortnight. Rostering someone past a condition on their visa is the venue\u2019s problem, not theirs — so the roster warns you, in the same list as everything else, and blocks nothing.":"每两周多少小时。把人排超签证条件，违规的是店，不是员工 —— 所以排班会提醒你，和其它提醒放在同一张单子里，但不会拦你。",
@@ -1226,6 +1232,21 @@ window.MKR = window.MKR || {};
   // Templated strings (numbers / names interpolated) — exact match can't catch
   // these, so match by pattern and re-insert the captured dynamic bits.
   const PATTERNS = [
+    // Stocktake variance — the money figure is live
+    [/^(\d+) counted · dead on the book$/, m => `已盘 ${m[1]} 项 · 和账面完全一致`],
+    [/^(\d+) counted ·$/, m => `已盘 ${m[1]} 项 ·`],
+    [/^less on the shelf than the book says$/, () => '实盘比账面少'],
+    [/^more on the shelf than the book says$/, () => '实盘比账面多'],
+    [/^less on the shelf than the book said$/, () => '实盘比账面少'],
+    [/^more on the shelf than the book said$/, () => '实盘比账面多'],
+    [/^went missing between the book and the shelf$/, () => '在账面和货架之间不见了'],
+    [/^turned up that the book didn.t have$/, () => '是账面上没有、实盘多出来的'],
+    [/^(\d+) of (\d+) items? didn.t match\. The shelf is right — the book has been corrected to what you counted\.$/,
+      m => `${m[2]} 项里有 ${m[1]} 项对不上。以实盘为准 —— 账面已按你数的改过来了。`],
+    [/^Across (\d+) counts? in the last 30 days\. This is not the bin — waste you wrote down already came off the book\. What's left is what nobody recorded: over-portioning, a short delivery never claimed, staff meals, or a miscount\.$/,
+      m => `来自近 30 天的 ${m[1]} 次盘点。这不是报损 —— 你记下来的损耗已经从账面扣了。剩下的是没人记录的：出品超量、少送没索赔、员工餐，或者数错了。`],
+    [/^(\d+) lines? counted before prices were kept on counts, valued at today's price\.$/,
+      m => `有 ${m[1]} 行是在盘点开始留存单价之前录的，按今天的价折算。`],
     // Work-hour caps & certificates — live numbers, so patterns not flat keys
     [/^(.+?) is on ([\d.]+)h in a fortnight$/, m => `${m[1]} 两周排了 ${m[2]} 小时`],
     [/^(.+?) goes over the (\d+)h fortnight you recorded for them\. Rostering past a work-hour condition is the venue's problem, not theirs\. This counts your number against your roster — it does not read anyone's visa, and it blocks nothing\.$/,

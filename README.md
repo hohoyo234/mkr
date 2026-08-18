@@ -44,6 +44,7 @@ a matching row in `profiles`.
 | **Shelf view** | The default way the Stock tab draws that data: a cold room and a dry store with every item standing on a shelf, where how full the jar is *is* the quantity. Tap a jar to count it or drop it in the basket; the basket groups itself by supplier and becomes the order. `List` switches back to the table, and the choice sticks. |
 | **Suppliers & purchases** | Who you buy from, who you actually ring, and every invoice. |
 | **Usage forecasting** | Derived from stocktakes, not sales: `last count + purchases since − this count`. Days of cover and a suggested order list. |
+| **Stocktake variance** | A count in money, not just quantities: the gap shows as you type it (so a 90-for-9 typo gets caught at the shelf), the finding is a screen rather than a toast, and the last 30 days roll up on the forecast page. Each line keeps the price it was counted at, so a later price rise can't rewrite a number the owner already acted on. This is *not* the bin — recorded waste already came off the book, so what's left is what nobody wrote down. |
 | **Deliveries** | Back-door confirmation form: ordered vs received, condition, chilled temperature, photo, signature. |
 | **Training & SOP** | Write a procedure once, assign it with a due date, staff sign it off by name. |
 | **Certificates** | RSA, Food Safety Supervisor, first aid — type, number, expiry and a photo of the ticket itself, sorted soonest-first on one screen so it can be produced while an inspector is standing in the kitchen. Alerts before it lapses. The staff member's own visa expiry is folded into the same list, read-only, from their onboarding record. |
@@ -143,6 +144,9 @@ supabase/
   copied. The certificate screen reads them alongside `certs` rows and shows
   them read-only — an owner quietly editing someone's visa expiry is not a thing
   this app makes easy.
+- Stocktake lines carry `unitPrice` and a signed `amount` from the moment they
+  are counted. Counts saved before that are valued at today's price and the
+  screen says so rather than quietly mixing the two.
 - A ratio is only ever taken over days that have BOTH sides. One day of takings
   against a fortnight of dockets reads as a 98% food cost, which is not a bad
   week — it is a mismatched divisor. Food cost and labour cost both restrict
