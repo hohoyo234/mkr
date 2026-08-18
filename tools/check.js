@@ -147,5 +147,32 @@ const U = window.MKR.util, T = window.MKR.tasks, S = window.MKR.stock, R = windo
   assert.equal(R.holidayName('2026-10-02', {}), null, 'a date nobody declared came back a holiday');
   assert.ok(R.holidayName('2026-10-02', {extraHolidays:'2026-10-02'}), 'a declared date was ignored');
 
+  // 11. A count priced. The gap is signed, valued at the price AT THE TIME, and
+  //     is NOT the bin: recorded waste already came off the book.
+  await MKRdb.put('inventory', {id:'i2', name:'Beef', kind:'perishable', qty:10, unit:'kg', price:20, kitchenId:'k_main'});
+  await MKRdb.put('inventory', {id:'i3', name:'Rice', kind:'nonperishable', qty:8,  unit:'kg', price:3,  kitchenId:'k_main'});
+  const cnt = await S.saveStocktake([{itemId:'i2', counted:7}, {itemId:'i3', counted:9}], 'monday');
+  const beef = cnt.lines.find(l=>l.itemId==='i2'), rice = cnt.lines.find(l=>l.itemId==='i3');
+  assert.equal(beef.diff, -3, 'the beef gap was not counted');
+  assert.equal(beef.amount, -60, '3kg of $20 beef short is not −$60');
+  assert.equal(rice.amount, 3, 'a kilo found over did not come back positive');
+  assert.equal(cnt.value, -57, 'the count did not net out to −$57');
+
+  // The line keeps the price it was counted at, so re-pricing beef later cannot
+  // rewrite what the owner acted on.
+  await MKRdb.put('inventory', {id:'i2', price:40});
+  const g = await S.shrinkSince(30);
+  assert.equal(g.value, -57, 'a price rise re-valued a count that had already happened');
+  assert.equal(g.legacy, 0, 'a freshly priced count was treated as legacy');
+  assert.equal(g.short[0].name, 'Beef', 'the worst line is not first');
+
+  // A count from before prices were kept still has to produce a figure, and has
+  // to say that it was valued at today's price rather than that day's.
+  await MKRdb.put('stocktakes', {id:'stk_old', ts:Date.now()-2*864e5, kitchenId:'k_main',
+    lines:[{itemId:'i3', name:'Rice', diff:-2}]});
+  const g2 = await S.shrinkSince(30);
+  assert.equal(g2.legacy, 1, 'an unpriced legacy line was not flagged');
+  assert.equal(g2.value, -63, 'the legacy line was not valued at today\'s price');
+
   console.log('all good');
 })().catch(e=>{ console.error(e.message); process.exit(1); });
