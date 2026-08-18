@@ -11,6 +11,11 @@
    the venue BOUGHT, not what it used (usage needs two stocktakes and is on the
    stock page). Over a week or a month the two converge; over one day they do
    not, which is why the ratios are only shown on a range.
+
+   Labour % is the roster priced at rates the owner typed in, over the same
+   entered days. It is a planning figure and nothing else: this app runs no
+   payroll, reads no award and sends nothing to the ATO — see the pay block in
+   js/roster.js for the line that isn't crossed.
 */
 window.MKR = window.MKR || {};
 (function(){
@@ -25,6 +30,10 @@ window.MKR = window.MKR || {};
 
   const mine = async ()=> (await MKR.db.getAll('takings')).filter(r=>(r.kitchenId||'k_main')===kid());
   const forDay = async (date)=> (await MKR.db.get('takings', idFor(date))) || null;
+
+  // Every day entered between two dates, newest first.
+  const between = async (from, to)=> (await mine()).filter(r=>r.date>=from && r.date<=to)
+    .sort((a,b)=>b.date.localeCompare(a.date));
 
   // Last `days` calendar days, newest first, with the empty days left out.
   async function recent(days=14){
@@ -54,10 +63,22 @@ window.MKR = window.MKR || {};
     const revenue = U.round2(rows.reduce((t,r)=>t+total(r),0));
     const covers  = rows.reduce((t,r)=>t+(+r.covers||0),0);
     const spend   = U.round2(purchases.reduce((t,p)=>t+(+p.total||0),0));
+    // Labour is matched to the same entered days for the same reason. It is the
+    // ROSTER priced at the owner's own rates — planned, not paid: it doesn't
+    // wait on anyone remembering to clock on, and this app calculates no pay.
+    let labour = null;
+    if(rows.length) try{
+      const lab = await MKR.roster.labour(rows[rows.length-1].date, rows[0].date);
+      labour = {cost: MKR.roster.labourOn(lab, [...entered]), unrated: lab.unrated};
+    }catch(e){}
+    const labourPct = labour && revenue ? U.round2(labour.cost/revenue*100) : null;
     return {
-      rows, days, revenue, covers, spend,
+      rows, days, revenue, covers, spend, labour, labourPct,
       avg:      covers ? U.round2(revenue/covers) : null,
       foodPct:  revenue ? U.round2(spend/revenue*100) : null,
+      // Food + labour: the two lines that eat a small venue, added up the way
+      // an operator adds them up.
+      primePct: (labour && revenue) ? U.round2((spend+labour.cost)/revenue*100) : null,
       counted:  rows.length,                       // days actually entered
     };
   }
@@ -148,12 +169,18 @@ window.MKR = window.MKR || {};
           <div class="card stat"><div class="k">Food cost</div>
             <div class="v" style="${s.foodPct!=null && s.foodPct>38 ? 'color:var(--red)' : ''}">${s.foodPct!=null?s.foodPct+'%':'—'}</div>
             <div class="faint">${s.foodPct!=null?'of what you took':'needs takings and dockets'}</div></div>
+          <div class="card stat"><div class="k">Labour cost</div>
+            <div class="v" style="${s.labourPct!=null && s.labourPct>35 ? 'color:var(--red)' : ''}">${s.labourPct!=null?s.labourPct+'%':'—'}</div>
+            <div class="faint">${s.primePct!=null ? `${s.primePct}% with food` : 'needs hourly rates on the roster'}</div></div>
         </div>
 
         <div class="section-title mt24">Day by day</div>
         <div class="card" style="padding:6px 18px" id="tkList"></div>
 
-        <div class="disclaimer mt16"><span>${MKR.ui.icon('receipt')}</span>Food cost here is what you BOUGHT on the days you entered, not what you used — one big delivery still swings a short window, so read it over a month rather than a night. What you actually USED comes from stocktakes, on the Stock page.</div>`;
+        <div class="disclaimer mt16"><span>${MKR.ui.icon('receipt')}</span>Labour here is this roster priced at the hourly rates you typed in yourself — a planning figure, not a pay calculation, not a payslip and not an interpretation of any award. Set the rates on the roster page under Rates.</div>
+        ${s.labour&&s.labour.unrated.length?`<div class="faint mt8" style="font-size:12px">${U.esc(s.labour.unrated.join(', '))} ${s.labour.unrated.length===1?'has':'have'} no rate set, so the real labour figure is higher.</div>`:''}
+
+        <div class="disclaimer mt12"><span>${MKR.ui.icon('receipt')}</span>Food cost here is what you BOUGHT on the days you entered, not what you used — one big delivery still swings a short window, so read it over a month rather than a night. What you actually USED comes from stocktakes, on the Stock page.</div>`;
 
       const list = U.qs('#tkList',c);
       list.innerHTML = s.rows.length ? s.rows.map(r=>`<div class="li clickable" data-day="${r.date}">
@@ -173,5 +200,5 @@ window.MKR = window.MKR || {};
     MKR.db.on('takings', draw);
   }
 
-  MKR.takings = { forDay, recent, save, summary, total, modal, render };
+  MKR.takings = { forDay, between, recent, save, summary, total, modal, render };
 })();

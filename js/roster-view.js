@@ -3,7 +3,14 @@
    preferences the first time, then plans from availability, skills and how many
    people they actually rostered in past weeks.
 
-   No wages, no ratios, no caps. Warnings only.
+   Warnings only — nothing on this page blocks a roster.
+
+   The week now carries a price on it, from rates the owner typed in themselves.
+   That is a costing, not a payslip: MKR.roster's pay block owns the rules and
+   the line they don't cross, and every figure here repeats whose numbers they
+   are. Labour % is only ever taken over the days that have takings entered
+   against them — a week of roster over two days of income is the same
+   mismatched-divisor lie the food cost % used to tell.
 */
 window.MKR = window.MKR || {};
 (function(){
@@ -16,6 +23,12 @@ window.MKR = window.MKR || {};
     {key:'manager', label:'Manager', color:'#2F5BB7', soft:'#E5EDFB'},
   ];
   let weekOffset = 0;     // 0 = this week, +1 = next week …
+
+  // Said on every screen and written into the bottom of every export, because a
+  // spreadsheet gets forwarded to an accountant with none of the screen around it.
+  const DISCLAIM = "Figures use hourly rates and multipliers typed in by the venue owner. "
+    + "Not a pay calculation, not a payslip, and not an interpretation of any award or agreement. "
+    + "Hours are as rostered and as clocked in this app — no payroll, tax or superannuation is calculated.";
 
   function bandOf(s){
     if(s.role==='manager') return 'manager';
@@ -39,6 +52,16 @@ window.MKR = window.MKR || {};
     const reds = warns.filter(w=>w.level==='red').length;
     if(warns.length) R().notifyWarnings(week, warns, p);
 
+    const weekEnd = U.isoDate(R().dayTs(week, 6));
+    const lab = await R().labour(week, weekEnd, staff, p);
+    // The ratio is taken over the days that HAVE takings, not over the week.
+    let tkRows = []; try{ tkRows = await MKR.takings.between(week, weekEnd); }catch(e){}
+    const tkDates   = tkRows.map(r=>r.date);
+    const tkRevenue = U.round2(tkRows.reduce((t,r)=>t+MKR.takings.total(r), 0));
+    const labOnTk   = R().labourOn(lab, tkDates);
+    const labourPct = tkRevenue ? U.round2(labOnTk/tkRevenue*100) : null;
+    const noRates   = !lab.planned && lab.rows.length;
+
     const label = weekOffset===0 ? 'This week' : (weekOffset===1 ? 'Next week' : (weekOffset===-1 ? 'Last week' : `Week of ${U.fmtDate(new Date(week))}`));
 
     c.innerHTML = `
@@ -49,7 +72,8 @@ window.MKR = window.MKR || {};
           <details class="omenu"><summary class="btn btn-ghost btn-sm" aria-label="More rostering actions">${MKR.ui.icon('dots')}</summary>
             <div class="omenu-pop">
               <button id="rsPrefs">${MKR.ui.icon('gear')} Preferences</button>
-              <button id="rsCsv">${MKR.ui.icon('download')} Export</button>
+              <button id="rsCsv">${MKR.ui.icon('download')} Export roster</button>
+              <button id="rsTime">${MKR.ui.icon('download')} Timesheet &amp; cost (CSV)</button>
             </div>
           </details>
         </div></div>
@@ -81,6 +105,26 @@ window.MKR = window.MKR || {};
         <div class="faint" style="font-size:12px;margin-top:10px">These are your own preferences talking back to you. Change what you're warned about in Preferences.</div>
       </div>` : ''}
 
+      <div class="card pad20" style="margin-bottom:16px">
+        <div class="row center between wrap" style="gap:10px;margin-bottom:12px">
+          <div class="section-title" style="padding:0">${MKR.ui.icon('receipt')} What this week costs</div>
+          <button class="btn btn-ghost btn-sm" id="rsRates">${MKR.ui.icon('gear')} Rates</button>
+        </div>
+        ${noRates ? `<div class="alert amber"><span>${MKR.ui.icon('warning')}</span>
+          <div><b>No hourly rates yet.</b> Type what you pay each person — once — and this week gets a price on it, and a labour percentage the moment you enter takings.</div></div>`
+        : `<div class="statline" style="margin:0">
+          <span class="statcell"><b>${U.money0(lab.planned)}</b><i>planned · ${lab.planHours.toFixed(1)}h</i></span>
+          <span class="statcell"><b>${lab.clocked ? U.money0(lab.actual) : '—'}</b><i>${lab.clocked ? `clocked · ${lab.clocked}/${lab.rows.length} shifts` : 'nobody clocked on yet'}</i></span>
+          <span class="statcell"><b style="${labourPct!=null && labourPct>35 ? 'color:var(--red)' : ''}">${labourPct!=null ? labourPct+'%' : '—'}</b>
+            <i>${labourPct!=null ? `of takings · ${tkDates.length} day${tkDates.length===1?'':'s'}` : 'enter takings to see labour %'}</i></span>
+        </div>`}
+        ${lab.unrated.length ? `<div class="faint" style="font-size:12px;margin-top:10px">
+          ${MKR.ui.icon('warning')} ${U.esc(lab.unrated.join(', '))} ${lab.unrated.length===1?'has':'have'} no rate — they cost $0 in the figures above, so the real number is higher.</div>` : ''}
+        ${!R().holidaysCovered(week.slice(0,4)) ? `<div class="faint" style="font-size:12px;margin-top:8px">
+          ${MKR.ui.icon('warning')} No public holidays are listed for ${U.esc(week.slice(0,4))} — add them under Rates, or holiday days will cost the same as any other.</div>` : ''}
+        <div class="disclaimer mt12"><span>${MKR.ui.icon('receipt')}</span>Your own rates, applied to your own roster, for your own planning. Not a pay calculation and not an interpretation of any award — this app runs no payroll, produces no payslips and sends nothing to the ATO.</div>
+      </div>
+
       <div class="card" style="padding:14px 14px 6px;margin-bottom:16px">
         <div class="section-title" style="padding:2px 4px 10px">Team roster</div>
         <div class="rgrid-wrap" id="rosterGrid"></div>
@@ -94,14 +138,17 @@ window.MKR = window.MKR || {};
     U.qs('#rsPrefs',c).onclick = ()=> prefsModal(staff, ()=>render(c));
     U.qs('#rsAuto',c).onclick  = ()=> autoRoster(c, week, staff);
     U.qs('#warnCard',c).onclick = ()=> warnModal(warns);
+    U.qs('#rsRates',c).onclick = ()=> ratesModal(staff, ()=>render(c));
     U.qs('#rsCsv',c).onclick = ()=>{
       if(!shifts.length){ U.toast('Nothing to export','amber'); return; }
-      const rows=[['Week','Day','Date','Person','Start','End','Hours']];
-      shifts.slice().sort((a,b)=>a.day-b.day||String(a.start).localeCompare(String(b.start)))
-        .forEach(s=>rows.push([week, DAYS[s.day], U.fmtDate(R().dayTs(week,s.day)), staffOf(s.staffId).name, s.start, s.end, U.shiftHours(s.start,s.end).toFixed(2)]));
-      rows.push(['','','','','','Total', totalHours.toFixed(2)]);
+      const rows=[['Week','Day','Date','Person','Start','End','Hours','Rate','Multiplier','Planned cost']];
+      lab.rows.forEach(r=>rows.push([week, DAYS[r.sh.day], U.fmtDate(R().dayTs(week,r.sh.day)), r.u.name,
+        r.sh.start, r.sh.end, r.planH.toFixed(2), r.rate.toFixed(2), r.mult, r.planCost.toFixed(2)]));
+      rows.push(['','','','','','Total', lab.planHours.toFixed(2), '', '', lab.planned.toFixed(2)]);
+      rows.push([DISCLAIM]);
       U.downloadCSV(`roster-${week}.csv`, rows); U.toast('Exported','green');
     };
+    U.qs('#rsTime',c).onclick = ()=> timesheetModal(week);
     if(MKR.partners) MKR.partners.bind(c);
 
     drawGrid();
@@ -187,6 +234,118 @@ window.MKR = window.MKR || {};
       <div class="list">${warns.map(w=>`<div class="li"><div class="ds-li-ic sev-${w.level==='red'?'red':(w.level==='amber'?'amber':'info')}">${MKR.ui.icon(w.level==='red'?'warning':(w.level==='amber'?'clock':'dot'))}</div>
         <div class="meta"><b>${U.esc(w.title)}</b><span>${U.esc(w.detail)}</span></div></div>`).join('')}</div>`
       : `<div class="empty"><div class="em">${MKR.ui.icon('checkcircle')}</div><p>Nothing flagged</p></div>`);
+  }
+
+
+  // ---------- rates: the owner's own numbers ----------
+  async function ratesModal(staff, after){
+    const p = await R().prefs();
+    const num = (id,val,step,w)=>`<input class="input" id="${id}" type="number" min="0" step="${step}" value="${val}" style="width:${w||96}px;text-align:right">`;
+    const wrap = U.el(`<div>
+      <div class="alert info" style="margin-bottom:14px"><span>${MKR.ui.icon('receipt')}</span>
+        <div>These are your numbers, not an award. Type what you actually pay; the app multiplies them by hours it already has and shows you a total. It never works out an award rate, never produces a payslip and never sends any of it anywhere.</div></div>
+
+      <div class="section-title">1 · Hourly rate, per person</div>
+      <p class="muted" style="font-size:13px">Leave one blank to fall back to the default below. Anyone still on $0 is left out of the totals — the page says who.</p>
+      <div id="rt_people">${staff.map(s=>`
+        <div class="row center" style="gap:10px;margin-bottom:8px">
+          <span class="ava" style="flex:0 0 auto">${s.emoji||U.initials(s.name)}</span>
+          <div class="grow" style="min-width:0"><b>${U.esc(s.name)}</b>
+            <div class="faint" style="font-size:11.5px">${U.esc(s.position||MKR.auth.roleName(s.role))}</div></div>
+          <span class="faint">$</span>${num('rt_'+s.id, (+s.payRate>0?s.payRate:''), '0.01')}<span class="faint">/h</span>
+        </div>`).join('')}</div>
+      ${staff.length?'':`<div class="empty" style="padding:14px"><div class="em">${MKR.ui.icon('users')}</div><p>No team members yet</p></div>`}
+      <div class="row center" style="gap:10px;margin:12px 0 0">
+        <div class="grow" style="font-size:14px">Default for anyone without their own rate</div>
+        <span class="faint">$</span>${num('rt_def', p.defaultRate||'', '0.01')}<span class="faint">/h</span></div>
+
+      <div class="section-title mt16">2 · What weekends and public holidays cost you</div>
+      <p class="muted" style="font-size:13px">A multiplier on the rate above. 1.0 means the same as a weekday — which is what it stays until you change it.</p>
+      <div class="row center" style="gap:10px;margin-bottom:8px"><div class="grow" style="font-size:14px">Saturday &amp; Sunday</div>${num('rt_wk', p.weekendMult, '0.05', 90)}<b>×</b></div>
+      <div class="row center" style="gap:10px;margin-bottom:8px"><div class="grow" style="font-size:14px">Public holidays</div>${num('rt_ph', p.holidayMult, '0.05', 90)}<b>×</b></div>
+
+      <div class="section-title mt16">3 · Public holidays</div>
+      <p class="muted" style="font-size:13px">Victorian holidays are already in the app for
+        ${Object.keys(R().VIC_HOLIDAYS).map(d=>d.slice(0,4)).filter((y,i,a)=>a.indexOf(y)===i).join(', ')}.
+        The AFL Grand Final Friday is declared separately each year, so add it here when it's announced — along with any date you close or pay extra for.</p>
+      <div class="field"><label>Extra dates (YYYY-MM-DD, comma separated)</label>
+        <input class="input" id="rt_extra" value="${U.esc(p.extraHolidays||'')}" placeholder="2026-10-02, 2026-12-31"></div>
+
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('lock')}</span>Rates sit on the staff record alongside their roster, same as everything else in this app. No tax file numbers, no super, no bank details, no payroll.</div>
+    </div>`);
+
+    U.modal('What you pay', wrap, {actions:[
+      {label:'Cancel', class:'btn-ghost', onClick:x=>x()},
+      {label:'Save', class:'btn-dark', onClick:async(close)=>{
+        await R().savePrefs({
+          defaultRate: Math.max(0, Number(U.qs('#rt_def',wrap).value)||0),
+          weekendMult: Math.max(0, Number(U.qs('#rt_wk',wrap).value)||1),
+          holidayMult: Math.max(0, Number(U.qs('#rt_ph',wrap).value)||1),
+          extraHolidays: U.qs('#rt_extra',wrap).value.trim(),
+        });
+        for(const s of staff){
+          const v = Math.max(0, Number(U.qs('#rt_'+s.id, wrap).value)||0);
+          if(v !== (+s.payRate||0)) await MKR.db.put('users', {id:s.id, payRate:v});
+        }
+        // The audit row records that rates were changed, never what they were —
+        // what someone is paid is not a thing to leave lying around in a log.
+        try{ await MKR.audit.log({action:'settings.update', desc:'Updated pay rates used for roster costing'}); }catch(e){}
+        close(); U.toast('Rates saved','green'); if(after) after();
+      }}
+    ]});
+  }
+
+  // ---------- timesheet export ----------
+  // The point of this button is that nobody types these numbers a second time.
+  // Per-shift rows for checking, then a per-person block for entering — an
+  // accountant wants the totals, and wants to be able to see where they came from.
+  function timesheetModal(week){
+    const back = U.isoDate(R().dayTs(week, 0) - 7*864e5);      // default: the fortnight ending Sunday
+    const end  = U.isoDate(R().dayTs(week, 6));
+    const wrap = U.el(`<div>
+      <div class="row"><div class="field grow"><label>From</label><input class="input" id="ts_a" type="date" value="${back}"></div>
+        <div class="field grow"><label>To</label><input class="input" id="ts_b" type="date" value="${end}"></div></div>
+      <div class="faint" style="font-size:12.5px">Defaults to a fortnight ending this Sunday. Set it to whatever your pay cycle actually is.</div>
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('receipt')}</span>${DISCLAIM}</div>
+    </div>`);
+    U.modal('Timesheet & cost', wrap, {actions:[
+      {label:'Cancel', class:'btn-ghost', onClick:x=>x()},
+      {label:'Download CSV', class:'btn-dark', onClick:async(close)=>{
+        const a = U.qs('#ts_a',wrap).value, b = U.qs('#ts_b',wrap).value;
+        if(!a || !b || a > b) return U.toast('Check the dates','red');
+        const lab = await R().labour(a, b);
+        if(!lab.rows.length) return U.toast('No shifts in that period','amber');
+
+        const rows = [['Date','Day','Person','Rostered start','Rostered end','Rostered hours',
+                       'Clocked on','Clocked off','Worked hours','Late (min)','Rate','Multiplier','Why','Cost','Note']];
+        lab.rows.forEach(r=>rows.push([
+          r.date, DAYS[r.sh.day], r.u.name, r.sh.start, r.sh.end, r.planH.toFixed(2),
+          r.ck ? U.fmtTime(r.ck.clockTs) : '', r.ck && r.ck.clockOutTs ? U.fmtTime(r.ck.clockOutTs) : '',
+          r.actH.toFixed(2), r.ck ? (r.ck.lateMins||0) : '', r.rate.toFixed(2), r.mult,
+          r.holiday || (r.sh.day>=5 ? 'Weekend' : ''),
+          (r.ck ? r.actCost : r.planCost).toFixed(2),
+          !r.ck ? 'No clock-in — rostered hours, not worked' : (r.estimated ? 'No clock-off — counted to rostered finish' : ''),
+        ]));
+        rows.push([]);
+        rows.push(['Per person', '', 'Rostered hours', 'Worked hours', 'Cost']);
+        const people = [...new Set(lab.rows.map(r=>r.u.id))];
+        people.forEach(id=>{
+          const mine = lab.rows.filter(r=>r.u.id===id);
+          rows.push([mine[0].u.name, '',
+            U.round2(mine.reduce((t,r)=>t+r.planH,0)).toFixed(2),
+            U.round2(mine.reduce((t,r)=>t+r.actH,0)).toFixed(2),
+            U.round2(mine.reduce((t,r)=>t+(r.ck?r.actCost:r.planCost),0)).toFixed(2)]);
+        });
+        rows.push(['Total', '', lab.planHours.toFixed(2), lab.actHours.toFixed(2),
+                   U.round2(lab.rows.reduce((t,r)=>t+(r.ck?r.actCost:r.planCost),0)).toFixed(2)]);
+        if(lab.unrated.length) rows.push([], ['No rate set, counted as $0: ' + lab.unrated.join(', ')]);
+        rows.push([], [DISCLAIM]);
+
+        U.downloadCSV(`timesheet-${a}-to-${b}.csv`, rows);
+        try{ await MKR.audit.log({action:'settings.update', desc:`Exported timesheet ${a} → ${b}`}); }catch(e){}
+        close(); U.toast('Exported','green');
+      }}
+    ]});
   }
 
   // ---------- auto-roster ----------
@@ -289,5 +448,5 @@ window.MKR = window.MKR || {};
     ]});
   }
 
-  MKR.rosterView = { render, prefsModal };
+  MKR.rosterView = { render, prefsModal, ratesModal, timesheetModal };
 })();

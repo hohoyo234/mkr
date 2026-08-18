@@ -33,11 +33,13 @@ a matching row in `profiles`.
 
 | Area | What it covers |
 |---|---|
-| **Home, three ways** | **Blocks** is the default: every page as a block the owner arranges themselves, each carrying its own count and what that count means ("3 to top up", "All clear"). **Floor** draws the same numbers as six rooms — cold room, back door, kitchen, staff area, training room, office — each linking to the page that does the work. **List** is the plain rundown. Same data underneath; the choice sticks per device. There is no front-of-house/takings room on purpose: no till, nothing honest to show. |
+| **Home, three ways** | **Blocks** is the default: every page as a block the owner arranges themselves, each carrying its own count and what that count means ("3 to top up", "All clear"). **Floor** draws the same numbers as six rooms — cold room, back door, kitchen, staff area, training room, office — each linking to the page that does the work. **List** is the plain rundown. Same data underneath; the choice sticks per device. There is no front-of-house room on purpose: with no point of sale there is nothing on a dining-room floor this app can honestly count. Takings are a page, not a room — they are a number you type, not a thing to walk into. |
 | **One colour per module** | A module's colour is its identity (cold room blue, kitchen green, rostering violet) and is the same on its block, its room, its kitchen station and its menu row. A *badge's* colour is only ever status, on one three-step scale: green all clear · amber worth a look · red do it today. The two never borrow each other's palette. Defined once in `js/ui.js` (`TONE`, `tier()`). What is *inside* a jar on the shelf is a third thing again — a data graphic, on its own `--fill-*` scale, mid-tone enough to hold the quantity label on top of it. |
 | **One icon set** | Interface glyphs are inline SVG from `js/ui.js`, never emoji — emoji can't take a colour, don't align to a baseline and render differently on every OS. Three deliberate exceptions: the shelf's ~45 ingredient pictograms (identifying a jar at a glance is the shelf's whole job, and 45 line icons would all look alike at 22px), push-notification titles (the OS renders those as plain text), and `<option>` / modal-title / toast text, which is escaped before it reaches the DOM — those simply lost their glyph. |
 | **Light & dark** | Follows the OS; overridable per device in Settings → Appearance. Every colour in the app is a token, so the dark theme is one `:root[data-theme="dark"]` block and no per-component overrides. The docket and receipt facsimiles stay on white — they are pretending to be paper — and `@media print` forces the light tokens back so a docket printed in dark mode isn't a blank page. |
 | **AI rostering** | Asks the owner a preference questionnaire first, then plans from staff availability, skills and how many people were actually rostered in past weeks. Warnings only — never blocks. |
+| **Takings & covers** | Cash, card and covers, typed once a day at close. One row per venue per day, so re-entering a day corrects it. No POS integration on purpose — a till gets replaced every few years and an integration would take the app with it. This is the denominator every cost ratio in the app is measured against. |
+| **Labour cost** | The roster priced at hourly rates the owner types in themselves, plus their own weekend and public-holiday multipliers. Planned cost per week, clocked cost once people clock on and off, labour % against the days that actually have takings, and a per-pay-period timesheet CSV for the bookkeeper. Explicitly **not** a pay calculation — see below. |
 | **Stock & costs** | Ingredients and non-perishable tools. Quantity, unit price, amount, total value, and a price history per item with ▲▼ movement. |
 | **Shelf view** | The default way the Stock tab draws that data: a cold room and a dry store with every item standing on a shelf, where how full the jar is *is* the quantity. Tap a jar to count it or drop it in the basket; the basket groups itself by supplier and becomes the order. `List` switches back to the table, and the choice sticks. |
 | **Suppliers & purchases** | Who you buy from, who you actually ring, and every invoice. |
@@ -50,9 +52,12 @@ a matching row in `profiles`.
 
 These are omissions by design, not gaps in the roadmap:
 
-- **No point of sale.** No orders, no sales figures, no cash reconciliation.
-- **No pay.** No wage rates, no award or penalty-rate calculations, no payslips,
-  no labour-cost ratios.
+- **No point of sale.** No orders, no item-level sales, no cash reconciliation.
+  Daily takings are a figure the owner types in at close, not a till feed.
+- **No payroll.** The app costs a roster using rates the OWNER typed in, and says
+  so on every screen that shows one. It reads no award, applies no penalty rates
+  of its own, produces no payslip, and calculates no tax or superannuation.
+  Getting an award wrong costs a venue real money, so nothing here guesses one.
 - **No super or bank details** are collected anywhere.
 - **No government integration.** No STP, no ATO, no filing of any kind.
 - **No compliance judgements.** No visa hour limits, and nothing is ever checked
@@ -97,7 +102,8 @@ js/
   util.js ui.js i18n.js        helpers, icons + module colours + theme, EN/中文 dictionary
   supa.js db.js                Supabase config; local-first data layer + sync
   auth.js features.js          sessions & roles; module on/off switches
-  roster.js roster-view.js     rostering engine + page
+  roster.js roster-view.js     rostering engine (incl. roster costing) + page
+  takings.js                   daily takings — the denominator for every ratio
   stock.js stock-view.js       stock/cost model + page
   stock-game.js                shelf view — the same stock data drawn as the room
   game-map.js                  the restaurant floor — the owner's home screen (Floor view)
@@ -120,6 +126,15 @@ supabase/
   `supabase/takings-setup.sql` for daily takings.
 - Shifts carry a `week` key (the Monday, `YYYY-MM-DD`) so past weeks stay on the
   record and the roster can learn from them.
+- Takings are keyed `tk_<kitchenId>_<date>` — one row per venue per day, so
+  entering the same day twice is a correction rather than a second row.
+- Pay rates live on the staff record (`users.payRate`); the multipliers, the
+  default rate and any extra public holidays live in `settings.rosterPrefs`.
+  Nothing new syncs — no table was added for the costing.
+- A ratio is only ever taken over days that have BOTH sides. One day of takings
+  against a fortnight of dockets reads as a 98% food cost, which is not a bad
+  week — it is a mismatched divisor. Food cost and labour cost both restrict
+  themselves to the days actually entered.
 - Writes are local-first: IndexedDB immediately, Supabase in the background, with an
   outbox queue that drains when the connection returns.
 

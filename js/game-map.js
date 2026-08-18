@@ -15,9 +15,10 @@ window.MKR = window.MKR || {};
 (function(){
   const U = MKR.util;
 
-  // Every room maps to a module that exists. There is no "front of house /
-  // takings" room on purpose — this app has no point of sale, so it would have
-  // nothing honest to show.
+  // Every room maps to a module that exists. There is no "front of house" room
+  // on purpose — with no point of sale there is nothing on a dining-room floor
+  // this app can honestly count. Takings are a page rather than a room: a
+  // number the owner types at close, not a place anyone walks into.
   // `tone` is the module's colour from MKR.ui — the same one its block on the
   // home screen uses, so a room and its block are recognisably the same thing.
   const ROOMS = [
@@ -169,7 +170,7 @@ window.MKR = window.MKR || {};
 
         <details class="disclaimer-fold mt16">
           <summary>Where these numbers come from</summary>
-          <p>Every number on this floor is read from your own records. This app tracks your operations only — it has no till, so it never shows takings, and it doesn't calculate pay or talk to any government system.</p>
+          <p>Every number on this floor is read from your own records — including the takings, which you type in yourself at close. This app has no till and no payroll: it never calculates pay, never interprets an award and never talks to any government system.</p>
         </details>
       </div>`;
 

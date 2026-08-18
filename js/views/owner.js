@@ -1118,6 +1118,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Work details</div><div class="list">
           ${row('Contract type', EMP_LABEL(u.employment))}
           ${row('Hours this week', h.toFixed(2)+'h')}
+          ${row('Hourly rate', +u.payRate>0
+            ? U.money(u.payRate)+'/h <span class="faint" style="font-weight:400">· your own figure, used to cost the roster</span>'
+            : '<span class="faint">Not set — add it in Rostering → Rates</span>')}
           ${row('Skills', MKR.roster.skillsOf(u).map(k=>`${MKR.roster.skillIcon(k)} ${(MKR.roster.SKILLS[k]||{}).label||k}`).join(' · ') || '<span class="faint">None set — add them in Rostering → Preferences</span>')}
           ${row('Training', myTraining.length?`${myTraining.filter(t=>t.status==='done').length}/${myTraining.length} signed off`:'<span class="faint">None assigned</span>')}
           ${row('ID / passport no.', ob&&ob.passportEnc?'<span id="ppSlot">'+MKR.crypto.mask()+'</span> <button class="btn btn-ghost btn-sm" id="ppBtn" style="margin-left:6px;min-height:32px;padding:0 12px">Reveal</button>':'')}
@@ -1131,7 +1134,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           ${row('Emergency contact', U.esc(u.emergency))}
           ${row('Onboarding', u.onboarded?'<span class="pill ok">Complete</span>'+(ob&&ob.signedAt?' · signed '+U.fmtDate(ob.signedAt):''):'<span class="pill warn">Pending</span>')}
         </div></div>
-        <div class="alert info" style="margin-bottom:16px"><span>${MKR.ui.icon('receipt')}</span><div>Pay, tax, super and bank details are deliberately not held here — this app doesn't run payroll or talk to any government system.${MKR.features.can('au_workrights','owner')?' Work rights are checked on VEVO.':''}</div></div>
+        <div class="alert info" style="margin-bottom:16px"><span>${MKR.ui.icon('receipt')}</span><div>The hourly rate above is a figure you typed yourself so a roster can be costed. Tax, super, bank details and payroll are deliberately not held here — this app calculates no pay, interprets no award and talks to no government system.${MKR.features.can('au_workrights','owner')?' Work rights are checked on VEVO.':''}</div></div>
         ${u.offboarded?`<div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Offboard archive</div><div class="list">
           ${row('Offboarded on', u.archivedAt?U.isoDate(u.archivedAt):'')}
           ${row('Retained until', u.retentionUntil?U.isoDate(u.retentionUntil):'')}
@@ -1201,7 +1204,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           <button class="btn btn-dark grow" id="saveBtn">Save profile</button>
           <button class="btn btn-ghost grow" id="cancelBtn">Cancel</button>
         </div>
-        <div class="disclaimer mt12"><span>${MKR.ui.icon('lock')}</span>The ID number is AES-encrypted and stored separately — only the owner can reveal it. This app holds no pay, tax, super or bank data.</div>
+        <div class="disclaimer mt12"><span>${MKR.ui.icon('lock')}</span>The ID number is AES-encrypted and stored separately — only the owner can reveal it. This app holds no tax, super or bank data and calculates no pay.</div>
         </div>`;
       U.qs('#cancelBtn',c).onclick=renderView;
       U.qs('#saveBtn',c).onclick=async()=>{

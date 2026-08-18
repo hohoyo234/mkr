@@ -873,6 +873,38 @@
       "Today's snapshot":"今日概覽", "Tasks due today":"今日待辦任務", "Upcoming deliveries":"待確認到貨",
       "Expiring items":"臨期物料", "Team on shift":"今日在班人數", "Takings today":"今日營業額",
       "Enter takings":"錄入營業額",
+      // ---- Labour cost · your own rates, never an award ----
+      "What this week costs":"這周人力多少錢", "Rates":"時薪設置",
+      "No hourly rates yet.":"還沒設時薪。",
+      "Type what you pay each person — once — and this week gets a price on it, and a labour percentage the moment you enter takings.":"把每個人的時薪填一次，這周的排班就有價錢了；再錄入營業額，人力佔比也就出來了。",
+      "nobody clocked on yet":"還沒有人打卡",
+      "enter takings to see labour %":"錄入營業額才能算人力佔比",
+      "Your own rates, applied to your own roster, for your own planning. Not a pay calculation and not an interpretation of any award — this app runs no payroll, produces no payslips and sends nothing to the ATO.":"用你自己填的費率，算你自己的排班，供你自己判斷。這不是工資計算，也不是對任何 award 的解釋 —— 本應用不做薪資覈算、不出工資單、不向稅務局發送任何數據。",
+      "Labour cost":"人力成本佔比", "needs hourly rates on the roster":"需要先在排班頁填時薪",
+      "Labour here is this roster priced at the hourly rates you typed in yourself — a planning figure, not a pay calculation, not a payslip and not an interpretation of any award. Set the rates on the roster page under Rates.":"這裏的人力成本，是用你自己填的時薪給排班算的價 —— 只是給你做判斷用的數，不是工資計算、不是工資單，也不是對任何 award 的解釋。時薪在排班頁的「時薪設置」裏填。",
+          // Rates modal
+      "What you pay":"你付多少錢",
+      "These are your numbers, not an award. Type what you actually pay; the app multiplies them by hours it already has and shows you a total. It never works out an award rate, never produces a payslip and never sends any of it anywhere.":"這些是你自己的數，不是 award。填你實際付的錢，app 把它乘上已有的工時給你一個合計。它不會去推算 award 費率、不出工資單，也不會把這些數發到任何地方。",
+      "1 · Hourly rate, per person":"1 · 每個人的時薪",
+      "Leave one blank to fall back to the default below. Anyone still on $0 is left out of the totals — the page says who.":"留空就用下面的默認時薪。仍然是 $0 的人不計入合計 —— 頁面上會寫出是誰。",
+      "Default for anyone without their own rate":"沒單獨填時薪的人按這個算",
+      "2 · What weekends and public holidays cost you":"2 · 週末和公共假日你要多付多少",
+      "A multiplier on the rate above. 1.0 means the same as a weekday — which is what it stays until you change it.":"在上面時薪基礎上的倍率。1.0 表示和平日一樣 —— 你不改它就一直是 1.0。",
+      "Saturday & Sunday":"週六與週日", "Public holidays":"公共假日",
+      "3 · Public holidays":"3 · 公共假日",
+      "Extra dates (YYYY-MM-DD, comma separated)":"額外的日期（YYYY-MM-DD，用逗號分隔）",
+      "Rates sit on the staff record alongside their roster, same as everything else in this app. No tax file numbers, no super, no bank details, no payroll.":"時薪和排班一樣存在員工檔案裏，跟這個 app 裏其它數據一個待遇。不存稅號、不存養老金、不存銀行賬戶、不做薪資覈算。",
+      "Rates saved":"時薪已保存",
+      // Timesheet export
+      "Export roster":"導出排班", "Timesheet & cost (CSV)":"考勤與人力成本（CSV）",
+      "Timesheet & cost":"考勤與人力成本", "Download CSV":"下載 CSV",
+      "From":"從", "To":"到",
+      "Defaults to a fortnight ending this Sunday. Set it to whatever your pay cycle actually is.":"默認是到本週日爲止的兩週。你的工資週期是幾號到幾號，就改成幾號。",
+      "Check the dates":"檢查一下日期", "No shifts in that period":"這段時間沒有班次",
+      // Clocking off
+      "Clock off":"下班打卡", "You are not clocked in":"你還沒上班打卡",
+      "Hourly rate":"時薪", "Not set — add it in Rostering → Rates":"未設置 —— 到「排班 → 時薪設置」填",
+      "your own figure, used to cost the roster":"你自己填的數，用來給排班算成本",
       // ---- Takings ----
       "Takings":"營業額", "Takings & covers":"營業額與客數",
       "What the till took, typed once a day — the number every cost in this app is measured against":"每天收工錄一次收銀機的數 —— app 裏所有成本都以它爲分母",
@@ -925,7 +957,7 @@
       "What changed since you last looked":"你上次看之後發生了什麼",
       "Nothing is running short and no supplier has moved a price on you.":"沒有東西快用完，也沒有供應商動過價格。",
       "Open the cold room →":"打開冷庫 →",
-      "Every number on this floor is read from your own records. This app tracks your operations only — it has no till, so it never shows takings, and it doesn't calculate pay or talk to any government system.":"這張平面圖上的每個數字都讀自你自己的記錄。本應用只管理你的經營流程 —— 沒有收銀機，因此從不顯示營業額，也不計算工資、不對接任何政府系統。",
+      "Every number on this floor is read from your own records — including the takings, which you type in yourself at close. This app has no till and no payroll: it never calculates pay, never interprets an award and never talks to any government system.":"這張平面圖上的每個數字都讀自你自己的記錄 —— 包括打烊時你自己錄入的營業額。本應用沒有收銀機、也不做薪資覈算：從不計算工資、不解釋 award，也不對接任何政府系統。",
       // ---- Kitchen · room view ----
       "🍳 Kitchen":"🍳 後廚",
       "still to do":"件還沒做", "ticked off today":"今天已完成",
@@ -1125,6 +1157,15 @@
       "more on the shelf than could have arrived — looks like a miscount":"貨架上的比進的還多 —— 像是盤錯了",
     };
     const PATTERNS = [
+      // Labour cost — the numbers are live, so these can't be flat keys
+      [/^planned · ([\d.]+)h$/, m => `計劃 ${m[1]} 小時`],
+      [/^clocked · (\d+)\/(\d+) shifts$/, m => `已打卡 ${m[1]}/${m[2]} 個班次`],
+      [/^of takings · (\d+) days?$/, m => `佔營業額 · 你錄入的 ${m[1]} 天`],
+      [/^([\d.]+)% with food$/, m => `加上食材共 ${m[1]}%`],
+      [/^Clocked off · ([\d.]+) h$/, m => `下班打卡 · ${m[1]} 小時`],
+      [/^(.+?) (?:has|have) no rate — they cost \$0 in the figures above, so the real number is higher\.$/, m => `${m[1]} 還沒填時薪 —— 上面的數把他們算成 $0，實際比這個高。`],
+      [/^(.+?) (?:has|have) no rate set, so the real labour figure is higher\.$/, m => `${m[1]} 還沒填時薪，實際人力成本比這個高。`],
+      [/^No public holidays are listed for (\d{4}) — add them under Rates, or holiday days will cost the same as any other\.$/, m => `${m[1]} 年的公共假日還沒錄 —— 在「時薪設置」裏補上，否則假日會按平日價算。`],
       // Takings
       [/^Taken · last (\d+) days$/, m => `近 ${m[1]} 天營業額`],
       [/^(\d+) days? entered$/, m => `已錄入 ${m[1]} 天`],
