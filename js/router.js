@@ -10,6 +10,30 @@ window.MKR = window.MKR || {};
   }
 
   let _brandFor = null;   // kitchenId whose brand is currently applied
+  let _badgeOff = null;   // unsubscribes the previous shell's badge watcher
+
+  // Badges were counted once, while the shell was being built. A delivery that
+  // landed, an alert that fired or a task a colleague ticked therefore showed up
+  // only after navigating somewhere else — the one thing a badge exists to make
+  // unnecessary. Repainting the numbers in place is cheaper than rebuilding the
+  // shell, and leaves the page you are reading alone.
+  function paintBadges(root, badges){
+    const put = (a, cls, n)=>{
+      const old = a.querySelector('.'+cls); if(old) old.remove();
+      if(!n) return;
+      const span = MKR.util.el(`<span class="${cls}">${n}</span>`);
+      (cls==='mn-badge' ? a.querySelector('.em') || a : a).appendChild(span);
+    };
+    const idOf = (a)=> (a.getAttribute('href')||'').split('/').pop();
+    root.querySelectorAll('.nav-item').forEach(a=> put(a, 'badge',    badges[idOf(a)]));
+    root.querySelectorAll('.ns-item').forEach(a=>  put(a, 'ns-badge', badges[idOf(a)]));
+    const more = root.querySelector('#navMore');
+    root.querySelectorAll('.mobile-nav a').forEach(a=> put(a, 'mn-badge', badges[idOf(a)]));
+    if(more){
+      const rest = Array.from(root.querySelectorAll('.ns-item')).reduce((t,a)=>t+(badges[idOf(a)]||0), 0);
+      put(more, 'mn-badge', rest);
+    }
+  }
 
   async function render(){
     const root = document.getElementById('root');
@@ -155,7 +179,7 @@ window.MKR = window.MKR || {};
           ${nav}
           <div class="side-foot">
             <div class="who" style="margin-bottom:10px"><div class="ava">${sess.emoji||MKR.util.initials(sess.name)}</div><div><b style="font-size:14px">${MKR.util.esc(sess.name)}</b><div class="faint" style="font-size:11.5px">${MKR.auth.roleName(sess.role)}${preview?' · previewing '+MKR.auth.roleName(viewingRole):''}</div></div></div>
-            <div class="row gap6"><button class="btn btn-ghost btn-sm grow" id="pwBtn" title="Password">${MKR.ui.icon('key')} Password</button><button class="btn btn-ghost btn-sm grow" id="logoutBtn" title="Log out">Log out</button></div>
+            <div class="row gap6"><button class="btn btn-ghost btn-sm grow" id="pwBtn" title="Change password">${MKR.ui.icon('key')} Change password</button><button class="btn btn-ghost btn-sm grow" id="logoutBtn" title="Log out">Log out</button></div>
           </div>
         </aside>
         <div class="main">
@@ -178,7 +202,7 @@ window.MKR = window.MKR || {};
             <div class="navsheet-grip"></div>
             <div class="navsheet-list">${moreSheet}</div>
             <div class="navsheet-foot">
-              <button class="btn btn-ghost btn-sm grow" id="pwBtnM">${MKR.ui.icon('key')} Password</button>
+              <button class="btn btn-ghost btn-sm grow" id="pwBtnM">${MKR.ui.icon('key')} Change password</button>
               <button class="btn btn-ghost btn-sm grow" id="logoutBtnM">${MKR.ui.icon('logout')} Log out</button>
             </div>
           </div>
@@ -249,11 +273,27 @@ window.MKR = window.MKR || {};
     if(exitImp) exitImp.onclick=(e)=>{ e.preventDefault(); MKR.auth.exitImpersonate(); location.hash='#/superadmin/restaurants'; render(); };
     const exitPrev=document.getElementById('exitPrev');
     if(exitPrev) exitPrev.onclick=(e)=>{ e.preventDefault(); MKR.auth.exitPreview(); };
+    // Keep those numbers live for as long as this shell is on screen. One
+    // wildcard subscription, debounced, because a sync writes many rows at once.
+    if(_badgeOff){ _badgeOff(); _badgeOff = null; }
+    if(portal.badges){
+      let t = null;
+      _badgeOff = MKR.db.on('*', ()=>{
+        clearTimeout(t);
+        t = setTimeout(async()=>{
+          if(!root.querySelector('.sidebar')) return;      // shell has been replaced
+          try{ paintBadges(root, await portal.badges()); }catch(e){}
+        }, 300);
+      });
+    }
+
     MKR.net.render();
     if(MKR.i18n) MKR.i18n.bindSwitchers(root);
     const view = document.getElementById('view');
+    MKR.db.pageStart();
     try{ await portal.view(section, view, arg, viewingRole); }
     catch(e){ console.error(e); view.innerHTML = `<div class="empty"><div class="em">${MKR.ui.icon('warning')}</div><p>Page error: ${MKR.util.esc(e.message)}</p></div>`; }
+    finally{ MKR.db.pageEnd(); }
 
     // A section no portal knows about (a stale bookmark, a typo, a link to a
     // page that moved) used to fall straight through every `if` in view() and

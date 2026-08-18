@@ -137,7 +137,7 @@ window.MKR = window.MKR || {};
   function assignModal(list, users, after){
     if(!list.length){ U.toast('Write an SOP first','amber'); return; }
     if(!users.length){ U.toast('No team members yet','amber'); return; }
-    const due = new Date(Date.now()+7*DAY).toISOString().slice(0,10);
+    const due = U.isoDate(Date.now()+7*DAY);
     const wrap = U.el(`<div>
       <div class="field"><label>SOP</label><select class="input" id="as_s">${list.map(s=>`<option value="${s.id}">${U.esc(s.category)} · ${U.esc(s.title)}</option>`).join('')}</select></div>
       <div class="field"><label>Due date</label><input class="input" id="as_d" type="date" value="${due}"></div>

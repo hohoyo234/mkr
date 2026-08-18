@@ -20,7 +20,6 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
 
   function numOf(re, t){ const m=t.match(re); return m?+m[1]:null; }
   // Safe YYYY-MM-DD from a possibly-missing/invalid timestamp (never throws).
-  function dayOf(ts){ const d=new Date(ts); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0,10); }
 
   // ---------- a compact daily summary (read-only) ----------
   async function dailySummary(){
@@ -28,7 +27,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
     const staff=(await MKR.db.getAll('users')).filter(u=>u.role!=='owner' && !u.offboarded);
     const todayIdx=(new Date().getDay()+6)%7;
     const onToday=(await MKR.roster.shiftsFor(MKR.roster.thisWeek())).filter(x=>x.day===todayIdx);
-    const tasks=(await MKR.db.getAll('tasks')).filter(t=>t.date===today);
+    const tasks=await MKR.tasks.today();
     let rows=[], pend=[], tr=[];
     try{ rows=await MKR.stock.overview(); }catch(e){}
     try{ pend=await MKR.deliveries.pending(); }catch(e){}
@@ -76,7 +75,7 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
       const party = numOf(/(\d+)\s*(人|位|pax|people|ppl)/, low) || 2;
       const name = t.replace(/(排队|取号|候位|waitlist|queue|加入|帮我|把|一位|客人)/g,'').replace(/(\d+)\s*(人|位|pax|people|ppl)/g,'').trim();
       return { desc:`把${name?'「'+name+'」':'一位客人'}（${party} 人）加入排队`,
-        run:async()=>{ const today=U.todayISO(); const all=await MKR.db.getAll('waitlist'); const n=all.filter(q=>dayOf(q.createdAt)===today).reduce((mx,q)=>Math.max(mx,q.num||0),0)+1; await MKR.db.put('waitlist',{num:n, name, partySize:party, status:'waiting', kitchenId:kid()}); return `⏳ 已加入排队，号码 <b>#${n}</b>。`; } };
+        run:async()=>{ const n = await MKR.portals.manager.nextTicket(); await MKR.db.put('waitlist',{num:n, name, partySize:party, status:'waiting', kitchenId:kid()}); return `⏳ 已加入排队，号码 <b>#${n}</b>。`; } };
     },
     // 加预订
     async function(t){
@@ -84,8 +83,8 @@ window.MKR = window.MKR || {}; MKR.views = MKR.views || {};
       if(!/(预订|订位|订桌|book|reserv)/.test(low)) return null;
       const party = numOf(/(\d+)\s*(人|位|pax|people|ppl)/, low) || 2;
       let date=U.todayISO(), dateLabel='今天';
-      if(/明天|tomorrow/.test(low)){ date=new Date(Date.now()+864e5).toISOString().slice(0,10); dateLabel=date; }
-      else if(/后天/.test(low)){ date=new Date(Date.now()+2*864e5).toISOString().slice(0,10); dateLabel=date; }
+      if(/明天|tomorrow/.test(low)){ date=U.isoDate(Date.now()+864e5); dateLabel=date; }
+      else if(/后天/.test(low)){ date=U.isoDate(Date.now()+2*864e5); dateLabel=date; }
       let time=''; const tm=low.match(/(\d{1,2})\s*[:点]\s*(\d{0,2})/); if(tm){ time=String(+tm[1]).padStart(2,'0')+':'+(tm[2]?tm[2].padStart(2,'0'):'00'); }
       const name = t.replace(/(预订|订位|订桌|book a table|book|reservation|reserve|帮我|明天|后天|今天|tomorrow|today)/gi,'').replace(/(\d+)\s*(人|位|pax|people|ppl)/g,'').replace(/(\d{1,2})\s*[:点]\s*(\d{0,2})/g,'').trim();
       return { desc:`新建预订：${name||'客人'} · ${dateLabel} ${time||'(时间未填)'} · ${party} 人`,

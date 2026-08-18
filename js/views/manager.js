@@ -47,6 +47,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     // this one is how two portals end up disagreeing about what a staff record
     // needs. One page, two places it can be shown.
     renderTasks: (c)=> tasks(c),
+    nextTicket,
     renderHire:  (c)=> hire(c),
   };
 
@@ -88,16 +89,22 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const sv=U.qs('#saveAv',c); if(sv) sv.onclick=async()=>{ await persist(); U.toast('Availability saved','green'); };
   }
 
+  // One ticket counter for the front door, read at the moment the ticket is
+  // issued rather than from whatever the page loaded with. The assistant can add
+  // a walk-in from another device while this screen sits open, and both would
+  // hand out #7. Shared with that assistant command for the same reason.
+  async function nextTicket(){
+    const today = U.todayISO();
+    return (await MKR.db.getAll('waitlist'))
+      .filter(q=>U.isoDate(q.createdAt)===today)
+      .reduce((mx,q)=>Math.max(mx, q.num||0), 0) + 1;
+  }
+
   // ---------- Reservations + walk-in queue ----------
   async function bookings(c){
     const today = U.todayISO();
     let resv  = await MKR.db.getAll('reservations');
     let queue = await MKR.db.getAll('waitlist');
-
-    function nextTicket(){
-      const todays = queue.filter(q=>new Date(q.createdAt).toISOString().slice(0,10)===today);
-      return todays.reduce((mx,q)=>Math.max(mx, q.num||0), 0) + 1;
-    }
 
     async function reload(){ resv = await MKR.db.getAll('reservations'); queue = await MKR.db.getAll('waitlist'); draw(); }
 
@@ -187,7 +194,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           <div class="field grow"><label>Party size</label><input class="input" id="q_sz" type="number" min="1" value="2"></div></div>
       </div>`);
       U.modal('Add to queue', wrap, {actions:[{label:'Add to queue', class:'btn-dark', onClick:async(cl)=>{
-        const num=nextTicket();
+        const num=await nextTicket();
         await MKR.db.put('waitlist',{ num, name:U.qs('#q_n',wrap).value.trim(), phone:U.qs('#q_p',wrap).value.trim(),
           partySize:+U.qs('#q_sz',wrap).value||1, status:'waiting', kitchenId:(MKR.auth.current()&&MKR.auth.current().kitchenId)||'k_main' });
         cl(); U.toast(`Added · ticket #${num}`,'green'); reload();
@@ -232,10 +239,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       U.qs('#addMine',c).onclick=addMine;
     }
     async function clockIn(shift){
-      const startTs=MKR.alerts.shiftStartTs(shift);
-      const lateMins=Math.max(0,Math.round((Date.now()-startTs)/60000)); const late=lateMins>5;
-      await MKR.db.put('clockins',{staffId:sess.id, shiftId:shift.id, date:U.todayISO(), scheduledTs:startTs, clockTs:Date.now(), lateMins, late});
-      const ns=(await MKR.db.getAll('alerts')).find(a=>a.key==='noshow-'+shift.id && !a.read); if(ns) await MKR.db.put('alerts',{id:ns.id, read:true});
+      const {lateMins, late} = await MKR.roster.clockIn(shift, sess);
       U.toast(late?`Clocked in · ${lateMins} min late`:'Clocked in · on time', late?'amber':'green');
       await reload(); draw();
     }
@@ -378,7 +382,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   let tasksView = (function(){ try{ return localStorage.getItem(TKEY)==='list' ? 'list' : 'room'; }catch(e){ return 'room'; } })();
 
   async function tasks(c){
-    let list = (await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO());
+    let list = await MKR.tasks.today();
     c.innerHTML = `
       <div class="section-head"><div><h2>Daily task checklist</h2><p>Publish cleaning / prep / temperature checks · review the digital logs and photos staff submit</p></div>
         <div class="row gap8 wrap center">
@@ -396,13 +400,40 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       el.innerHTML = `<div class="card stat" style="margin-bottom:16px"><div class="k">Today's progress</div>
         <div class="v">${done}<small> / ${list.length}</small></div><div class="bar"><i style="width:${list.length?done/list.length*100:0}%"></i></div></div>` +
         list.map(t=>`<div class="task-item ${t.done?'done':''}">
-          <div class="task-check ${t.done?'done':''}">${t.done?MKR.ui.icon('check'):''}</div>
-          <div class="grow"><b>${U.esc(t.name)}</b><div class="faint" style="font-size:12px">${t.done?`${U.esc(t.by||'')} · ${t.value?U.esc(t.value)+' · ':''}submitted`:'Waiting on staff'}</div></div>
-          ${t.photo?`<img class="thumb" src="${t.photo}" data-img="${t.id}">`:'<span class="pill ghost">No photo</span>'}
+          <div class="task-check ${t.done?'done':''}" data-tk="${t.id}">${t.done?MKR.ui.icon('check'):''}</div>
+          <div class="grow"><b>${U.esc(t.name)}</b><div class="faint" style="font-size:12px">${t.done?`${U.esc(t.by||'')} · ${t.value?U.esc(t.value)+' · ':''}submitted`:(MKR.tasks.needsPhoto(t)?'Waiting on staff · needs a photo':'Waiting on staff')}</div></div>
+          ${t.photo?`<img class="thumb" src="${t.photo}" data-img="${t.id}">`
+                   :`<label class="btn btn-ghost btn-sm" style="cursor:pointer">${MKR.ui.icon('camera')} Photo<input type="file" accept="image/*" capture="environment" data-photo="${t.id}" hidden></label>`}
         </div>`).join('');
       U.qsa('[data-img]',el).forEach(im=> im.onclick=()=> U.modal('Submitted photo', `<img src="${im.src}" style="width:100%;border-radius:12px">`));
+      // The list view drew the same tick box as the phone but never bound it,
+      // so on this screen the checklist could only be read, never worked.
+      U.qsa('[data-tk]',el).forEach(b=> b.onclick=()=> toggle(b.dataset.tk));
+      U.qsa('[data-photo]',el).forEach(inp=> inp.onchange=()=> U.readImage(inp.files[0], async(data)=>{
+        const t=list.find(x=>x.id===inp.dataset.photo); if(!t) return;
+        const r=await MKR.tasks.complete(t, {photo:data, value:t.value});
+        await refresh(); U.toast(r.ok?'Photo uploaded':r.msg, r.ok?'green':'amber');
+      }));
     }
-    async function refresh(){ list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); draw(); }
+    async function refresh(){ list=await MKR.tasks.today(); draw(); }
+    // Same rules as the phone: a temperature check needs its reading, a photo
+    // task needs its photo — MKR.tasks is what decides, not the screen.
+    async function toggle(id){
+      const t=list.find(x=>x.id===id); if(!t) return;
+      if(t.done){ await MKR.tasks.uncomplete(t); return refresh(); }
+      if(MKR.tasks.needsValue(t)){
+        const f=U.el(`<div class="field"><label>Record temperature (°C)</label><input class="input" id="mt_v" type="number" step="0.1" placeholder="e.g. 3.5"></div>`);
+        U.modal('Temperature check', f, {actions:[{label:'Record & complete', class:'btn-dark', onClick:async(cl)=>{
+          const r=await MKR.tasks.complete(t,{value:U.qs('#mt_v',f).value});
+          if(!r.ok) return U.toast(r.msg,'amber');
+          cl(); refresh();
+        }}]});
+        return;
+      }
+      const r=await MKR.tasks.complete(t);
+      if(!r.ok) return U.toast(r.msg,'amber');
+      refresh();
+    }
     U.qsa('[data-tview]',c).forEach(b=> b.onclick = ()=>{
       tasksView = b.dataset.tview;
       try{ localStorage.setItem(TKEY, tasksView); }catch(e){}
@@ -415,7 +446,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       U.modal('Add task',wrap,{actions:[{label:'Publish',class:'btn-dark',onClick:async(cl)=>{
         const nm=U.qs('#tn',wrap).value.trim(); if(!nm) return;
         await MKR.db.put('tasks',{name:nm, date:U.todayISO(), done:false, photo:null, by:null});
-        list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); cl(); draw(); U.toast('Task published','green');
+        list=await MKR.tasks.today(); cl(); draw(); U.toast('Task published','green');
       }}]});
     };
   }

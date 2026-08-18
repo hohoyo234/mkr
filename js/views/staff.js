@@ -117,19 +117,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       U.qsa('[data-clock]',c).forEach(b=>b.onclick=()=>clockIn(shifts.find(x=>x.id===b.dataset.clock)));
     }
     async function clockIn(shift){
-      const startTs = MKR.alerts.shiftStartTs(shift);
-      const lateMins = Math.max(0, Math.round((Date.now()-startTs)/60000));
-      const late = lateMins>5;
-      await MKR.db.put('clockins',{staffId:sess.id, shiftId:shift.id, date:U.todayISO(), scheduledTs:startTs, clockTs:Date.now(), lateMins, late});
-      // Clear this shift's No-Show alert after clocking in
-      const ns=(await MKR.db.getAll('alerts')).find(a=>a.key==='noshow-'+shift.id && !a.read);
-      if(ns) await MKR.db.put('alerts',{id:ns.id, read:true});
-      if(late){
-        const myLate=(await MKR.db.getAll('clockins')).filter(k=>k.staffId===sess.id && k.late).length;
-        if(myLate>=2) await MKR.alerts.raise({key:'late-consec-'+sess.id, level:'red', type:'late', title:'Staff repeatedly late', desc:`${sess.name} has been late ${myLate} times (this time ${lateMins} min) — worth a look.`});
-        else await MKR.alerts.raise({key:'late-'+shift.id, level:'amber', type:'late', title:'Staff late', desc:`${sess.name} was ${lateMins} min late (${DAYS[shift.day]} ${shift.start} shift)`});
-        U.toast(`Clocked in · ${lateMins} min late`,'amber');
-      } else U.toast('Clocked in · on time','green');
+      const {lateMins, late} = await MKR.roster.clockIn(shift, sess);
+      U.toast(late?`Clocked in · ${lateMins} min late`:'Clocked in · on time', late?'amber':'green');
       clockins=(await MKR.db.getAll('clockins')).filter(k=>k.staffId===sess.id); draw();
     }
     function hang(shift){
@@ -145,7 +134,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   // ---------- Today's tasks ----------
   async function tasks(c){
     const sess=MKR.auth.current();
-    let list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO());
+    let list=await MKR.tasks.today();
     function draw(){
       const done=list.filter(t=>t.done).length;
       c.innerHTML=`
@@ -155,33 +144,38 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const el=U.qs('#tl',c);
       el.innerHTML=list.map(t=>`<div class="task-item ${t.done?'done':''}">
         <div class="task-check ${t.done?'done':''}" data-tk="${t.id}">${t.done?MKR.ui.icon('check'):''}</div>
-        <div class="grow"><b>${U.esc(t.name)}</b><div class="faint" style="font-size:12px">${t.done?(U.esc(t.value||'')+' done'):'Tap the box on the left to complete'}</div></div>
+        <div class="grow"><b>${U.esc(t.name)}</b><div class="faint" style="font-size:12px">${t.done?(U.esc(t.value||'')+' done'):(MKR.tasks.needsPhoto(t)?'Upload the photo first — that is what ticks it off':'Tap the box on the left to complete')}</div></div>
         ${t.photo?`<img class="thumb" src="${t.photo}">`:`<label class="btn btn-ghost btn-sm" style="cursor:pointer">${MKR.ui.icon('camera')} Photo<input type="file" accept="image/*" capture="environment" data-photo="${t.id}" hidden></label>`}
       </div>`).join('');
       U.qsa('[data-tk]',el).forEach(b=>b.onclick=()=>toggle(b.dataset.tk));
       U.qsa('[data-photo]',el).forEach(inp=>inp.onchange=(e)=>upload(inp.dataset.photo, e.target.files[0]));
     }
     async function toggle(id){
-      const t=list.find(x=>x.id===id);
-      if(/temperature/i.test(t.name) && !t.done){
+      const t=list.find(x=>x.id===id); if(!t) return;
+      if(t.done){ await MKR.tasks.uncomplete(t); list=await MKR.tasks.today(); draw(); return; }
+      if(MKR.tasks.needsValue(t)){
         const wrap=U.el(`<div class="field"><label>Record temperature (°C)</label><input class="input" id="tp" type="number" step="0.1" placeholder="e.g. 3.5"></div>`);
         U.modal('Fridge temperature check',wrap,{actions:[{label:'Record & complete',class:'btn-dark',onClick:async(cl)=>{
-          await MKR.db.put('tasks',{id, done:true, by:MKR.auth.current().name, value:U.qs('#tp',wrap).value+'°C'});
-          list=(await MKR.db.getAll('tasks')).filter(x=>x.date===U.todayISO()); cl(); draw();
+          const r=await MKR.tasks.complete(t,{value:U.qs('#tp',wrap).value});
+          if(!r.ok) return U.toast(r.msg,'amber');
+          list=await MKR.tasks.today(); cl(); draw();
         }}]});
         return;
       }
-      await MKR.db.put('tasks',{id, done:!t.done, by:t.done?null:MKR.auth.current().name});
-      list=(await MKR.db.getAll('tasks')).filter(x=>x.date===U.todayISO()); draw();
+      const r=await MKR.tasks.complete(t);
+      if(!r.ok) return U.toast(r.msg,'amber');
+      list=await MKR.tasks.today(); draw();
     }
     function upload(id,file){
       U.readImage(file, async(data)=>{
-        await MKR.db.put('tasks',{id, photo:data, done:true, by:MKR.auth.current().name});
-        list=(await MKR.db.getAll('tasks')).filter(x=>x.date===U.todayISO()); draw(); U.toast('Photo uploaded','green');
+        const t=list.find(x=>x.id===id); if(!t) return;
+        const r=await MKR.tasks.complete(t,{photo:data, value:t.value});
+        list=await MKR.tasks.today(); draw();
+        U.toast(r.ok?'Photo uploaded':r.msg, r.ok?'green':'amber');
       });
     }
     draw();
-    MKR.db.on('tasks', async()=>{ list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); draw(); });
+    MKR.db.on('tasks', async()=>{ list=await MKR.tasks.today(); draw(); });
   }
 
   // ---------- Swap market + SOS ----------

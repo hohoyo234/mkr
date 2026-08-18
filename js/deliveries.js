@@ -100,7 +100,7 @@ window.MKR = window.MKR || {};
   // GST the supplier put on it and how it's being paid. Anything left out here
   // is something the owner has to type a second time later, which is exactly the
   // job this app exists to delete.
-  async function confirm(d, {lines, receivedBy, tempC, note, photo, docketNo, payMethod, fee, gst}){
+  async function confirm(d, {lines, receivedBy, signature, tempC, note, photo, docketNo, payMethod, fee, gst}){
     const got = lines.filter(l=>(+l.received||0)>0);
     let purchaseId = null;
     if(got.length){
@@ -123,10 +123,13 @@ window.MKR = window.MKR || {};
       purchaseId = p.id;
     }
     const saved = await MKR.db.put('deliveries', {
-      id:d.id, status:'confirmed', lines, receivedBy, tempC:tempC===''?null:tempC,
+      id:d.id, status:'confirmed', lines, receivedBy, signature:signature||null, tempC:tempC===''?null:tempC,
       docketNo: docketNo || d.docketNo || '', payMethod: payMethod||'', fee:+fee||0, gst:+gst||0,
       note, photo:photo||null, confirmedAt:Date.now(), purchaseId
     });
+    // A reading that is only filed is not a check — same rule the fridge
+    // checklist applies, same alert.
+    if(tempC!=='' && tempC!=null) await MKR.tasks.checkTemp(tempC, `${d.supplierName||'Supplier'} delivery`);
     const problems = lines.filter(l=>l.condition && l.condition!=='ok');
     if(problems.length){
       // Open the claim the moment the problem is signed for, rather than waiting
@@ -291,12 +294,19 @@ window.MKR = window.MKR || {};
 
       ${hasPerishable?`<div class="field"><label>Chilled/frozen temperature on arrival (°C)</label><input class="input" id="d_temp" type="number" step="0.1" placeholder="e.g. 3.5"></div>`:''}
       <div class="field"><label>Received by</label><input class="input" id="d_by" value="${U.esc(me())}"></div>
+      <div class="field"><div class="row" style="justify-content:space-between;align-items:baseline">
+          <label>Signature</label><button type="button" class="btn btn-ghost btn-sm" id="d_sigclr">Clear</button></div>
+        <div class="sigpad" id="d_sig" aria-label="Sign here with your finger or mouse"><canvas></canvas></div></div>
       <div class="field"><label>Note (optional)</label><input class="input" id="d_note" placeholder="e.g. 2 boxes short, driver to redeliver Friday"></div>
       <label class="img-drop" id="d_drop"><div class="img-preview" id="d_prev"><span id="d_photoLabel">${MKR.ui.icon('camera')} Photo of the docket or the problem</span></div><input type="file" id="d_photo" accept="image/*" hidden></label>
       <div class="disclaimer" id="d_photoWhy" hidden><span>${MKR.ui.icon('camera')}</span>A short or damaged line needs the photo. Suppliers refuse claims they can't see, and by the time anyone chases it the crate has been thrown out.</div>
       <div class="disclaimer mt12"><span>${MKR.ui.icon('receipt')}</span>Signing here files the docket as well: received quantities go into stock at the prices above, and the whole thing lands in Purchases. You never type it twice.</div>
     </div>`);
     let photo=null;
+    // A name in a box proves nothing to a supplier arguing about a short
+    // delivery — the mark does. Same pad the complaint form signs on.
+    const sig = U.signaturePad(U.qs('#d_sig',wrap));
+    U.qs('#d_sigclr',wrap).onclick = ()=> sig.clear();
 
     // One reading of a row, in both currencies at once: what was typed, and what
     // that means in the item's own unit. Everything else on this form — the
@@ -418,7 +428,11 @@ window.MKR = window.MKR || {};
           return out;
         });
         const by = U.qs('#d_by',wrap).value.trim();
-        if(!by){ U.toast('Sign it — who received this?','red'); return; }
+        if(!by){ U.toast('Who received this?','red'); return; }
+        if(!sig.signed()){
+          U.toast('Sign the docket — a name on its own is not a signature','red');
+          U.qs('#d_sig',wrap).scrollIntoView({block:'center', behavior:'smooth'}); return;
+        }
         // Checked against the lines being saved, not the form state, so this
         // can't be slipped past by changing a condition after the last redraw.
         if(lines.some(l=>l.condition && l.condition!=='ok') && !photo){
@@ -428,7 +442,7 @@ window.MKR = window.MKR || {};
           return;
         }
         const tempEl = U.qs('#d_temp',wrap);
-        await confirm(d, {lines, receivedBy:by, tempC:tempEl?tempEl.value:'',
+        await confirm(d, {lines, receivedBy:by, signature:sig.data(), tempC:tempEl?tempEl.value:'',
           note:U.qs('#d_note',wrap).value.trim(), photo,
           docketNo:U.qs('#d_doc',wrap).value.trim(), payMethod:U.qs('#d_pay',wrap).value,
           fee:Number(U.qs('#d_fee',wrap).value)||0, gst:Number(U.qs('#d_gst',wrap).value)||0});
@@ -495,6 +509,7 @@ window.MKR = window.MKR || {};
       </table></div>
       <div class="list mt12">
         <div class="li"><div class="meta"><span>Received by</span><b>${U.esc(d.receivedBy||'—')}</b></div></div>
+        ${d.signature?`<div class="li"><div class="meta"><span>Signature</span></div><img src="${d.signature}" alt="signature" style="height:44px;margin-left:auto"></div>`:''}
         ${d.tempC!=null&&d.tempC!==''?`<div class="li"><div class="meta"><span>Temperature on arrival</span><b>${U.esc(String(d.tempC))} °C</b></div></div>`:''}
         ${d.payMethod?`<div class="li"><div class="meta"><span>Paid by</span><b>${U.esc(d.payMethod)}</b></div></div>`:''}
         ${docket?`<div class="li"><div class="meta"><span>Filed as a docket</span><b>${U.esc(docket.invoiceNo||'no number')} · ${U.money(docket.total)}</b></div></div>`:''}

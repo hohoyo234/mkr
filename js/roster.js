@@ -39,7 +39,7 @@ window.MKR = window.MKR || {};
     const d=new Date(); const dow=(d.getDay()+6)%7;
     d.setHours(0,0,0,0); d.setDate(d.getDate()-dow+offset*7); return d;
   }
-  const weekKey  = (d)=> new Date(d).toISOString().slice(0,10);
+  const weekKey  = (d)=> U.isoDate(d);   // local date — UTC would push the Monday back to Sunday
   const thisWeek = ()=> weekKey(weekStart(0));
   function dayTs(weekK, dayIdx){ const d=new Date(weekK+'T00:00:00'); d.setDate(d.getDate()+dayIdx); return d.getTime(); }
   const weekOf = (s)=> s.week || thisWeek();   // back-compat for pre-week shifts
@@ -277,6 +277,30 @@ window.MKR = window.MKR || {};
     return out;
   }
 
+  // ---------- clocking on ----------
+  // The staff phone and the manager's own roster both do this, and they had
+  // drifted apart: the manager's copy recorded the lateness and told nobody, so
+  // a manager could be twenty minutes late every day of the week and the alert
+  // feed stayed empty. One function now, both screens call it.
+  async function clockIn(shift, who){
+    const startTs  = MKR.alerts.shiftStartTs(shift);
+    const lateMins = Math.max(0, Math.round((Date.now()-startTs)/60000));
+    const late     = lateMins > 5;
+    await MKR.db.put('clockins', {staffId:who.id, shiftId:shift.id, date:U.todayISO(),
+                                  scheduledTs:startTs, clockTs:Date.now(), lateMins, late});
+    // Turning up answers the no-show alert this shift raised.
+    const ns = (await MKR.db.getAll('alerts')).find(a=>a.key==='noshow-'+shift.id && !a.read);
+    if(ns) await MKR.db.put('alerts', {id:ns.id, read:true});
+    if(late){
+      const mine = (await MKR.db.getAll('clockins')).filter(k=>k.staffId===who.id && k.late).length;
+      if(mine>=2) await MKR.alerts.raise({key:'late-consec-'+who.id, level:'red', type:'late',
+        title:'Staff repeatedly late', desc:`${who.name} has been late ${mine} times (this time ${lateMins} min) — worth a look.`});
+      else await MKR.alerts.raise({key:'late-'+shift.id, level:'amber', type:'late',
+        title:'Staff late', desc:`${who.name} was ${lateMins} min late (${DAYS[shift.day]} ${shift.start} shift)`});
+    }
+    return {lateMins, late};
+  }
+
   // Raise warnings as alerts + notifications. Deduped per week so re-opening the
   // roster page doesn't spam anyone.
   async function notifyWarnings(week, list, p){
@@ -320,6 +344,6 @@ window.MKR = window.MKR || {};
     DAYS, SKILLS, DEFAULT_PREFS,
     weekStart, weekKey, thisWeek, dayTs, weekOf, shiftsFor, slots,
     prefs, savePrefs, demandTable, learnedDemand, fits, skillsOf,
-    generate, apply, warnings, notifyWarnings, explain,
+    generate, apply, warnings, notifyWarnings, explain, clockIn,
   };
 })();

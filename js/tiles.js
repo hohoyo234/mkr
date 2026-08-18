@@ -121,7 +121,22 @@ window.MKR = window.MKR || {};
     let ids = readLayout(role, cat);
     let editing = false;
 
-    const badges = await badgesFor(role, portal);
+    let badges = await badgesFor(role, portal);
+
+    // The numbers on the blocks are the whole point of this screen, and they
+    // were counted once when it was drawn. A delivery that lands while the home
+    // screen is open has to appear on it. The listener retires itself when the
+    // screen it belongs to is gone, so navigating away doesn't leave one behind.
+    let pending = null;
+    const off = MKR.db.on('*', ()=>{
+      clearTimeout(pending);
+      pending = setTimeout(async ()=>{
+        if(!host.isConnected || !U.qs('.tiles-wrap', host)) return off();
+        if(editing) return;                       // don't repaint mid-drag
+        badges = await badgesFor(role, portal);
+        draw();
+      }, 300);
+    });
 
     function draw(){
       const tiles = ids.map(id=>cat.find(t=>t.id===id)).filter(Boolean);
