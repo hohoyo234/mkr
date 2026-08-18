@@ -20,6 +20,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       const sess=MKR.auth.current();
       let onb=0; if(sess){ const u=await MKR.db.get('users',sess.id); if(u && !u.onboarded) onb=1; }
       const b={}; if(sos) b.market=sos; if(onb) b.me='!';
+      try{ const t=(await MKR.tasks.today()).filter(x=>!x.done).length; if(t) b.tasks=t; }catch(e){}
       try{ const t=(await MKR.training.mine()).filter(x=>x.status!=='done').length; if(t) b.training=t; }catch(e){}
       try{ const d=(await MKR.deliveries.pending()).length; if(d) b.deliveries=d; }catch(e){}
       return b;

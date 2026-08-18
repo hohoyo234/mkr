@@ -37,10 +37,29 @@ window.MKR = window.MKR || {};
   // Blocks that mean "act today" when they carry a number; the rest are amber.
   const URGENT = ['alerts','x_schedule','schedule','swaps'];
 
+  // The blocks say what needs doing. These say "do it": each one is a page plus
+  // the button you went there to press — the router opens it on the `new` arg,
+  // so a quick action is a real action and not just a shortcut to a screen.
+  // Staff have none on purpose: their four blocks already are the whole job.
+  const QUICK = {
+    owner: [
+      {label:'Add delivery', icon:'truck',    href:'#/owner/deliveries/new'},
+      {label:'Create task',  icon:'checksq',  href:'#/owner/tasks/new'},
+      {label:'Add stock',    icon:'box',      href:'#/owner/stock/new'},
+      {label:'View roster',  icon:'calendar', href:'#/manager/schedule'},
+    ],
+    manager: [
+      {label:'Add delivery', icon:'truck',    href:'#/manager/deliveries/new'},
+      {label:'Create task',  icon:'checksq',  href:'#/manager/tasks/new'},
+      {label:'Add to queue', icon:'clock',    href:'#/manager/bookings/new'},
+      {label:'View roster',  icon:'calendar', href:'#/manager/schedule'},
+    ],
+  };
+
   // Tiles you'd want on day one, in the order an owner actually works.
   const DEFAULTS = {
-    owner:   ['stock','deliveries','x_tasks','x_schedule','training','alerts'],
-    manager: ['schedule','tasks','stock','deliveries','training','swaps'],
+    owner:   ['stock','deliveries','x_tasks','x_schedule','alerts'],
+    manager: ['schedule','tasks','stock','deliveries','swaps'],
     staff:   ['my','tasks','training','deliveries'],
   };
 
@@ -61,18 +80,21 @@ window.MKR = window.MKR || {};
   // from the same place: the floor's own counts, topped up with whatever the
   // portal already publishes for the sidebar.
   const FLOOR_TO_TILE = {
-    stock:'stock', delivery:'deliveries', kitchen:'x_tasks',
-    team:'x_schedule', training:'training', office:'alerts',
+    owner:   {stock:'stock', delivery:'deliveries', kitchen:'x_tasks',
+              team:'x_schedule', training:'training', office:'alerts'},
+    manager: {stock:'stock', delivery:'deliveries', kitchen:'tasks',
+              team:'schedule', training:'training'},
   };
   async function badgesFor(role, portal){
     let b = {};
     try{ b = portal && portal.badges ? await portal.badges() : {}; }catch(e){}
-    if(role==='owner' && MKR.gameMap){
+    const map = FLOOR_TO_TILE[role];
+    if(map && MKR.gameMap){
       try{
         const rooms = (await MKR.gameMap.counts()).rooms || {};
-        Object.keys(FLOOR_TO_TILE).forEach(k=>{
+        Object.keys(map).forEach(k=>{
           const n = rooms[k] && rooms[k].n;
-          if(n) b[FLOOR_TO_TILE[k]] = n; else delete b[FLOOR_TO_TILE[k]];
+          if(n) b[map[k]] = n; else delete b[map[k]];
         });
       }catch(e){}
     }
@@ -110,6 +132,7 @@ window.MKR = window.MKR || {};
       <span class="tile-ic">${iconOf(t)}</span>
       <span class="tile-label">${label}</span>
       <span class="tile-sub">${badge?`<b>${badge}</b> ${U.esc(SUBS[t.id]||'waiting')}`:`${MKR.ui.icon('check')}All clear`}</span>
+      ${editing?'':`<span class="tile-go" aria-hidden="true">›</span>`}
     </a>`;
   }
 
@@ -162,6 +185,12 @@ window.MKR = window.MKR || {};
             ${editing?`<button class="tile tile-add" id="tileAdd" aria-label="Add a block"><span class="tile-ic">${MKR.ui.icon('plus')}</span><span class="tile-label">Add</span></button>`:''}
           </div>
           ${tiles.length?'':`<div class="tiles-empty">No blocks yet — hit Edit and add the pages you open most.</div>`}
+          ${editing||!(QUICK[role]||[]).length ? '' : `
+            <div class="qa-head">Quick actions</div>
+            <div class="qa-grid">
+              ${QUICK[role].map(q=>`<a class="qa" href="${q.href}">
+                <span class="qa-ic">${MKR.ui.icon(q.icon)}</span><span class="qa-label">${U.esc(q.label)}</span></a>`).join('')}
+            </div>`}
           ${editing?`<div class="kv-hint">This layout is saved on this device only — nothing goes to the cloud.</div>`:''}
         </div>`;
       bind();

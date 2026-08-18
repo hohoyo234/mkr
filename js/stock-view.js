@@ -93,7 +93,7 @@ window.MKR = window.MKR || {};
     // about which one they open every day (Add items) and which one they open
     // once a month (Export CSV).
     actions.innerHTML = `${viewSwitch()}
-      <button class="btn btn-dark btn-sm" id="stkAdd">${MKR.ui.icon('plus')} Add items</button>
+      <button class="btn btn-dark btn-sm" id="stkAdd" data-new>${MKR.ui.icon('plus')} Add items</button>
       <details class="omenu"><summary class="btn btn-ghost btn-sm" aria-label="More stock actions">${MKR.ui.icon('dots')}</summary>
         <div class="omenu-pop">
           <button id="stkCount">${MKR.ui.icon('checksq')} Stocktake</button>

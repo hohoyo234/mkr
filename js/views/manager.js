@@ -9,8 +9,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
 
 
   MKR.portals.manager = {
-    home:'schedule',
+    home:'dashboard',
     nav:[
+      {id:'dashboard', label:'Dashboard', short:'Home'},
       {id:'schedule', label:'Rostering', short:'Roster', feature:'schedule'},
       {id:'myshifts', label:'My shifts', short:'Mine'},
       {id:'availability', label:'My availability', short:'Available', feature:'availability'},
@@ -30,6 +31,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       return b;
     },
     async view(section, c){
+      if(section==='dashboard') return MKR.tiles.render(c, {role:'manager'});
       if(section==='schedule') return MKR.rosterView.render(c);
       if(section==='myshifts') return myShifts(c);
       if(section==='availability') return availabilityPage(c);
@@ -127,7 +129,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
           </div>
           <div class="card pad20">
             <div class="section-head" style="margin-bottom:10px"><div class="section-title" style="margin:0">⏳ Walk-in queue</div>
-              <button class="btn btn-dark btn-sm" id="addQ">＋ Add to queue</button></div>
+              <button class="btn btn-dark btn-sm" id="addQ" data-new>＋ Add to queue</button></div>
             <div id="qList"></div>
           </div>
         </div>`;
@@ -390,7 +392,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <button class="${tasksView==='room'?'on':''}" data-tview="room">${MKR.ui.icon('pan')}Kitchen</button>
             <button class="${tasksView==='list'?'on':''}" data-tview="list">${MKR.ui.icon('list')}List</button>
           </div>
-          <button class="btn btn-ghost btn-sm" id="addTask">+ Add task</button>
+          <button class="btn btn-ghost btn-sm" id="addTask" data-new>+ Add task</button>
         </div></div>
       <div id="tlist"></div>`;
     function draw(){

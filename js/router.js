@@ -152,10 +152,9 @@ window.MKR = window.MKR || {};
       }catch(e){}
     }
 
-    const brandLetter=(brandName||'M').trim().charAt(0).toUpperCase()||'M';
     const logoHtml = brandLogo
       ? `<div class="logo" style="overflow:hidden;padding:0"><img src="${brandLogo}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`
-      : `<div class="logo">${MKR.util.esc(brandLetter)}</div>`;
+      : `<div class="logo">${MKR.ui.icon('chef')}</div>`;
 
     // Collapsed sidebar is a per-device preference, applied before first paint so
     // the shell never renders wide and then snaps narrow. Three states, not two:
@@ -294,6 +293,15 @@ window.MKR = window.MKR || {};
     try{ await portal.view(section, view, arg, viewingRole); }
     catch(e){ console.error(e); view.innerHTML = `<div class="empty"><div class="em">${MKR.ui.icon('warning')}</div><p>Page error: ${MKR.util.esc(e.message)}</p></div>`; }
     finally{ MKR.db.pageEnd(); }
+
+    // A quick action is "open this page and press that button". The page marks
+    // its own create button with data-new; nothing here knows their ids, and a
+    // page without one simply opens normally.
+    if(arg==='new'){
+      const b = view.querySelector('[data-new]');
+      if(b) b.click();
+      history.replaceState(null, '', `#/${viewingRole}/${section}`);
+    }
 
     // A section no portal knows about (a stale bookmark, a typo, a link to a
     // page that moved) used to fall straight through every `if` in view() and
