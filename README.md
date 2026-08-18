@@ -44,6 +44,7 @@ a matching row in `profiles`.
 | **Shelf view** | The default way the Stock tab draws that data: a cold room and a dry store with every item standing on a shelf, where how full the jar is *is* the quantity. Tap a jar to count it or drop it in the basket; the basket groups itself by supplier and becomes the order. `List` switches back to the table, and the choice sticks. |
 | **Suppliers & purchases** | Who you buy from, who you actually ring, and every invoice. |
 | **Usage forecasting** | Derived from stocktakes, not sales: `last count + purchases since − this count`. Days of cover and a suggested order list. |
+| **Dish cost cards** | The link between the shelf and the menu board: a coarse recipe per dish (the three to five things that move the cost, in the unit stock already uses) against what it sells for. Cost, food cost %, what you keep — and when an ingredient moves, the card says what the dish cost a month ago. Menu prices are treated as GST-inclusive by default and the GST is taken out before the ratio, because comparing a GST-inclusive price against GST-free ingredient costs flatters every dish by about a tenth. |
 | **Stocktake variance** | A count in money, not just quantities: the gap shows as you type it (so a 90-for-9 typo gets caught at the shelf), the finding is a screen rather than a toast, and the last 30 days roll up on the forecast page. Each line keeps the price it was counted at, so a later price rise can't rewrite a number the owner already acted on. This is *not* the bin — recorded waste already came off the book, so what's left is what nobody wrote down. |
 | **Deliveries** | Back-door confirmation form: ordered vs received, condition, chilled temperature, photo, signature. |
 | **Training & SOP** | Write a procedure once, assign it with a due date, staff sign it off by name. |
@@ -57,6 +58,8 @@ These are omissions by design, not gaps in the roadmap:
 
 - **No point of sale.** No orders, no item-level sales, no cash reconciliation.
   Daily takings are a figure the owner types in at close, not a till feed.
+  Dish cost cards are a calculator over stock prices, not a menu: nothing in
+  them is shown to a customer, ordered or sold.
 - **No payroll.** The app costs a roster using rates the OWNER typed in, and says
   so on every screen that shows one. It reads no award, applies no penalty rates
   of its own, produces no payslip, and calculates no tax or superannuation.
@@ -131,8 +134,8 @@ supabase/
 - Every table is `id + data(jsonb) + updated_at`, scoped per venue by
   `data->>'kitchenId'` under RLS. Run `supabase/security-setup.sql` before anything
   else, then `supabase/stock-training-setup.sql` for the stock and training tables and
-  `supabase/takings-setup.sql` for daily takings and `supabase/certs-setup.sql`
-  for certificates.
+  `supabase/takings-setup.sql` for daily takings, `supabase/certs-setup.sql` for
+  certificates and `supabase/recipes-setup.sql` for dish cost cards.
 - Shifts carry a `week` key (the Monday, `YYYY-MM-DD`) so past weeks stay on the
   record and the roster can learn from them.
 - Takings are keyed `tk_<kitchenId>_<date>` — one row per venue per day, so
