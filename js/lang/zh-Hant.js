@@ -49,7 +49,7 @@
       "Everything else is running fine":"其他都正常，不用管", "This week":"本週",
       "No shift today":"今天不用上班", "Enjoy your day off.":"好好休息。", "Just today this week.":"本週只有今天這一班。",
       "Clock in":"打卡上班", "Clocked in":"已打卡",
-      "rostered":"已排", "shifts":"班次", "total":"合計", "warnings":"提醒", "all clear":"一切正常",
+      "rostered":"已排", "total":"合計", "warnings":"提醒", "all clear":"一切正常",
       "stock value":"庫存價值", "perishable":"易腐", "non-perishable":"耐用", "needs attention":"需關注",
       "purchases":"採購筆數", "spent · 30d":"近30天支出", "suppliers":"供應商",
       "waiting":"待確認", "confirmed":"已確認", "problems":"有問題",
@@ -67,7 +67,7 @@
       "Advisory only — nothing here blocks a roster.":"僅供參考 —— 這些都不會阻止排班。",
       "Nothing flagged on this week's roster":"本週排班沒有需要注意的",
       "This app tracks your own operations only. It doesn't calculate pay, interpret awards, or talk to any government system.":"本系統只記錄你自己的運營數據。不計算工資、不解讀 Award、不與任何政府系統對接。",
-
+  
       // -- stock --
       "Ingredients and tools · what you hold, what it cost, who you buy it from":"原料與工具 · 有多少、花了多少、從誰那買的",
       "Purchases":"採購", "Suppliers":"供應商", "Forecast":"預測",
@@ -671,6 +671,8 @@
       "Your application is still pending approval":"你的申請仍在等待審批",
       "Your restaurant is still pending approval":"你的餐廳仍在等待審批",
       "Wrong username/email or password":"用戶名 / 郵箱或密碼錯誤",
+      "Enter your username and password":"請輸入用戶名和密碼",
+      "Can't reach the sign-in service — check your connection and try again":"無法連接登錄服務 —— 請檢查網絡後重試",
       "Wrong Super Admin password":"超級管理員密碼錯誤",
   
       // ---- Super Admin portal ----
@@ -847,11 +849,8 @@
       "Fold the menu":"收起菜單", "Open the menu":"展開菜單",
       // ---- Owner home · the springboard of blocks ----
       "⬛ Blocks":"⬛ 方塊",
-      "Your home screen":"你的主頁",
       "The pages you use, one tap away":"你常用的頁面，一點就到",
-      "Drag to move · − to take one off":"拖動排序 · 點 − 移出主頁",
       "Tap Edit to add, drop or re-order the blocks.":"點“編輯”可以增減方塊、調整順序。",
-      "This layout is saved on this device only — nothing goes to the cloud.":"這個排列只存在這臺設備上，不會上傳雲端。",
       "No tiles yet — hit Edit and add the pages you open most.":"主頁還是空的 —— 點“編輯”，把你最常開的頁面加進來。",
       "Add a tile":"添加一塊",
       "Every page is already on your home screen":"所有頁面都已經在主頁上了",
@@ -866,7 +865,7 @@
       "Today's rounds":"今日巡店進度",
       "Clear them all and you can leave the back office alone tonight":"全部清完，今晚就不用再看後臺了",
       "All clear — nothing left in the back office":"全部搞定 —— 後臺沒有待辦了",
-
+  
       // -- Blocks home screen, the "More" sheet, appearance, and the strings the
       //    UI-polish pass introduced. Keys are the plain English the app now
       //    renders; the emoji-era keys still resolve via the bare() index. --
@@ -879,7 +878,7 @@
       "All clear":"全部搞定", "to top up":"需補貨", "to check":"待覈對", "jobs left":"項待辦",
       "gaps this week":"本週缺人", "to sign off":"待簽字", "unread":"條未讀", "people":"人",
       "to approve":"待審批", "applications":"份申請", "shifts":"個班次", "to fill in":"待填寫",
-      "new":"條新的", "waiting":"項待處理",
+      "new":"條新的",
       "Manage":"管理",
       // Pre-existing gaps noticed while checking the icon pass — never had keys.
       "Training & SOPs":"培訓與 SOP", "Nothing assigned yet":"暫無派發的培訓",
@@ -892,10 +891,10 @@
       "Where these numbers come from":"這些數字是怎麼來的",
       "That page has moved or no longer exists":"該頁面已移動或不存在",
       "Nothing to show here yet.":"這裏暫時沒有內容。",
-      "Stocktake":"盤點", "Threw it out":"報損", "Export CSV":"導出 CSV", "Add items":"添加物料",
-      "Shelf":"貨架", "Kitchen":"廚房",
+      "Stocktake":"盤點", "Export CSV":"導出 CSV",
+      "Shelf":"貨架",
       "Preferences":"偏好設置", "Export":"導出", "AI auto-roster":"AI 自動排班",
-      "Today":"今天", "Password":"修改密碼", "Log out":"退出登錄",
+      "Today":"今天", "Change password":"修改密碼", "Log out":"退出登錄",
       "Your restaurant":"你的餐廳", "Tap a room with a badge on it":"點有提醒的房間開始",
       "Cold room & store":"冷庫與儲藏", "Stock to top up":"庫存補貨",
       "Back door":"收貨口", "Deliveries to check":"確認到貨",

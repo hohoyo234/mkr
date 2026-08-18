@@ -46,7 +46,9 @@ window.MKR = window.MKR || {};
   async function outDel(key){ await ready(); await P(tx('outbox','readwrite').delete(key)); _pending=Math.max(0,_pending-1); if(MKR.net)MKR.net.render(); }
   async function outCount(){ await ready(); return P(tx('outbox','readonly').count()); }
 
-  function emit(t){ (emitter[t]||[]).forEach(fn=>{ try{fn();}catch(e){} }); }
+  // '*' hears every table — used by the shell to keep the nav badges honest
+  // without subscribing to each table by name.
+  function emit(t){ [...(emitter[t]||[]), ...(emitter['*']||[])].forEach(fn=>{ try{fn();}catch(e){} }); }
 
   // Stamp the tenant id so the cloud's Row Level Security (which scopes rows by
   // data.kitchenId) accepts the write. Many call sites (shifts/tasks/clockins/
@@ -164,6 +166,8 @@ window.MKR = window.MKR || {};
   }
 
   // ---------- public API (unchanged — views need no edits) ----------
+  let pageOffs=[], collecting=false;
+
   const DB={
     cloud: ()=> !!sb(),
     pendingCount: outCount,
@@ -192,7 +196,18 @@ window.MKR = window.MKR || {};
       await lmetaSet(k,v); pushMeta(k,v); return v;
     },
 
-    on(t,fn){ (emitter[t]=emitter[t]||[]).push(fn); return ()=>{ emitter[t]=emitter[t].filter(f=>f!==fn); }; },
+    on(t,fn){ (emitter[t]=emitter[t]||[]).push(fn);
+      const off = ()=>{ emitter[t]=emitter[t].filter(f=>f!==fn); };
+      if(collecting) pageOffs.push(off);
+      return off; },
+
+    // A page's subscriptions belong to that page. Views subscribe every time
+    // they draw and none of them unsubscribe, so five trips to Tasks left five
+    // live listeners: one write then redrew the screen five times, each with its
+    // own read of the table, and four of those redraws went into DOM that had
+    // already been thrown away. The router brackets each page render with these.
+    pageStart(){ pageOffs.forEach(f=>{ try{ f(); }catch(e){} }); pageOffs=[]; collecting=true; },
+    pageEnd(){ collecting=false; },
 
     draft:{
       save(k,d){ localStorage.setItem(NS+'draft.'+k, JSON.stringify({data:d,ts:Date.now()})); },

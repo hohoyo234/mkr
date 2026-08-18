@@ -514,7 +514,7 @@ window.MKR = window.MKR || {};
         <thead><tr><th>Item</th><th class="num">System count</th><th class="num" style="width:120px">Counted</th></tr></thead>
         <tbody>${rows.map(r=>`<tr><td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${MKR.ui.icon(S().KIND[r.kind].ic)} ${U.esc(r.unit||'')}</div></td>
           <td class="num faint"><span class="cell-l">System count</span>${r.qty}</td>
-          <td class="num"><span class="cell-l">Counted</span><input class="input" type="number" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
+          <td class="num"><span class="cell-l">Counted</span><input class="input" type="number" min="0" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td></tr>`).join('')}</tbody>
       </table></div>
       <div class="field mt12"><label>Note (optional)</label><input class="input" id="stk_note" placeholder="e.g. Monday morning count"></div>
     </div>`);
@@ -524,6 +524,7 @@ window.MKR = window.MKR || {};
         const lines = U.qsa('[data-count]',wrap).map(i=>({itemId:i.dataset.count, counted:i.value===''?null:Number(i.value)}));
         const saved = await S().saveStocktake(lines, U.qs('#stk_note',wrap).value.trim());
         if(!saved){ U.toast('Nothing counted','amber'); return; }
+        if(saved.error==='negative'){ U.toast(`A count can't be negative — check ${saved.lines.map(l=>l.name).join(', ')}`,'red'); return; }
         close(); U.toast(`Counted ${saved.lines.length} item(s)`,'green'); after();
       }}
     ]});

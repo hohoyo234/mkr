@@ -278,7 +278,7 @@ window.MKR = window.MKR || {};
       <div class="gv-order">
         <label>Or just counted it? Type what's really there</label>
         <div class="gv-step">
-          <input class="input" id="gv_c" type="number" step="0.01" placeholder="${U.esc(String(r.qty))}">
+          <input class="input" id="gv_c" type="number" min="0" step="0.01" placeholder="${U.esc(String(r.qty))}">
           <span class="gv-step-u">${U.esc(r.unit||'')}</span>
           <button class="btn btn-ghost btn-sm" id="gv_csave">Save count</button>
         </div>
@@ -307,7 +307,8 @@ window.MKR = window.MKR || {};
     U.qs('#gv_csave', wrap).onclick = async()=>{
       const v = U.qs('#gv_c', wrap).value;
       if(v===''){ U.toast('Type what you counted','amber'); return; }
-      await S().saveStocktake([{itemId:r.id, counted:Number(v)}], 'counted on the shelf');
+      const saved = await S().saveStocktake([{itemId:r.id, counted:Number(v)}], 'counted on the shelf');
+      if(saved && saved.error==='negative'){ U.toast("A count can't be negative",'red'); return; }
       U.toast('Stocktake saved','green');
       const back = wrap.closest('.modal-back'); if(back) back.remove();
       if(h.reload) h.reload();

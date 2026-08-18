@@ -48,7 +48,7 @@ window.MKR = window.MKR || {};
     try{ stock = await MKR.stock.overview(); }catch(e){}
     try{ deliveries = await MKR.deliveries.pending(); }catch(e){}
     try{ training = (await MKR.training.trainings()).filter(t=>t.status!=='done'); }catch(e){}
-    try{ tasks = (await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO()); }catch(e){}
+    try{ tasks = await MKR.tasks.today(); }catch(e){}
     try{ alerts = (await MKR.db.getAll('alerts')).filter(a=>!a.read); }catch(e){}
 
     let rosterShort = 0;

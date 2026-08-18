@@ -431,7 +431,7 @@ window.MKR = window.MKR || {};
   // No matching engine here: the owner ticks off what appears on the statement,
   // types the total, and the arithmetic names the gap. A saved row is what makes
   // "did I already do July?" answerable.
-  const periodOf = (ts)=> new Date(ts).toISOString().slice(0,7);
+  const periodOf = (ts)=> U.isoDate(ts).slice(0,7);
   async function reconciliations(){ return (await mineOf('reconciliations')).sort((a,b)=>(b.ts||0)-(a.ts||0)); }
 
   // Everything one statement check needs: the dockets in that month and the
@@ -528,6 +528,11 @@ window.MKR = window.MKR || {};
               diff:U.round2((+l.counted||0)-(+it.qty||0))};
     });
     if(!rows.length) return null;
+    // A shelf cannot hold −5 kg. A typo like that went straight into inventory
+    // and then poisoned every usage interval derived from it, so nothing is
+    // saved until it's fixed — silently clamping to 0 would be a second lie.
+    const bad = rows.filter(l=>!isFinite(l.counted) || l.counted<0);
+    if(bad.length) return {error:'negative', lines:bad};
     const row = await MKR.db.put('stocktakes', {id:U.uid('stk'), ts:Date.now(), by:me(), note:note||'', lines:rows, kitchenId:kid()});
     for(const l of rows) await MKR.db.put('inventory', {id:l.itemId, qty:l.counted, lastCountAt:row.ts});
     try{ await MKR.audit.log({action:'stock.count', desc:`Stocktake · ${rows.length} item(s) counted`}); }catch(e){}

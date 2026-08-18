@@ -32,12 +32,12 @@ window.MKR = window.MKR || {};
 
   const stationOf = (t)=> (STATIONS.find(s=> s.re && s.re.test(String(t.name||''))) || STATIONS[STATIONS.length-1]).id;
 
-  // A temperature check has to record the reading, not just a tick — same rule
-  // the staff checklist applies, kept in one place so both agree.
-  const needsValue = (t)=> /temperature|温度|溫度/i.test(String(t.name||''));
+  // A temperature check has to record the reading, not just a tick — the rule
+  // itself lives in MKR.tasks so every checklist applies the same one.
+  const needsValue = (t)=> MKR.tasks.needsValue(t);
 
   async function load(){
-    return (await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO());
+    return await MKR.tasks.today();
   }
 
   function stationHtml(s, list){
@@ -109,24 +109,25 @@ window.MKR = window.MKR || {};
 
     async function toggle(id){
       const t = list.find(x=>x.id===id); if(!t) return;
-      const me = (MKR.auth.current()||{}).name;
 
       if(!t.done && needsValue(t)){
         const f = U.el(`<div class="field"><label>Record temperature (°C)</label>
           <input class="input" id="kv_v" type="number" step="0.1" placeholder="e.g. 3.5"></div>`);
         U.modal('Temperature check', f, {actions:[{label:'Record & complete', class:'btn-dark', onClick:async(close)=>{
-          const v = U.qs('#kv_v', f).value;
-          if(v===''){ U.toast('Type the reading','amber'); return; }
-          await MKR.db.put('tasks', {id, done:true, by:me, value:v+'°C'});
-          Object.assign(t, {done:true, by:me, value:v+'°C'});
+          const r = await MKR.tasks.complete(t, {value:U.qs('#kv_v', f).value});
+          if(!r.ok){ U.toast(r.msg,'amber'); return; }
+          Object.assign(t, r.task);
           close(); draw(); reload(); U.toast('Recorded','green');
         }}]});
         return;
       }
 
-      const now = !t.done;
-      await MKR.db.put('tasks', {id, done:now, by: now?me:null});
-      Object.assign(t, {done:now, by: now?me:null});
+      if(t.done){ Object.assign(t, await MKR.tasks.uncomplete(t)); }
+      else {
+        const r = await MKR.tasks.complete(t);
+        if(!r.ok){ U.toast(r.msg,'amber'); return; }
+        Object.assign(t, r.task);
+      }
       // Repaint the room behind the sheet too, so the badge and the dots are
       // already right whichever way the sheet gets closed.
       draw(); reload();

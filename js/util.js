@@ -11,7 +11,13 @@ window.MKR = window.MKR || {};
   U.hrs = (n)=> U.round2(n).toFixed(2)+' h';
   U.uid = (p='id')=> p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   U.now = ()=> Date.now();
-  U.todayISO = ()=> new Date().toISOString().slice(0,10);
+  // Local calendar date as YYYY-MM-DD. Never toISOString() on a local date —
+  // that is UTC, and east of Greenwich (Melbourne is UTC+10/+11) it hands back
+  // YESTERDAY all morning: the task list, the roster header and the week key
+  // all slip a day until 10am.
+  U.isoDate = (d=Date.now())=>{ const x=new Date(d);
+    return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+  U.todayISO = ()=> U.isoDate();
 
   // Length of a "HH:MM" → "HH:MM" shift, in hours (never negative).
   U.shiftHours = (start,end)=>{
@@ -70,10 +76,16 @@ window.MKR = window.MKR || {};
       bodyEl.appendChild(row);
     }
     back.appendChild(m);
-    function close(){ back.style.opacity='0'; back.style.transition='opacity .2s'; setTimeout(()=>back.remove(),200); }
+    // Lock the page behind the sheet. Without this a phone scrolls the list
+    // underneath while the modal sits still, and closing it lands you somewhere
+    // else entirely. Counted by "is any modal still open", so stacked modals
+    // (a docket photo over a docket) release the lock only on the last one.
+    function close(){ back.style.opacity='0'; back.style.transition='opacity .2s';
+      setTimeout(()=>{ back.remove(); if(!U.qs('.modal-back')) document.body.classList.remove('modal-open'); },200); }
     U.qs('.x',m).onclick=close;
     back.onclick=(e)=>{ if(e.target===back && opts.dismissable!==false) close(); };
     document.body.appendChild(back);
+    document.body.classList.add('modal-open');
     return { close, el:m, body:bodyEl };
   };
 
@@ -135,6 +147,80 @@ window.MKR = window.MKR || {};
       img.src = r.result;
     };
     r.readAsDataURL(file);
+  };
+
+  // ---------- signature pad ----------
+  // Drawn with a pointer, because the person signing is holding the tablet and
+  // a typed name is not a signature. Kept as a small PNG on the record so the
+  // form can be printed back looking like the paper it replaces. Used by the
+  // complaint form and by the delivery docket — one pad, one set of quirks.
+  // Markup: <div class="sigpad"><canvas></canvas></div>
+  U.signaturePad = (el)=>{
+    const cv = el.querySelector('canvas');
+    const ctx = cv.getContext('2d');
+    const ratio = window.devicePixelRatio || 1;
+
+    // Sizing on a timer does not work here: the pad is inside a modal that
+    // animates in, so at the next tick the box still measures 0 wide and the
+    // canvas gets set to 1px — every stroke then lands outside it and the
+    // signature saves blank, which looks signed and is not. A ResizeObserver
+    // fits the canvas whenever the box actually HAS a width, whenever that is.
+    const style = ()=>{
+      ctx.setTransform(1,0,0,1,0,0); ctx.scale(ratio, ratio);
+      ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = (getComputedStyle(document.body).getPropertyValue('--ink')||'').trim() || '#211E1B';
+    };
+    let w = 0, h = 0;
+    const fit = ()=>{
+      const r = cv.getBoundingClientRect();
+      const nw = Math.round(r.width), nh = Math.round(r.height);
+      if(nw<1 || nh<1 || (nw===w && nh===h)) return;
+      // Resizing a canvas wipes it, so anything already drawn is carried over.
+      const prev = (w && h) ? cv.toDataURL('image/png') : null;
+      w = nw; h = nh;
+      cv.width = nw*ratio; cv.height = nh*ratio;
+      style();
+      if(prev){ const img = new Image(); img.onload = ()=> ctx.drawImage(img, 0, 0, nw, nh); img.src = prev; }
+    };
+    // Three chances, because no single one of them is reliable everywhere:
+    // the synchronous call works when the pad is already laid out, the frame
+    // callback catches the usual case of a modal that is still animating in,
+    // and the observer catches a later resize (rotating a tablet). Some
+    // embedded webviews never fire the observer at all, so pointerdown below
+    // fits one last time — by then the box certainly has a size, because a
+    // finger just landed on it.
+    fit();
+    requestAnimationFrame(fit);
+    if(window.ResizeObserver) new ResizeObserver(fit).observe(cv);
+
+    let drawing = false;
+    const pos = (e)=>{ const r=cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+    cv.addEventListener('pointerdown', e=>{
+      if(!w) fit();
+      drawing = true;
+      try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+      const [x,y]=pos(e); ctx.beginPath(); ctx.moveTo(x,y);
+      // A tap with no drag is still a mark, and people do sign with dots.
+      ctx.lineTo(x+0.01,y); ctx.stroke();
+    });
+    cv.addEventListener('pointermove', e=>{ if(!drawing) return; const [x,y]=pos(e); ctx.lineTo(x,y); ctx.stroke(); });
+    cv.addEventListener('pointerup',  ()=>{ drawing=false; });
+    cv.addEventListener('pointerleave',()=>{ drawing=false; });
+
+    // Whether it was signed is answered by the pixels, not by whether a pointer
+    // touched the pad. Touching it and drawing nothing is not a signature, and
+    // storing a blank PNG as one puts "signed" on a record that isn't.
+    const hasInk = ()=>{
+      if(!cv.width || !cv.height) return false;
+      const px = ctx.getImageData(0,0,cv.width,cv.height).data;
+      for(let i=3;i<px.length;i+=4) if(px[i]>0) return true;
+      return false;
+    };
+    return {
+      clear(){ ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height); style(); },
+      signed: hasInk,
+      data(){ return hasInk() ? cv.toDataURL('image/png') : null; },
+    };
   };
 
   // simple confirm

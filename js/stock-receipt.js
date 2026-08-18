@@ -20,7 +20,7 @@ window.MKR = window.MKR || {};
 
   const subOf = (p)=> p.sub!=null ? +p.sub : U.round2((p.lines||[]).reduce((t,l)=>t+(+l.amount||0),0));
   const totalOf = (p)=> p.total!=null ? +p.total : subOf(p);
-  const monthKey = (ts)=> new Date(ts).toISOString().slice(0,7);
+  const monthKey = (ts)=> U.isoDate(ts).slice(0,7);
   const monthName = (key)=>{ const [y,m]=key.split('-'); return new Date(+y, +m-1, 1)
     .toLocaleDateString('en-AU',{month:'long', year:'numeric'}); };
 

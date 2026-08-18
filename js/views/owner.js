@@ -5,7 +5,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   // Safe date→YYYY-MM-DD ('' for missing/invalid dates) — a single bad order's
   // createdAt used to throw "Invalid time value" and crash the whole dashboard.
-  const dayOf = ts => { const d=new Date(ts); return isNaN(d.getTime()) ? '' : d.toISOString().slice(0,10); };
+  const dayOf = ts => { const d=new Date(ts); return isNaN(d.getTime()) ? '' : U.isoDate(d); };
   const isToday = ts => dayOf(ts)===U.todayISO();
 
   // Everything the owner needs to know in one pass. Operational, not financial —
@@ -16,11 +16,11 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     const [shifts, clockins, tasks, alerts] = await Promise.all([
       MKR.roster.shiftsFor(week),
       MKR.db.getAll('clockins'),
-      MKR.db.getAll('tasks'),
+      MKR.tasks.today(),
       MKR.db.getAll('alerts'),
     ]);
     const todayShifts = shifts.filter(s=>s.day===todayIdx);
-    const todayTasks  = tasks.filter(t=>t.date===U.todayISO());
+    const todayTasks  = tasks;
     const clockedIn   = todayShifts.filter(s=>clockins.some(k=>k.shiftId===s.id)).length;
 
     let stock=[], deliveries=[], training=[];
@@ -1131,8 +1131,8 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         </div></div>
         <div class="alert info" style="margin-bottom:16px"><span>${MKR.ui.icon('receipt')}</span><div>Pay, tax, super and bank details are deliberately not held here — this app doesn't run payroll or talk to any government system.${MKR.features.can('au_workrights','owner')?' Work rights are checked on VEVO.':''}</div></div>
         ${u.offboarded?`<div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Offboard archive</div><div class="list">
-          ${row('Offboarded on', u.archivedAt?new Date(u.archivedAt).toISOString().slice(0,10):'')}
-          ${row('Retained until', u.retentionUntil?new Date(u.retentionUntil).toISOString().slice(0,10):'')}
+          ${row('Offboarded on', u.archivedAt?U.isoDate(u.archivedAt):'')}
+          ${row('Retained until', u.retentionUntil?U.isoDate(u.retentionUntil):'')}
         </div></div>`:''}
         <div class="disclaimer"><span>${MKR.ui.icon('lock')}</span>The ID number is encrypted separately and only the owner can reveal it; each reveal is written to the audit log.</div>
         </div>`;

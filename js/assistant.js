@@ -95,7 +95,7 @@ window.MKR = window.MKR || {};
     return `This app doesn't handle pay — no rates, no award calculations, no payslips. It only tracks the hours you're rostered. For anything about what you're paid, talk to your employer directly.`;
   }
   async function myTasks(){
-    const list=(await MKR.db.getAll('tasks')).filter(t=>t.date===U.todayISO());
+    const list=await MKR.tasks.today();
     const open=list.filter(t=>!t.done);
     if(!list.length) return `No tasks published for today.`;
     if(!open.length) return `${MKR.ui.icon('checkcircle')} All ${list.length} of today's tasks are done.`;
@@ -384,7 +384,7 @@ window.MKR = window.MKR || {};
         try{ const todayIdx=(new Date().getDay()+6)%7; const nm=id=>{const u=staff.find(x=>x.id===id);return u?u.name:id;};
           const onToday=(await MKR.roster.shiftsFor(MKR.roster.thisWeek())).filter(x=>x.day===todayIdx).sort((a,b)=>String(a.start).localeCompare(String(b.start))).map(x=>`${nm(x.staffId)} ${x.start}-${x.end}`);
           if(onToday.length) lines.push(`On shift today: ${onToday.join(', ')}.`); }catch(e){}
-        try{ const t=(await MKR.db.getAll('tasks')).filter(x=>x.date===today);
+        try{ const t=await MKR.tasks.today();
           if(t.length) lines.push(`Today's checklist: ${t.filter(x=>x.done).length}/${t.length} done.`); }catch(e){}
         try{ const rows=await MKR.stock.overview();
           const val=rows.reduce((a,r)=>a+r.value,0);

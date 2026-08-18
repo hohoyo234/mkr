@@ -68,10 +68,23 @@ window.MKR = window.MKR || {};
     // ---- Sign in (Supabase Auth only) ----
     async login(identifier, password){
       if(!MKR.supa.client) return {ok:false, msg:'Secure sign-in is unavailable (cloud not connected).'};
+      // An empty box is not a failed attempt. Sending it anyway spends a
+      // request, and comes back as "wrong password" about a password nobody
+      // typed — which is the one message guaranteed to send someone hunting
+      // for the wrong problem.
+      if(!String(identifier||'').trim() || !password) return {ok:false, msg:'Enter your username and password'};
       const email = MKR.supa.emailFor(identifier);
-      const {data, error} = await MKR.supa.client.auth.signInWithPassword({email, password});
+      let data, error;
+      try{ ({data, error} = await MKR.supa.client.auth.signInWithPassword({email, password})); }
+      catch(e){ error = e; }
       if(error){
-        const m = /confirm/i.test(error.message||'') ? 'Please confirm your email first, then sign in.'
+        // A network that never reached Supabase says nothing about the
+        // password. Telling someone their password is wrong when the wifi is
+        // down is how they end up resetting a password that was fine.
+        const raw = error.message || '';
+        const m = (!navigator.onLine || /fetch|network|timeout/i.test(raw))
+                    ? "Can't reach the sign-in service — check your connection and try again"
+                : /confirm/i.test(raw) ? 'Please confirm your email first, then sign in.'
                 : 'Wrong username/email or password';
         return {ok:false, msg:m};
       }

@@ -303,7 +303,7 @@ window.MKR = window.MKR || {};
   function weekStart(){ const d=new Date(); const day=(d.getDay()+6)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-day); return d; }
   function dayTs(offset){ const d=weekStart(); d.setDate(d.getDate()+offset); return d.getTime(); }
   S.weekStart = weekStart; S.dayTs = dayTs;
-  const thisWeek = ()=> new Date(weekStart()).toISOString().slice(0,10);
+  const thisWeek = ()=> MKR.util.isoDate(weekStart());
 
   S.SHIFTS = [
     {id:'s1', staffId:'u_amy',   day:0, start:'09:00', end:'15:00', slot:'am'},
