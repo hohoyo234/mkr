@@ -43,16 +43,16 @@ window.MKR = window.MKR || {};
   // Staff have none on purpose: their four blocks already are the whole job.
   const QUICK = {
     owner: [
-      {label:'Add delivery', icon:'truck',    tone:'blue',   href:'#/owner/deliveries/new'},
-      {label:'Create task',  icon:'checksq',  tone:'green',  href:'#/owner/tasks/new'},
-      {label:'Add stock',    icon:'box',      tone:'amber',  href:'#/owner/stock/new'},
-      {label:'View roster',  icon:'calendar', tone:'red',    href:'#/manager/schedule'},
+      {label:'Enter takings', icon:'receipt', tone:'green',  href:'#/owner/takings/new'},
+      {label:'Add delivery',  icon:'truck',   tone:'blue',   href:'#/owner/deliveries/new'},
+      {label:'Create task',   icon:'checksq', tone:'amber',  href:'#/owner/tasks/new'},
+      {label:'View roster',   icon:'calendar',tone:'red',    href:'#/manager/schedule'},
     ],
     manager: [
-      {label:'Add delivery', icon:'truck',    tone:'blue',   href:'#/manager/deliveries/new'},
-      {label:'Create task',  icon:'checksq',  tone:'green',  href:'#/manager/tasks/new'},
-      {label:'Add to queue', icon:'clock',    tone:'amber',  href:'#/manager/bookings/new'},
-      {label:'View roster',  icon:'calendar', tone:'red',    href:'#/manager/schedule'},
+      {label:'Enter takings', icon:'receipt', tone:'green',  href:'#/manager/takings/new'},
+      {label:'Add delivery',  icon:'truck',   tone:'blue',   href:'#/manager/deliveries/new'},
+      {label:'Create task',   icon:'checksq', tone:'amber',  href:'#/manager/tasks/new'},
+      {label:'Add to queue',  icon:'clock',   tone:'red',    href:'#/manager/bookings/new'},
     ],
   };
 
@@ -143,6 +143,7 @@ window.MKR = window.MKR || {};
   // The four counts under the blocks. Same numbers, said the other way round:
   // the blocks are "what needs you", these are "what today looks like".
   const SNAP = [
+    {k:'takings',    label:'Takings today',       tone:'green', money:true, href:(r)=>`#/${r}/takings`},
     {k:'tasks',      label:'Tasks due today',     tone:'blue',  href:(r)=>r==='owner'?'#/manager/tasks':'#/manager/tasks'},
     {k:'deliveries', label:'Upcoming deliveries', tone:'green', href:(r)=>`#/${r}/deliveries`},
     {k:'expiring',   label:'Expiring items',      tone:'amber', href:(r)=>`#/${r}/stock`},
@@ -156,7 +157,8 @@ window.MKR = window.MKR || {};
         <div class="panel-head">Today's snapshot</div>
         ${SNAP.map(r=>`<a class="snap-row t-${r.tone}" href="${r.href(role)}">
           <i class="snap-dot"></i><span>${r.label}</span>
-          <b class="snap-n">${snap[r.k]||0}</b><span class="snap-go" aria-hidden="true">›</span></a>`).join('')}
+          <b class="snap-n">${r.money ? U.money0(snap[r.k]||0) : (snap[r.k]||0)}</b>
+          <span class="snap-go" aria-hidden="true">›</span></a>`).join('')}
       </div>
       ${quick.length ? `<div class="panel">
         <div class="panel-head">Quick actions</div>

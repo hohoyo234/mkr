@@ -78,7 +78,7 @@ window.MKR = window.MKR || {};
     schedule:'calendar', myshifts:'calcheck', my:'calcheck', hire:'userplus',
     tasks:'checksq', swaps:'repeat', bookings:'book',
     availability:'clock', market:'repeat', me:'idcard',
-    stock:'inbox', deliveries:'receipt', training:'book',
+    stock:'inbox', deliveries:'receipt', training:'book', takings:'bars',
     applications:'inbox', restaurants:'building',
   };
 
@@ -87,7 +87,7 @@ window.MKR = window.MKR || {};
   // the owner learns "the blue one is the cold room" instead of reading labels.
   // Tone names map to the --<tone> / --<tone>-soft pairs in the stylesheet.
   const TONE = {
-    stock:'blue', deliveries:'amber', tasks:'green', x_tasks:'green',
+    stock:'blue', deliveries:'amber', tasks:'green', x_tasks:'green', takings:'green',
     schedule:'violet', x_schedule:'violet', myshifts:'violet', my:'violet',
     availability:'violet', swaps:'violet', team:'violet', hire:'green',
     training:'teal', bookings:'teal', branches:'teal',

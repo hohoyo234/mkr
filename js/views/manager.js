@@ -16,6 +16,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       {id:'myshifts', label:'My shifts', short:'Mine'},
       {id:'availability', label:'My availability', short:'Available', feature:'availability'},
       {id:'tasks',    label:'Tasks', short:'Tasks',  feature:'tasks'},
+      {id:'takings',  label:'Takings', short:'Takings'},
       {id:'stock',    label:'Stock & costs', short:'Stock', feature:'stock'},
       {id:'deliveries',label:'Deliveries', short:'Delivery',feature:'deliveries'},
       {id:'training', label:'Training', short:'Training',feature:'training'},
@@ -39,6 +40,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='tasks') return tasks(c);
       if(section==='swaps') return swaps(c);
       if(section==='bookings') return bookings(c);
+      if(section==='takings') return MKR.takings.render(c);
       if(section==='stock') return MKR.stock.render(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
       if(section==='training') return MKR.training.renderManage(c);
@@ -231,18 +233,29 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       else el.innerHTML=shifts.map(s=>{
         const ck=clockins.find(k=>k.shiftId===s.id); const isToday=s.day===todayIdx;
         let right;
-        if(isToday) right = ck?(ck.late?`<span class="pill danger">Late ${ck.lateMins}′</span>`:`<span class="pill ok">Clocked in ${U.fmtTime(ck.clockTs)}</span>`):`<button class="btn btn-green btn-sm" data-clock="${s.id}">Clock in</button>`;
+        if(isToday) right = ck
+          ? (ck.clockOutTs
+              ? `<span class="pill ok">${U.hrs(MKR.roster.workedHours(s, ck))} · off ${U.fmtTime(ck.clockOutTs)}</span>`
+              : `<div class="row gap6 center">${ck.late?`<span class="pill danger">Late ${ck.lateMins}′</span>`:`<span class="pill ok">On ${U.fmtTime(ck.clockTs)}</span>`}
+                 <button class="btn btn-ghost btn-sm" data-clockoff="${s.id}">Clock off</button></div>`)
+          : `<button class="btn btn-green btn-sm" data-clock="${s.id}">Clock in</button>`;
         else right=`<button class="btn btn-ghost btn-sm" data-rm="${s.id}">Remove</button>`;
         return `<div class="li"><div class="ava">${DAYS[s.day][0]}</div>
           <div class="meta"><b>${DAYS[s.day]} · ${s.start} – ${s.end}${isToday?' · <span style="color:var(--accent)">Today</span>':''}</b><span>${U.fmtDate(MKR.roster.dayTs(MKR.roster.thisWeek(), s.day))} · ${U.hrs(hrs(s.start,s.end))}</span></div>${right}</div>`;
       }).join('');
       U.qsa('[data-clock]',el).forEach(b=>b.onclick=()=>clockIn(shifts.find(x=>x.id===b.dataset.clock)));
+      U.qsa('[data-clockoff]',el).forEach(b=>b.onclick=()=>clockOff(shifts.find(x=>x.id===b.dataset.clockoff)));
       U.qsa('[data-rm]',el).forEach(b=>b.onclick=async()=>{ await MKR.db.remove('shifts',b.dataset.rm); await MKR.audit.log({action:'shift.remove',desc:'Manager removed own shift'}); await reload(); draw(); U.toast('Shift removed','amber'); });
       U.qs('#addMine',c).onclick=addMine;
     }
     async function clockIn(shift){
       const {lateMins, late} = await MKR.roster.clockIn(shift, sess);
       U.toast(late?`Clocked in · ${lateMins} min late`:'Clocked in · on time', late?'amber':'green');
+      await reload(); draw();
+    }
+    async function clockOff(shift){
+      const out = await MKR.roster.clockOut(shift, sess);
+      U.toast(out?`Clocked off · ${U.hrs(out.hours)}`:'You are not clocked in', out?'green':'amber');
       await reload(); draw();
     }
     function addMine(){

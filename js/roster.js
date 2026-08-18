@@ -13,7 +13,11 @@
        roster is the output. No hidden defaults doing the deciding.
      · It WARNS, it never blocks. Long weeks, short breaks, back-to-back days —
        all of it surfaces as a warning and a notification. The owner decides.
-       There are no hard caps, no compliance gates and no pay calculations here.
+       There are no hard caps and no compliance gates here.
+
+   It now also puts a DOLLAR figure on a week, from rates the owner typed in
+   themselves. That is costing, not payroll: see the pay block below for the
+   line this module will not cross.
 
    Shifts carry a `week` key (the Monday, YYYY-MM-DD) so past weeks stay on the
    record and can be learned from. Older shifts without one are read as this week.
@@ -59,6 +63,11 @@ window.MKR = window.MKR || {};
     requireCloser:true,
     requireKitchen:true,               // warn if a shift has nobody with 'kitchen'
     notify:true,                       // push warnings to the owner/manager
+    // ---- your own rates (see the pay block below) ----
+    defaultRate:0,                     // $/h for anyone without their own rate
+    weekendMult:1,                     // what YOU pay for Sat/Sun, as a multiplier
+    holidayMult:1,                     // what YOU pay on a public holiday
+    extraHolidays:'',                  // dates you declare yourself, comma separated
   };
   async function prefs(){
     const s = (await MKR.db.meta('settings')) || {};
@@ -119,6 +128,106 @@ window.MKR = window.MKR || {};
     }
     return {table:out, learned:!!learned && !(p.demand && Object.keys(p.demand).length)};
   }
+
+
+  // ---------- pay: your own rates, never an award ----------
+  /* This app does not interpret an award, calculate pay, produce a payslip or
+     talk to the ATO, and adding a dollar sign does not change that. Reading an
+     award wrong costs a venue real money, so nothing here guesses one: every
+     rate and every multiplier below is a number the OWNER typed, applied to
+     hours this app already knows about, for one purpose — seeing what a roster
+     costs before it is published, and what it cost after it ran.
+
+     Wherever a figure from here is shown, the screen says whose numbers they
+     are. That disclaimer is part of the feature, not decoration on it. */
+
+  // Victorian public holidays. A static table on purpose: it changes once a
+  // year, and a wrong date here can only ever move a multiplier — it can never
+  // move a payment. Two things are deliberately NOT in it: years past the last
+  // one listed, and the AFL Grand Final Friday, which is gazetted separately
+  // each year. Both are typed into Preferences as extra dates, and until they
+  // are, those days just cost whatever an ordinary day costs.
+  const VIC_HOLIDAYS = {
+    '2026-01-01':"New Year's Day",  '2026-01-26':'Australia Day',
+    '2026-03-09':'Labour Day',      '2026-04-03':'Good Friday',
+    '2026-04-04':'Saturday before Easter Sunday',
+    '2026-04-05':'Easter Sunday',   '2026-04-06':'Easter Monday',
+    '2026-04-25':'ANZAC Day',       '2026-06-08':"King's Birthday",
+    '2026-11-03':'Melbourne Cup',   '2026-12-25':'Christmas Day',
+    '2026-12-26':'Boxing Day',      '2026-12-28':'Boxing Day holiday',
+  };
+  const extraDays = (p)=> String((p&&p.extraHolidays)||'').split(/[^\d-]+/).filter(Boolean);
+  function holidayName(iso, p){
+    if(VIC_HOLIDAYS[iso]) return VIC_HOLIDAYS[iso];
+    return extraDays(p).includes(iso) ? 'Public holiday you declared' : null;
+  }
+  // Is this year covered at all? Past the table the multiplier silently stops
+  // applying, which is exactly the kind of quiet wrong number this app is
+  // supposed to prevent — so the roster page says so out loud.
+  const holidaysCovered = (year)=> Object.keys(VIC_HOLIDAYS).some(d=>d.slice(0,4)===String(year));
+
+  const rateOf = (u, p)=> (+((u||{}).payRate) > 0 ? +u.payRate : (+((p||{}).defaultRate) || 0));
+  function multOf(iso, day, p){
+    if(holidayName(iso, p)) return +p.holidayMult || 1;
+    return day >= 5 ? (+p.weekendMult || 1) : 1;   // 5 = Sat, 6 = Sun
+  }
+  const dateOfShift = (s)=> U.isoDate(dayTs(weekOf(s), s.day));
+  function shiftEndTs(s){
+    const base = dayTs(weekOf(s), s.day);
+    const mins = U.toMin(s.end) + (U.toMin(s.end) <= U.toMin(s.start) ? 1440 : 0);   // finishes after midnight
+    return base + mins*60000;
+  }
+  // Hours actually worked. Nobody is clocked off unless they pressed the button,
+  // so a shift clocked on and never off is counted to its rostered finish —
+  // an estimate, and every screen that uses it marks which rows are estimates.
+  function workedHours(shift, ck){
+    if(!ck || !ck.clockTs) return 0;
+    const end = ck.clockOutTs || shiftEndTs(shift);
+    return Math.max(0, U.round2((end - ck.clockTs)/36e5));
+  }
+
+  // What a stretch of days costs, planned and clocked. Date range rather than
+  // week number because the two callers want different windows: the roster page
+  // asks for one week, the takings page asks for exactly the days it has income
+  // for — a labour % over days you never entered takings for is the same
+  // mismatched-divisor bug the food cost % had.
+  async function labour(from, to, staff, p){
+    p = p || await prefs();
+    if(!staff) staff = (await MKR.db.getAll('users')).filter(u=>(u.role==='staff'||u.role==='manager') && !u.offboarded);
+    const byId = {}; staff.forEach(s=>byId[s.id]=s);
+    const clock = await MKR.db.getAll('clockins');
+    const rows = [];
+    for(const sh of await MKR.db.getAll('shifts')){
+      const date = dateOfShift(sh);
+      if(date < from || date > to) continue;
+      const u = byId[sh.staffId]; if(!u) continue;
+      const ck = clock.find(k=>k.shiftId===sh.id) || null;
+      const rate = rateOf(u, p), mult = multOf(date, sh.day, p);
+      const planH = U.round2(U.shiftHours(sh.start, sh.end));
+      const actH  = workedHours(sh, ck);
+      rows.push({sh, u, ck, date, rate, mult, planH, actH,
+                 holiday: holidayName(date, p),
+                 estimated: !!(ck && !ck.clockOutTs),
+                 planCost: U.round2(planH*rate*mult), actCost: U.round2(actH*rate*mult)});
+    }
+    rows.sort((a,b)=> a.date.localeCompare(b.date) || String(a.sh.start).localeCompare(String(b.sh.start)));
+    const byDate = {};
+    rows.forEach(r=>{ const d = byDate[r.date] = byDate[r.date] || {planned:0, actual:0};
+                      d.planned = U.round2(d.planned + r.planCost); d.actual = U.round2(d.actual + r.actCost); });
+    const sum = (k)=> U.round2(rows.reduce((t,r)=>t+r[k], 0));
+    return {
+      rows, byDate, from, to, prefs:p,
+      planned: sum('planCost'), actual: sum('actCost'),
+      planHours: sum('planH'),  actHours: sum('actH'),
+      clocked: rows.filter(r=>r.ck).length,
+      // Anyone on the roster without a rate makes the total an UNDERSTATEMENT,
+      // not an approximation. Name them so the number is never read as complete.
+      unrated: [...new Set(rows.filter(r=>!r.rate).map(r=>r.u.name))],
+    };
+  }
+  // Sum only the days you ask for — used to line labour up with the days that
+  // actually have takings against them.
+  const labourOn = (lab, dates, key)=> U.round2(dates.reduce((t,d)=>t + ((lab.byDate[d]||{})[key||'planned']||0), 0));
 
   // ---------- availability ----------
   // av values: 'off' | 'all' | slot key ('am'/'pm') | 'HH:MM-HH:MM'
@@ -301,6 +410,17 @@ window.MKR = window.MKR || {};
     return {lateMins, late};
   }
 
+  // Clocking off is what turns a roster into a timesheet. It stays optional —
+  // a shift with no clock-off is costed to its rostered finish and flagged as
+  // an estimate, because a manager chasing everyone for a button press is a
+  // worse outcome than a figure that says how it was arrived at.
+  async function clockOut(shift, who){
+    const ck = (await MKR.db.getAll('clockins')).find(k=>k.shiftId===shift.id && k.staffId===who.id);
+    if(!ck) return null;
+    const row = await MKR.db.put('clockins', {id:ck.id, clockOutTs:Date.now()});
+    return {row, hours: workedHours(shift, row)};
+  }
+
   // Raise warnings as alerts + notifications. Deduped per week so re-opening the
   // roster page doesn't spam anyone.
   async function notifyWarnings(week, list, p){
@@ -344,6 +464,8 @@ window.MKR = window.MKR || {};
     DAYS, SKILLS, DEFAULT_PREFS,
     weekStart, weekKey, thisWeek, dayTs, weekOf, shiftsFor, slots,
     prefs, savePrefs, demandTable, learnedDemand, fits, skillsOf,
-    generate, apply, warnings, notifyWarnings, explain, clockIn,
+    generate, apply, warnings, notifyWarnings, explain, clockIn, clockOut,
+    VIC_HOLIDAYS, holidayName, holidaysCovered, rateOf, multOf,
+    dateOfShift, shiftEndTs, workedHours, labour, labourOn,
   };
 })();

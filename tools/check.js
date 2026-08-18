@@ -78,5 +78,45 @@ const U = window.MKR.util, T = window.MKR.tasks, S = window.MKR.stock, R = windo
   assert.ok(good && !good.error && good.lines.length===1, 'a real count would not save');
   assert.equal((await MKRdb.get('inventory','i1')).qty, 6);
 
+  // 6. What a week costs. Every figure here is the owner's own rate times hours
+  //    this app already had — no award is read and no pay is calculated.
+  const WK = '2026-08-17';                       // a Monday
+  await R.savePrefs({defaultRate:0, weekendMult:1.5, holidayMult:2.5, extraHolidays:'2026-08-19'});
+  await MKRdb.put('users', {id:'u_amy', name:'Amy', role:'staff', payRate:30});
+  await MKRdb.put('users', {id:'u_bo',  name:'Bo',  role:'staff'});            // no rate on purpose
+  const nine = (d)=> new Date(2026, 7, d, 9, 0, 0).getTime();
+  for(const [id, day, who] of [['s_mon',0,'u_amy'], ['s_wed',2,'u_amy'], ['s_sat',5,'u_amy'], ['s_bo',0,'u_bo']])
+    await MKRdb.put('shifts', {id, week:WK, day, staffId:who, start:'09:00', end:'17:00'});
+
+  const lab = await R.labour(WK, '2026-08-23');
+  assert.equal(lab.byDate['2026-08-17'].planned, 240, 'a weekday is not just the rate times the hours');
+  assert.equal(lab.byDate['2026-08-19'].planned, 600, 'the public holiday multiplier did not apply');
+  assert.equal(lab.byDate['2026-08-22'].planned, 360, 'the weekend multiplier did not apply');
+  assert.equal(lab.planned, 1200, 'the week did not add up');
+  assert.deepEqual(lab.unrated, ['Bo'], 'someone rostered with no rate was not named');
+  assert.ok(R.holidayName('2026-11-03'), 'Melbourne Cup is not in the Victorian holiday table');
+  assert.ok(R.holidaysCovered('2026') && !R.holidaysCovered('2031'), 'an unlisted year was reported as covered');
+
+  // 7. The divisor bug the food cost % had, in its labour form: a week of roster
+  //    over the two days you entered takings for is not a labour percentage.
+  assert.equal(R.labourOn(lab, ['2026-08-17']), 240, 'one day of labour picked up the whole week');
+
+  // 8. Hours worked. No clock-off is read as the rostered finish; a clock-off is
+  //    the real gap, and it closes the same row rather than opening a new one.
+  const sat = await MKRdb.get('shifts', 's_sat');
+  await MKRdb.put('clockins', {id:'ck1', shiftId:'s_sat', staffId:'u_amy', clockTs:nine(22)});
+  assert.equal(R.workedHours(sat, await MKRdb.get('clockins','ck1')), 8, 'a shift never clocked off lost its rostered hours');
+  await MKRdb.put('clockins', {id:'ck1', clockOutTs: nine(22) + 6.5*36e5});
+  assert.equal(R.workedHours(sat, await MKRdb.get('clockins','ck1')), 6.5, 'the clock-off did not shorten the shift');
+
+  await MKRdb.put('clockins', {id:'ck2', shiftId:'s_mon', staffId:'u_amy', clockTs:nine(17)});
+  const off = await R.clockOut({id:'s_mon', week:WK, day:0, start:'09:00', end:'17:00'}, {id:'u_amy'});
+  assert.ok(off && off.row.clockOutTs, 'clocking off wrote nothing');
+  assert.equal((await MKRdb.getAll('clockins')).length, 2, 'clocking off opened a new row instead of closing the shift');
+
+  const lab2 = await R.labour(WK, '2026-08-23');
+  assert.equal(lab2.actual, 292.5 + off.hours*30, 'clocked cost is not worked hours at the rate that applied');
+  assert.equal(lab2.planned, lab.planned, 'clocking on changed what had been planned');
+
   console.log('all good');
 })().catch(e=>{ console.error(e.message); process.exit(1); });

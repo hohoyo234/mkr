@@ -903,7 +903,50 @@ window.MKR = window.MKR || {};
     // Home springboard · quick actions
     "Quick actions":"快捷操作", "Add delivery":"登记到货", "Create task":"发布任务",
     "Today's snapshot":"今日概览", "Tasks due today":"今日待办任务", "Upcoming deliveries":"待确认到货",
-    "Expiring items":"临期物料", "Team on shift":"今日在班人数",
+    "Expiring items":"临期物料", "Team on shift":"今日在班人数", "Takings today":"今日营业额",
+    "Enter takings":"录入营业额",
+    // ---- Labour cost · your own rates, never an award ----
+    "What this week costs":"这周人力多少钱", "Rates":"时薪设置",
+    "No hourly rates yet.":"还没设时薪。",
+    "Type what you pay each person — once — and this week gets a price on it, and a labour percentage the moment you enter takings.":"把每个人的时薪填一次，这周的排班就有价钱了；再录入营业额，人力占比也就出来了。",
+    "nobody clocked on yet":"还没有人打卡",
+    "enter takings to see labour %":"录入营业额才能算人力占比",
+    "Your own rates, applied to your own roster, for your own planning. Not a pay calculation and not an interpretation of any award — this app runs no payroll, produces no payslips and sends nothing to the ATO.":"用你自己填的费率，算你自己的排班，供你自己判断。这不是工资计算，也不是对任何 award 的解释 —— 本应用不做薪资核算、不出工资单、不向税务局发送任何数据。",
+    "Labour cost":"人力成本占比", "needs hourly rates on the roster":"需要先在排班页填时薪",
+    "Labour here is this roster priced at the hourly rates you typed in yourself — a planning figure, not a pay calculation, not a payslip and not an interpretation of any award. Set the rates on the roster page under Rates.":"这里的人力成本，是用你自己填的时薪给排班算的价 —— 只是给你做判断用的数，不是工资计算、不是工资单，也不是对任何 award 的解释。时薪在排班页的「时薪设置」里填。",
+        // Rates modal
+    "What you pay":"你付多少钱",
+    "These are your numbers, not an award. Type what you actually pay; the app multiplies them by hours it already has and shows you a total. It never works out an award rate, never produces a payslip and never sends any of it anywhere.":"这些是你自己的数，不是 award。填你实际付的钱，app 把它乘上已有的工时给你一个合计。它不会去推算 award 费率、不出工资单，也不会把这些数发到任何地方。",
+    "1 · Hourly rate, per person":"1 · 每个人的时薪",
+    "Leave one blank to fall back to the default below. Anyone still on $0 is left out of the totals — the page says who.":"留空就用下面的默认时薪。仍然是 $0 的人不计入合计 —— 页面上会写出是谁。",
+    "Default for anyone without their own rate":"没单独填时薪的人按这个算",
+    "2 · What weekends and public holidays cost you":"2 · 周末和公共假日你要多付多少",
+    "A multiplier on the rate above. 1.0 means the same as a weekday — which is what it stays until you change it.":"在上面时薪基础上的倍率。1.0 表示和平日一样 —— 你不改它就一直是 1.0。",
+    "Saturday & Sunday":"周六与周日", "Public holidays":"公共假日",
+    "3 · Public holidays":"3 · 公共假日",
+    "Extra dates (YYYY-MM-DD, comma separated)":"额外的日期（YYYY-MM-DD，用逗号分隔）",
+    "Rates sit on the staff record alongside their roster, same as everything else in this app. No tax file numbers, no super, no bank details, no payroll.":"时薪和排班一样存在员工档案里，跟这个 app 里其它数据一个待遇。不存税号、不存养老金、不存银行账户、不做薪资核算。",
+    "Rates saved":"时薪已保存",
+    // Timesheet export
+    "Export roster":"导出排班", "Timesheet & cost (CSV)":"考勤与人力成本（CSV）",
+    "Timesheet & cost":"考勤与人力成本", "Download CSV":"下载 CSV",
+    "From":"从", "To":"到",
+    "Defaults to a fortnight ending this Sunday. Set it to whatever your pay cycle actually is.":"默认是到本周日为止的两周。你的工资周期是几号到几号，就改成几号。",
+    "Check the dates":"检查一下日期", "No shifts in that period":"这段时间没有班次",
+    // Clocking off
+    "Clock off":"下班打卡", "You are not clocked in":"你还没上班打卡",
+    "Hourly rate":"时薪", "Not set — add it in Rostering → Rates":"未设置 —— 到「排班 → 时薪设置」填",
+    "your own figure, used to cost the roster":"你自己填的数，用来给排班算成本",
+    // ---- Takings ----
+    "Takings":"营业额", "Takings & covers":"营业额与客数",
+    "What the till took, typed once a day — the number every cost in this app is measured against":"每天收工录一次收银机的数 —— app 里所有成本都以它为分母",
+    "Takings at close":"打烊结账", "Which day":"哪一天", "Cash":"现金", "Card / EFTPOS":"刷卡 / EFTPOS",
+    "Covers (customers served)":"客数（接待人数）", "Total":"合计",
+    "Takings recorded":"营业额已记录", "Type what the till says":"填写收银机上的数字",
+    "Covers":"客数", "Food cost":"食材成本占比", "of what you took":"占营业额",
+    "needs takings and dockets":"需要营业额和送货单", "dockets dated on the days you entered":"你录入那几天的送货单",
+    "Day by day":"逐日明细", "Bought · same days":"同期采购",
+    "Today isn\u2019t entered yet.":"今天还没录入。",
     "Add stock":"添加物料", "View roster":"查看排班",
     "Your home screen":"你的主屏", "Tap a block to open it":"点一个方块就能进去",
     "Arrange your blocks":"整理你的方块", "Drag to move · − to take one off":"拖动排序 · 按 − 移除",
@@ -946,7 +989,7 @@ window.MKR = window.MKR || {};
     "What changed since you last looked":"你上次看之后发生了什么",
     "Nothing is running short and no supplier has moved a price on you.":"没有东西快用完，也没有供应商动过价格。",
     "Open the cold room →":"打开冷库 →",
-    "Every number on this floor is read from your own records. This app tracks your operations only — it has no till, so it never shows takings, and it doesn't calculate pay or talk to any government system.":"这张平面图上的每个数字都读自你自己的记录。本应用只管理你的经营流程 —— 没有收银机，因此从不显示营业额，也不计算工资、不对接任何政府系统。",
+    "Every number on this floor is read from your own records — including the takings, which you type in yourself at close. This app has no till and no payroll: it never calculates pay, never interprets an award and never talks to any government system.":"这张平面图上的每个数字都读自你自己的记录 —— 包括打烊时你自己录入的营业额。本应用没有收银机、也不做薪资核算：从不计算工资、不解释 award，也不对接任何政府系统。",
     // ---- Kitchen · room view ----
     "🍳 Kitchen":"🍳 后厨",
     "still to do":"件还没做", "ticked off today":"今天已完成",
@@ -1149,6 +1192,19 @@ window.MKR = window.MKR || {};
   // Templated strings (numbers / names interpolated) — exact match can't catch
   // these, so match by pattern and re-insert the captured dynamic bits.
   const PATTERNS = [
+    // Labour cost — the numbers are live, so these can't be flat keys
+    [/^planned · ([\d.]+)h$/, m => `计划 ${m[1]} 小时`],
+    [/^clocked · (\d+)\/(\d+) shifts$/, m => `已打卡 ${m[1]}/${m[2]} 个班次`],
+    [/^of takings · (\d+) days?$/, m => `占营业额 · 你录入的 ${m[1]} 天`],
+    [/^([\d.]+)% with food$/, m => `加上食材共 ${m[1]}%`],
+    [/^Clocked off · ([\d.]+) h$/, m => `下班打卡 · ${m[1]} 小时`],
+    [/^(.+?) (?:has|have) no rate — they cost \$0 in the figures above, so the real number is higher\.$/, m => `${m[1]} 还没填时薪 —— 上面的数把他们算成 $0，实际比这个高。`],
+    [/^(.+?) (?:has|have) no rate set, so the real labour figure is higher\.$/, m => `${m[1]} 还没填时薪，实际人力成本比这个高。`],
+    [/^No public holidays are listed for (\d{4}) — add them under Rates, or holiday days will cost the same as any other\.$/, m => `${m[1]} 年的公共假日还没录 —— 在「时薪设置」里补上，否则假日会按平日价算。`],
+    // Takings
+    [/^Taken · last (\d+) days$/, m => `近 ${m[1]} 天营业额`],
+    [/^(\d+) days? entered$/, m => `已录入 ${m[1]} 天`],
+    [/^(\$[\d,.]+) a head$/, m => `人均 ${m[1]}`],
     // The greeting carries a name now (the owner is "boss", everyone else is
     // themselves), so it can't be a fixed key any more.
     [/^(Good morning|Good afternoon|Good evening), (.+?) 👋$/, m =>

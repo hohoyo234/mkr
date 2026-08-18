@@ -15,7 +15,7 @@ window.MKR = window.MKR || {};
   const TABLES = ['kitchens','users','shifts','tasks','swaps','sos','alerts','clockins','onboarding','audit',
                   'customer_feedback','reservations','waitlist','verifications',
                   // Stock & supply chain
-                  'inventory','suppliers','purchases','stocktakes','deliveries',
+                  'inventory','suppliers','purchases','stocktakes','deliveries','takings',
                   'claims','waste','reconciliations',
                   // Training / SOP
                   'sops','trainings'];

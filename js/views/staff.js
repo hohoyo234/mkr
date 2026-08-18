@@ -91,7 +91,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <div class="staff-today-time">${todayShift.start} – ${todayShift.end}</div>
             <div class="staff-today-hrs">${U.hrs(MKR.util.shiftHours(todayShift.start, todayShift.end))}</div>
             ${ck
-              ? `<div class="staff-today-status ${ck.late?'late':'ok'}"><b>Clocked in</b> · ${ck.late?`${ck.lateMins} min late`:MKR.util.fmtTime(ck.clockTs)}</div>`
+              ? `<div class="staff-today-status ${ck.late?'late':'ok'}"><b>Clocked in</b> · ${ck.late?`${ck.lateMins} min late`:MKR.util.fmtTime(ck.clockTs)}${
+                  ck.clockOutTs?` · <b>off</b> ${MKR.util.fmtTime(ck.clockOutTs)} · ${U.hrs(MKR.roster.workedHours(todayShift, ck))}`:''}</div>
+                 ${ck.clockOutTs?'':`<button class="btn btn-ghost staff-clock-btn" data-clockoff="${todayShift.id}">Clock off</button>`}`
               : `<button class="btn btn-green staff-clock-btn" data-clock="${todayShift.id}">Clock in</button>`}
           </div>
         ` : `
@@ -116,10 +118,18 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         U.qsa('[data-hang]',el).forEach(b=>b.onclick=()=>hang(shifts.find(x=>x.id===b.dataset.hang)));
       }
       U.qsa('[data-clock]',c).forEach(b=>b.onclick=()=>clockIn(shifts.find(x=>x.id===b.dataset.clock)));
+      U.qsa('[data-clockoff]',c).forEach(b=>b.onclick=()=>clockOff(shifts.find(x=>x.id===b.dataset.clockoff)));
     }
     async function clockIn(shift){
       const {lateMins, late} = await MKR.roster.clockIn(shift, sess);
       U.toast(late?`Clocked in · ${lateMins} min late`:'Clocked in · on time', late?'amber':'green');
+      clockins=(await MKR.db.getAll('clockins')).filter(k=>k.staffId===sess.id); draw();
+    }
+    // Optional, and it stays optional: a shift never clocked off is read as
+    // finishing when it was rostered to. It just isn't as good a record.
+    async function clockOff(shift){
+      const out = await MKR.roster.clockOut(shift, sess);
+      U.toast(out?`Clocked off · ${U.hrs(out.hours)}`:'You are not clocked in', out?'green':'amber');
       clockins=(await MKR.db.getAll('clockins')).filter(k=>k.staffId===sess.id); draw();
     }
     function hang(shift){
