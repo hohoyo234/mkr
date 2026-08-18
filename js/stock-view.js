@@ -12,6 +12,7 @@ window.MKR = window.MKR || {};
     {id:'prices',   label:'Prices',    ic:'ticket'},
     {id:'suppliers',label:'Suppliers', ic:'truck'},
     {id:'forecast', label:'Forecast',  ic:'trend'},
+    {id:'dishes',   label:'Dish costs',ic:'utensils'},
   ];
   let tab = 'stock';
 
@@ -50,6 +51,7 @@ window.MKR = window.MKR || {};
     if(tab==='prices')    return MKR.stockPrices.tab(body, actions, ()=>render(c));
     if(tab==='suppliers') return suppliersTab(body, actions, ()=>render(c));
     if(tab==='forecast')  return forecastTab(body, actions, ()=>render(c));
+    if(tab==='dishes')    return dishesTab(body, actions, ()=>render(c));
   }
 
   // ---------------- Stock ----------------
@@ -641,6 +643,143 @@ window.MKR = window.MKR || {};
   const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   // Only ever open a plain http(s) address, and never one typed as javascript:.
+
+  // ---------------- Dish costs ----------------
+  /* One card per dish: what it costs to put in the bowl, against what the bowl
+     sells for. Deliberately coarse — the three to five things that move the
+     cost, in the unit the shelf already uses. A costing 5% out still answers
+     the question an 18% beef rise asks.
+
+     Not a menu. Nothing here is shown to a customer, ordered or sold; it reads
+     the prices already sitting in stock and does arithmetic on them. */
+  const DISH_LINE = 35;      // where a food cost stops being comfortable, in %
+
+  async function dishesTab(c, actions, reload){
+    const [rs, its, g] = await Promise.all([S().recipes(), S().items(), S().gstSettings()]);
+    const cards = rs.map(r=>S().dishCost(r, its, g));
+    const priced = cards.filter(d=>d.pct!=null);
+    const avg = priced.length ? U.round2(priced.reduce((t,d)=>t+d.pct,0)/priced.length) : null;
+    const moved = cards.filter(d=>d.moved.length && d.was!==d.cost);
+
+    actions.innerHTML = `<button class="btn btn-dark btn-sm" id="dshAdd" data-new>${MKR.ui.icon('plus')} Add a dish</button>`;
+
+    c.innerHTML = `
+      <div class="statline">
+        <span class="statcell"><b>${cards.length}</b><i>dishes costed</i></span>
+        <span class="statcell"${avg!=null&&avg>DISH_LINE?' style="color:var(--red)"':''}><b>${avg!=null?avg+'%':'—'}</b><i>average food cost</i></span>
+        <span class="statcell"${moved.length?' style="color:var(--amber-ink)"':''}><b>${moved.length}</b><i>moved this month</i></span>
+        <span class="statcell clickable" id="dshGst"><b>${g.inc?'inc':'ex'}</b><i>menu prices ${g.inc?'include':'exclude'} GST</i></span>
+      </div>
+
+      ${moved.length?`<div class="alert amber mt16"><span>${MKR.ui.icon('trend')}</span><div>
+        <b>${moved.length} dish${moved.length===1?'':'es'} cost more than ${moved.length===1?'it':'they'} did a month ago</b>
+        <div>${moved.slice(0,3).map(d=>`${U.esc(d.recipe.name)} ${d.wasPct!=null?`${d.wasPct}% → ${d.pct}%`:`${U.money(d.was)} → ${U.money(d.cost)}`}`).join(' · ')}</div>
+        <div class="faint">Ingredient prices moved under them. Nothing has changed on your menu board.</div>
+      </div></div>`:''}
+
+      ${cards.length? `<div class="grid g3 mt16" id="dshGrid">${cards.map(dishCard).join('')}</div>`
+        : `<div class="card pad20 mt16"><div class="empty"><div class="em">${MKR.ui.icon('utensils')}</div>
+          <p>No dishes costed yet. Start with the three you sell most of — the ones where a price rise actually costs you money.</p></div></div>`}
+
+      <div class="disclaimer mt16"><span>${MKR.ui.icon('utensils')}</span><div>
+        <div>Cost is your recipe times the last price you actually paid for each ingredient, so it moves when your supplier moves.</div>
+        <div>${g.inc
+          ? 'Menu prices are treated as GST-inclusive and the GST is taken out before the ratio — comparing a GST-inclusive price against GST-free ingredient costs makes every dish look about a tenth better than it is. Tap the GST cell to change that.'
+          : 'Menu prices are treated as GST-free. Tap the GST cell to change that.'}</div>
+        <div>35% is a common line in the trade, not your line — read it against the food cost on your Takings page, which is the one that is actually yours.</div>
+      </div></div>`;
+
+    U.qs('#dshAdd',actions).onclick = ()=> dishModal(null, its, reload);
+    U.qs('#dshGst',c).onclick = async()=>{ await S().setGstInc(!g.inc); reload(); };
+    U.qsa('[data-dish]',c).forEach(b=> b.onclick = ()=>
+      dishModal(rs.find(r=>r.id===b.dataset.dish), its, reload));
+  }
+
+  function dishCard(d){
+    const r = d.recipe;
+    const hot = d.pct!=null && d.pct>DISH_LINE;
+    const arrow = (d.wasPct!=null && d.pct!=null && d.was!==d.cost)
+      ? `<div class="faint" style="font-size:12px;margin-top:2px">was ${d.wasPct}% a month ago</div>` : '';
+    return `<div class="card pad20">
+      <div class="row center between wrap" style="gap:8px">
+        <b style="font-size:16px">${U.esc(r.name)}</b>
+        <button class="btn btn-ghost btn-sm" data-dish="${r.id}">${MKR.ui.icon('pencil')}</button>
+      </div>
+      <div class="row center wrap" style="gap:14px;margin:12px 0">
+        <div><div class="faint" style="font-size:11.5px">Food cost</div>
+          <b style="font-family:'Playfair Display',serif;font-size:26px;${hot?'color:var(--red)':''}">${d.pct!=null?d.pct+'%':'—'}</b>${arrow}</div>
+        <div><div class="faint" style="font-size:11.5px">Ingredients</div><b style="font-size:16px">${U.money(d.cost)}</b></div>
+        <div><div class="faint" style="font-size:11.5px">You keep</div>
+          <b style="font-size:16px;${d.margin<0?'color:var(--red)':''}">${U.money(d.margin)}</b></div>
+      </div>
+      <div class="list">${d.lines.map(l=>`<div class="li" style="padding:6px 0">
+        <div class="meta"><b style="font-size:13.5px">${U.esc(l.name)}${l.move?` ${S().moveBadge(l.item)}`:''}</b>
+          <span>${l.qty} ${U.esc(l.unit)} × ${U.money(l.price)}</span></div>
+        <b style="font-size:13.5px">${U.money(l.amount)}</b></div>`).join('')
+        || `<div class="faint" style="font-size:12.5px;padding:6px 0">No ingredients on this card yet — tap the pencil.</div>`}</div>
+      ${d.missing?`<div class="faint" style="font-size:12px;margin-top:8px">${d.missing} ingredient${d.missing===1?'':'s'} no longer in stock — counted as $0.</div>`:''}
+      <div class="faint" style="font-size:12px;margin-top:10px">Sells for ${U.money(d.price)}${d.price!==d.net?` · ${U.money(d.net)} after GST`:''}</div>
+      ${r.note?`<p class="muted" style="font-size:12.5px;margin-top:8px">${U.esc(r.note)}</p>`:''}
+    </div>`;
+  }
+
+  function dishModal(r, its, after){
+    const isNew = !r; r = r || {name:'', price:0, lines:[]};
+    let lines = (r.lines||[]).map(l=>({...l}));
+    const opts = (sel)=> its.map(i=>`<option value="${i.id}" ${sel===i.id?'selected':''}>${U.esc(i.name)} · ${U.money(i.price)}/${U.esc(i.unit||'')}</option>`).join('');
+    const wrap = U.el(`<div>
+      <div class="row"><div class="field grow"><label>Dish</label>
+          <input class="input" id="dm_n" value="${U.esc(r.name||'')}" placeholder="e.g. Beef noodle soup"></div>
+        <div class="field" style="width:150px"><label>Sells for</label>
+          <input class="input" id="dm_p" type="number" min="0" step="0.01" value="${r.price||''}" placeholder="18.50"></div></div>
+      <div class="section-title">What goes in it</div>
+      <p class="muted" style="font-size:13px">The three to five things that actually move the cost, in the unit the shelf uses. Rough is fine — a costing a few per cent out still tells you what a price rise did.</p>
+      <div id="dm_lines"></div>
+      <button class="btn btn-ghost btn-sm mt8" id="dm_add">${MKR.ui.icon('plus')} Add an ingredient</button>
+      <div class="dm-total mt12" id="dm_tot"></div>
+      <div class="field mt12"><label>Note (optional)</label>
+        <input class="input" id="dm_note" value="${U.esc(r.note||'')}" placeholder="e.g. large bowl · portion is 2 ladles"></div>
+    </div>`);
+
+    function draw(){
+      U.qs('#dm_lines',wrap).innerHTML = lines.map((l,i)=>`
+        <div class="row center" style="gap:8px;margin-bottom:8px">
+          <select class="input grow" data-li="${i}">${opts(l.itemId)}</select>
+          <input class="input" type="number" min="0" step="0.01" data-lq="${i}" value="${l.qty||''}" placeholder="qty" style="width:96px;text-align:right">
+          <button class="btn btn-ghost btn-sm" data-lx="${i}">×</button>
+        </div>`).join('') || `<p class="faint" style="font-size:12.5px">Nothing yet.</p>`;
+      U.qsa('[data-li]',wrap).forEach(sl=> sl.onchange = e=>{ lines[+sl.dataset.li].itemId = e.target.value; draw(); });
+      U.qsa('[data-lq]',wrap).forEach(inp=> inp.oninput = e=>{ lines[+inp.dataset.lq].qty = e.target.value; total(); });
+      U.qsa('[data-lx]',wrap).forEach(b=> b.onclick = ()=>{ lines.splice(+b.dataset.lx,1); draw(); });
+      total();
+    }
+    function total(){
+      const cost = U.round2(lines.reduce((t,l)=>{
+        const it = its.find(i=>i.id===l.itemId); return t + S().lineAmount(l.qty, it?it.price:0);
+      }, 0));
+      const price = Number(U.qs('#dm_p',wrap).value)||0;
+      U.qs('#dm_tot',wrap).innerHTML = `<b>${U.money(cost)}</b> in the bowl${
+        price ? ` · <b>${U.round2(cost/price*100)}%</b> of the ${U.money(price)} it sells for` : ''}
+        <div class="faint" style="font-size:11.5px">GST is taken off the selling price on the card itself, not here.</div>`;
+    }
+    U.qs('#dm_add',wrap).onclick = ()=>{ lines.push({itemId:(its[0]||{}).id, qty:''}); draw(); };
+    U.qs('#dm_p',wrap).addEventListener('input', total);
+    draw();
+
+    const actions = [{label:'Save', class:'btn-dark', onClick:async(close)=>{
+      const name = U.qs('#dm_n',wrap).value.trim();
+      if(!name){ U.toast('Give the dish a name','red'); return; }
+      await S().saveRecipe({id:r.id, name, price:Number(U.qs('#dm_p',wrap).value)||0,
+        lines, note:U.qs('#dm_note',wrap).value});
+      close(); U.toast(isNew?'Cost card saved':'Cost card updated','green'); after();
+    }}];
+    if(!isNew && r.id) actions.unshift({label:'Delete', class:'btn-ghost', onClick:async(close)=>{
+      if(!(await U.confirm('Delete cost card', `Remove "${r.name}"?`, {ok:'Delete', danger:true}))) return;
+      await MKR.db.remove('recipes', r.id); close(); U.toast('Deleted','amber'); after();
+    }});
+    U.modal(isNew?'New dish cost card':'Dish cost card', wrap, {actions});
+  }
+
   function webURL(raw){
     const s = String(raw||'').trim(); if(!s) return null;
     const url = /^https?:\/\//i.test(s) ? s : 'https://'+s;
