@@ -264,11 +264,14 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       return sum % 11 === 0;
     }
 
-    // Employment records. Pay, super and bank details are still not collected —
+    // Employment records. Tax, super and bank details are still not collected —
     // those stay with the venue's payroll. A TFN and work-rights status are held
     // because payroll needs them to exist somewhere the owner can retrieve them,
-    // and the app makes no judgement about either: it never checks a visa
-    // against its conditions and never counts hours against one.
+    // and the app makes no judgement about either: it never reads a visa's
+    // conditions and never decides what anyone is entitled to work. The roster
+    // does warn when a fortnight goes over a limit — but that limit is a number
+    // the OWNER recorded, counted against their own roster, never inferred from
+    // the subclass typed below.
     function docStatus(){
       return {
         passport:  !!ob.passportDoc || !!ob.passportEnc,
@@ -422,7 +425,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
             <div class="field"><label>Visa grant notice (optional)</label>
               <label class="img-drop"><div class="img-preview" id="wr_prev">${img?`<img src="${img}">`:`<span>${MKR.ui.icon('camera')} Tap to upload</span>`}</div><input type="file" id="wr_file" accept="image/*" hidden></label></div>
           </div>
-          <div class="disclaimer"><span>ℹ️</span>Recorded, not judged. The app never checks a visa against its conditions and never counts your hours against one — if the venue needs that checked, they use VEVO themselves.</div>
+          <div class="disclaimer"><span>ℹ️</span>Recorded, not interpreted. The app never reads what your visa allows — if the venue needs that verified they use VEVO themselves. If your visa limits your hours, your manager records that limit separately and the roster warns them before they go over it; nothing here stops you working.</div>
         </div>`);
         const kind=U.qs('#wr_kind',wrap);
         const syncKind=()=>{ U.qs('#wr_visa',wrap).style.display = kind.value==='visa' ? '' : 'none'; };

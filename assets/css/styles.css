@@ -958,6 +958,13 @@ table.rgrid{border-collapse:separate;border-spacing:0;width:100%;min-width:780px
 .rgrid th,.rgrid td{border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);padding:6px 8px;vertical-align:top}
 .rgrid thead th{background:var(--paper-2);position:sticky;top:0;z-index:3;text-align:center;font-weight:700;white-space:nowrap}
 .rgrid .rg-date{font-weight:500;font-size:10.5px;color:var(--ink-faint)}
+/* A public holiday is information, not a status, so it takes the module's
+   own colour rather than a warning colour. */
+.rgrid .rg-hol{display:inline-block;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:700;font-size:10px;color:var(--accent-ink);background:var(--accent-soft);
+  border-radius:6px;padding:1px 6px;margin-top:3px}
+.rgrid td.rg-cell.hol{background:color-mix(in srgb, var(--accent-soft) 45%, transparent)}
+.rgrid td.rg-cell.hol.today{background:var(--accent-soft)}
 .rgrid th.rg-name,.rgrid td.rg-name{position:sticky;left:0;background:var(--card);z-index:2;text-align:left;min-width:150px;max-width:172px}
 .rgrid thead th.rg-name{z-index:4;background:var(--paper-2)}
 .rgrid td.rg-cell{min-width:90px;cursor:pointer}

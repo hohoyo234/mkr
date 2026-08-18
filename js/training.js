@@ -8,6 +8,15 @@
    Staff open a training task, read the steps and sign it off with their name;
    that sign-off is what the owner sees. Nothing here is submitted to anyone
    outside the venue.
+
+   · Certificate — a ticket with an expiry date and a photo of it (certs table)
+
+   RSA, Food Safety Supervisor, first aid: the things an inspector or Fair Work
+   asks to see, standing in the venue, now. The expiry machinery was already here
+   for training due dates, so certificates reuse it: a date, a countdown, and a
+   photo that can be pulled up on one screen. The app records and reminds. It
+   does not verify a certificate with the issuer and does not decide whether the
+   venue is compliant.
 */
 window.MKR = window.MKR || {};
 (function(){
@@ -49,6 +58,171 @@ window.MKR = window.MKR || {};
     try{ await MKR.audit.log({action:'training.complete', desc:`Completed training "${t.title}"`}); }catch(e){}
   }
 
+  // ---------------- Certificates ----------------
+  /* An expiring RSA is not a training gap, it is a licence to trade problem, and
+     it turns up at the worst moment: an inspector at the pass asking to see one.
+     So this is a flat list with photos and dates, sortable to the soonest, and
+     nothing clever on top of it.
+
+     What it does NOT do: verify anything with the issuing body, decide whether
+     the venue is compliant, or stop anyone working. It holds the date the owner
+     or the staff member typed and counts down to it. */
+  const CERT_TYPES = {
+    rsa:       'RSA — Responsible Service of Alcohol',
+    fss:       'Food Safety Supervisor',
+    food:      'Food handler certificate',
+    firstaid:  'First aid / CPR',
+    whitecard: 'White card',
+    other:     'Other',
+  };
+  const CERT_SOON = 60;                                   // days out where it stops being "fine"
+
+  async function certs(){ return (await MKR.db.getAll('certs')).filter(c=>(c.kitchenId||'k_main')===kid()); }
+  async function saveCert(p){
+    const row = {kitchenId:kid(), ...p};
+    if(!row.id) row.id = U.uid('cert');
+    const saved = await MKR.db.put('certs', row);
+    try{ await MKR.audit.log({action:'training.assign', desc:`Recorded certificate "${certLabel(saved)}"`}); }catch(e){}
+    return saved;
+  }
+  const certLabel = (c)=> c.type==='other' ? (c.other||'Certificate') : (CERT_TYPES[c.type]||c.type);
+
+  // Days until it lapses — negative once it has. No expiry is a valid answer
+  // (a food handler certificate often has none), and reads as such.
+  function certDays(c){
+    if(!c || !c.expiry) return null;
+    return Math.round((new Date(c.expiry+'T00:00:00') - new Date(U.todayISO()+'T00:00:00'))/DAY);
+  }
+  function certState(c){
+    const d = certDays(c);
+    if(d==null) return {k:'none',  pill:'ghost',  text:'No expiry'};
+    if(d < 0)   return {k:'expired', pill:'danger', text:`Expired ${-d} day${-d===1?'':'s'} ago`};
+    if(d <= CERT_SOON) return {k:'soon', pill:'warn', text:`${d} day${d===1?'':'s'} left`};
+    return {k:'ok', pill:'ok', text:`Expires ${c.expiry}`};
+  }
+
+  // Everything with an expiry date against a person's name, in one list: the
+  // certificates recorded here plus the visa the staff member entered during
+  // onboarding. The visa row is READ-ONLY on purpose — it is their record, they
+  // typed it, and an owner quietly editing someone's visa expiry is not a thing
+  // this app is going to make easy.
+  async function certList(users){
+    const rows = (await certs()).map(c=>({...c, label:certLabel(c), own:true}));
+    let ob = []; try{ ob = await MKR.db.getAll('onboarding'); }catch(e){}
+    for(const o of ob){
+      if(o.workRights!=='visa' || !o.visaExpiry) continue;
+      if(!users.some(u=>u.id===o.userId)) continue;
+      rows.push({id:'ob_'+o.id, staffId:o.userId, type:'workrights', own:false, photo:o.visaDoc||null,
+                 label:`Work rights — visa${o.visaSubclass?' subclass '+o.visaSubclass:''}`, expiry:o.visaExpiry});
+    }
+    return rows.sort((a,b)=> String(a.expiry||'9999').localeCompare(String(b.expiry||'9999')));
+  }
+
+  // Raised where the list is read, the same way roster warnings are: no
+  // background sweep to keep alive, and the alert can never disagree with the
+  // screen that produced it.
+  async function certAlerts(rows, nameOf){
+    for(const r of rows){
+      const st = certState(r);
+      if(st.k!=='expired' && st.k!=='soon') continue;
+      try{
+        await MKR.alerts.raise({
+          key:`cert-${r.id}-${r.expiry}`,
+          level: st.k==='expired' ? 'red' : 'amber',
+          type:'training',
+          title: st.k==='expired' ? 'Certificate expired' : 'Certificate expiring',
+          desc: `${nameOf(r.staffId)} · ${r.label} · ${st.text.toLowerCase()}`,
+        });
+      }catch(e){}
+    }
+  }
+
+  function certModal(cert, users, after, lockStaffId){
+    const isNew = !cert; cert = cert || {type:'rsa'};
+    let img = cert.photo || null;
+    const wrap = U.el(`<div>
+      ${lockStaffId ? '' : `<div class="field"><label>Whose is it</label><select class="input" id="ct_who">
+        ${users.map(u=>`<option value="${u.id}" ${cert.staffId===u.id?'selected':''}>${U.esc(u.name)}</option>`).join('')}</select></div>`}
+      <div class="field"><label>What it is</label><select class="input" id="ct_type">
+        ${Object.entries(CERT_TYPES).map(([k,v])=>`<option value="${k}" ${cert.type===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      <div class="field" id="ct_otherwrap" style="display:none"><label>Name it</label>
+        <input class="input" id="ct_other" value="${U.esc(cert.other||'')}" placeholder="e.g. Forklift licence"></div>
+      <div class="row">
+        <div class="field grow"><label>Certificate number (optional)</label>
+          <input class="input" id="ct_no" value="${U.esc(cert.number||'')}" placeholder="as printed on it"></div>
+        <div class="field grow"><label>Expires</label>
+          <input class="input" id="ct_exp" type="date" value="${U.esc(cert.expiry||'')}"></div>
+      </div>
+      <div class="field"><label>Photo of the certificate</label>
+        <label class="img-drop"><div class="img-preview" id="ct_prev">${img?`<img src="${img}">`:`<span>${MKR.ui.icon('camera')} Tap to upload</span>`}</div>
+          <input type="file" id="ct_file" accept="image/*" hidden></label></div>
+      <div class="disclaimer"><span>${MKR.ui.icon('book')}</span>Recorded so it can be produced on the spot and so you get told before it lapses. Nothing here is verified with the issuing body, and the app makes no judgement about whether the venue is compliant.</div>
+    </div>`);
+    const typeSel = U.qs('#ct_type',wrap);
+    const syncType = ()=>{ U.qs('#ct_otherwrap',wrap).style.display = typeSel.value==='other' ? '' : 'none'; };
+    typeSel.onchange = syncType; syncType();
+    U.qs('#ct_file',wrap).onchange = (e)=> U.readImage(e.target.files[0], d=>{ img=d; U.qs('#ct_prev',wrap).innerHTML=`<img src="${d}">`; });
+
+    const actions = [{label:'Save', class:'btn-dark', onClick:async(close)=>{
+      const staffId = lockStaffId || U.qs('#ct_who',wrap).value;
+      if(!staffId){ U.toast('Whose certificate is it?','red'); return; }
+      const type = typeSel.value;
+      const other = U.qs('#ct_other',wrap).value.trim();
+      if(type==='other' && !other){ U.toast('Give it a name','red'); return; }
+      await saveCert({id:cert.id, staffId, type, other,
+        number:U.qs('#ct_no',wrap).value.trim(), expiry:U.qs('#ct_exp',wrap).value||'', photo:img});
+      close(); U.toast(isNew?'Certificate recorded':'Certificate updated','green'); if(after) after();
+    }}];
+    if(!isNew && cert.id) actions.unshift({label:'Remove', class:'btn-ghost', onClick:async(close)=>{
+      if(!(await U.confirm('Remove certificate', `Take "${certLabel(cert)}" off the record?`, {ok:'Remove', danger:true}))) return;
+      await MKR.db.remove('certs', cert.id); close(); U.toast('Removed','amber'); if(after) after();
+    }});
+    U.modal(isNew?'Add a certificate':'Certificate', wrap, {actions});
+  }
+
+  // One card, one screen, soonest first — what you hold up when someone from the
+  // council is standing in your kitchen asking.
+  function certCard(rows, nameOf, opts){
+    opts = opts || {};
+    const bad = rows.filter(r=>certState(r).k==='expired').length;
+    const soon = rows.filter(r=>certState(r).k==='soon').length;
+    return `<div class="card pad20 mt16" id="certCard">
+      <div class="row center between wrap" style="gap:10px;margin-bottom:12px">
+        <div class="section-title" style="padding:0">${MKR.ui.icon('award')} ${opts.title||'Certificates & work rights'}</div>
+        <div class="row gap8 center">
+          ${bad?`<span class="pill danger">${bad} expired</span>`:''}
+          ${soon?`<span class="pill warn">${soon} expiring</span>`:''}
+          <button class="btn btn-dark btn-sm" id="certAdd">${MKR.ui.icon('plus')} Add</button>
+        </div>
+      </div>
+      ${rows.length ? `<div class="list">${rows.map(r=>{
+        const st = certState(r);
+        return `<div class="li${r.own?' clickable':''}"${r.own?` data-cert="${r.id}"`:''}>
+          <div class="ds-li-ic sev-${st.k==='expired'?'red':(st.k==='soon'?'amber':'info')}">${MKR.ui.icon('award')}</div>
+          <div class="meta"><b>${opts.hideName?'':U.esc(nameOf(r.staffId))+' · '}<span>${U.esc(r.label)}</span></b>
+            <span>${r.number?U.esc(r.number)+' · ':''}${r.expiry?U.esc(r.expiry):'no expiry recorded'}${r.own?'':' · <span>from their onboarding</span>'}</span></div>
+          <div class="row gap6 center">
+            <span class="pill ${st.pill}">${st.text}</span>
+            ${r.photo?`<button class="btn btn-ghost btn-sm" data-certpic="${r.id}">${MKR.ui.icon('camera')}</button>`:''}
+          </div></div>`;
+      }).join('')}</div>`
+      : `<div class="empty"><div class="em">${MKR.ui.icon('award')}</div><p>${opts.empty||'Nothing recorded yet. RSA, Food Safety Supervisor and work rights are the three an inspector asks for.'}</p></div>`}
+      <div class="disclaimer mt12"><span>${MKR.ui.icon('book')}</span>Dates and photos as recorded by the venue and its staff. Nothing here is checked with an issuing body, and the app makes no judgement about whether anyone is compliant or entitled to work.</div>
+    </div>`;
+  }
+  function bindCertCard(c, rows, users, after, lockStaffId){
+    const add = U.qs('#certAdd', c); if(add) add.onclick = ()=> certModal(null, users, after, lockStaffId);
+    U.qsa('[data-cert]', c).forEach(b=> b.onclick = (e)=>{
+      if(e.target.closest('[data-certpic]')) return;
+      certModal(rows.find(r=>r.id===b.dataset.cert), users, after, lockStaffId);
+    });
+    U.qsa('[data-certpic]', c).forEach(b=> b.onclick = (e)=>{
+      e.stopPropagation();
+      const r = rows.find(x=>x.id===b.dataset.certpic);
+      if(r && r.photo) U.modal(r.label, `<img src="${r.photo}" style="width:100%;border-radius:12px">`);
+    });
+  }
+
   // ---------------- Owner / manager: library + who's done what ----------------
   async function renderManage(c){
     const [list, trs, users] = await Promise.all([sops(), trainings(),
@@ -56,6 +230,10 @@ window.MKR = window.MKR || {};
     const nameOf = id=>{ const u=users.find(x=>x.id===id); return u?u.name:'—'; };
     const outstanding = trs.filter(t=>t.status!=='done');
     const overdue = outstanding.filter(isOverdue);
+    const certRows = await certList(users);
+    const lapsed = certRows.filter(r=>certState(r).k==='expired').length;
+    const lapsing = certRows.filter(r=>certState(r).k==='soon').length;
+    certAlerts(certRows, nameOf);
 
     c.innerHTML = `
       <div class="section-head"><div><h2>Training &amp; SOPs</h2><p>Write it once, assign it, see who's actually read it</p></div>
@@ -66,7 +244,10 @@ window.MKR = window.MKR || {};
         <span class="statcell"><b>${list.length}</b><i>SOPs</i></span>
         <span class="statcell"><b>${outstanding.length}</b><i>outstanding</i></span>
         <span class="statcell"${overdue.length?' style="color:var(--red)"':''}><b>${overdue.length}</b><i>overdue</i></span>
+        <span class="statcell"${lapsed?' style="color:var(--red)"':''}><b>${lapsed+lapsing}</b><i>certificates to renew</i></span>
       </div>
+
+      ${certCard(certRows, nameOf)}
 
       <div class="grid g2 mt16" style="align-items:start">
         <div class="card pad20">
@@ -104,6 +285,7 @@ window.MKR = window.MKR || {};
         </table></div>` : `<div class="empty"><div class="em">${MKR.ui.icon('checksq')}</div><p>Nothing assigned yet</p></div>`}
       </div>`;
 
+    bindCertCard(c, certRows, users, ()=>renderManage(c));
     U.qs('#trNew',c).onclick    = ()=> sopModal(null, ()=>renderManage(c));
     U.qs('#trAssign',c).onclick = ()=> assignModal(list, users, ()=>renderManage(c));
     U.qsa('[data-sop]',c).forEach(b=> b.onclick=()=> sopModal(list.find(x=>x.id===b.dataset.sop), ()=>renderManage(c)));
@@ -159,6 +341,8 @@ window.MKR = window.MKR || {};
   // ---------------- Staff: my training ----------------
   async function renderMine(c){
     const [ts, list] = await Promise.all([mine(), sops()]);
+    const sess = me() || {};
+    const myCerts = (await certList([sess])).filter(r=>r.staffId===sess.id);
     const open = ts.filter(t=>t.status!=='done').sort((a,b)=>String(a.dueDate||'zz').localeCompare(String(b.dueDate||'zz')));
     const done = ts.filter(t=>t.status==='done').sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
 
@@ -180,6 +364,9 @@ window.MKR = window.MKR || {};
             <span class="faint">read again ›</span></div>`).join('')}</div>`
           : `<div class="empty"><div class="em">${MKR.ui.icon('book')}</div><p>Nothing completed yet</p></div>`}
       </div>
+      ${certCard(myCerts, ()=>sess.name||'You', {title:'My certificates', hideName:true,
+        empty:'Nothing recorded. Add your RSA or food safety certificate here and you\u2019ll be reminded before it lapses.'})}
+
       <div class="card pad20 mt16">
         <div class="section-title">${MKR.ui.icon('book')} All SOPs — look anything up</div>
         ${list.length? `<div class="list">${list.map(s=>`
@@ -188,6 +375,7 @@ window.MKR = window.MKR || {};
           : `<div class="empty"><div class="em">${MKR.ui.icon('book')}</div><p>No SOPs published yet</p></div>`}
       </div>`;
 
+    bindCertCard(c, myCerts, [sess], ()=>renderMine(c), sess.id);
     U.qsa('[data-do]',c).forEach(b=> b.onclick=()=>{
       const t=ts.find(x=>x.id===b.dataset.do);
       readModal(list.find(s=>s.id===t.sopId), t, ()=>renderMine(c));
@@ -215,5 +403,7 @@ window.MKR = window.MKR || {};
     U.modal(sop.title, wrap, {actions});
   }
 
-  MKR.training = { CATS, sops, trainings, mine, saveSop, assign, complete, isOverdue, renderManage, renderMine };
+  MKR.training = { CATS, sops, trainings, mine, saveSop, assign, complete, isOverdue,
+    CERT_TYPES, certs, saveCert, certLabel, certDays, certState, certList, certModal,
+    renderManage, renderMine };
 })();
