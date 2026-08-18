@@ -902,6 +902,8 @@ window.MKR = window.MKR || {};
     "Blocks":"方块", "Floor":"平面图", "List":"列表", "More":"更多",
     // Home springboard · quick actions
     "Quick actions":"快捷操作", "Add delivery":"登记到货", "Create task":"发布任务",
+    "Today's snapshot":"今日概览", "Tasks due today":"今日待办任务", "Upcoming deliveries":"待确认到货",
+    "Expiring items":"临期物料", "Team on shift":"今日在班人数",
     "Add stock":"添加物料", "View roster":"查看排班",
     "Your home screen":"你的主屏", "Tap a block to open it":"点一个方块就能进去",
     "Arrange your blocks":"整理你的方块", "Drag to move · − to take one off":"拖动排序 · 按 − 移除",
@@ -1149,9 +1151,9 @@ window.MKR = window.MKR || {};
   const PATTERNS = [
     // The greeting carries a name now (the owner is "boss", everyone else is
     // themselves), so it can't be a fixed key any more.
-    [/^(Morning|Middle of the day|Afternoon|Evening), (.+)$/, m =>
-      ({'Morning':'早上好','Middle of the day':'中午好','Afternoon':'下午好','Evening':'晚上好'}[m[1]])
-      + '，' + (m[2]==='boss' ? '老板' : m[2])],
+    [/^(Good morning|Good afternoon|Good evening), (.+?) 👋$/, m =>
+      ({'Good morning':'早上好','Good afternoon':'下午好','Good evening':'晚上好'}[m[1]])
+      + '，' + (m[2]==='boss' ? '老板' : m[2]) + ' 👋'],
     // Owner home · the restaurant floor
     [/^(\d+) things? waiting on you · about (\d+) minutes?$/, m => `${m[1]} 件事等你决定 · 约 ${m[2]} 分钟`],
     [/^Start with (.+) →$/, m => `先去${tr(m[1])} →`],
