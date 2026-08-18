@@ -168,7 +168,7 @@ window.MKR = window.MKR || {};
 
     c.innerHTML = `
       <div class="section-head"><div><h2>Deliveries</h2><p>Check it at the back door, not after the invoice arrives</p></div>
-        <button class="btn btn-dark btn-sm" id="dlvNew">${MKR.ui.icon('plus')} New delivery</button></div>
+        <button class="btn btn-dark btn-sm" id="dlvNew" data-new>${MKR.ui.icon('plus')} New delivery</button></div>
       <div class="statline">
         <span class="statcell"><b>${wait.length}</b><i>waiting</i></span>
         <span class="statcell"><b>${rows.filter(d=>d.status==='confirmed').length}</b><i>confirmed</i></span>

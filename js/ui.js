@@ -46,6 +46,7 @@ window.MKR = window.MKR || {};
     refresh:'<path d="M4 12a8 8 0 0 1 13.7-5.6L21 9"/><path d="M21 4v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L3 15"/><path d="M3 20v-5h5"/>',
     dot:'<circle cx="12" cy="12" r="3.5"/>',
     pan:'<circle cx="10" cy="13" r="6.5"/><path d="M16.2 10.5L22 8"/><path d="M8 6.5V4M12 6.5V3.5"/>',
+    chef:'<path d="M6 13.6a3.6 3.6 0 0 1 1.2-7A4.1 4.1 0 0 1 12 4.3a4.1 4.1 0 0 1 4.8 2.3 3.6 3.6 0 0 1 1.2 7"/><path d="M6 13.6h12V19a1.4 1.4 0 0 1-1.4 1.4H7.4A1.4 1.4 0 0 1 6 19z"/><path d="M9.4 16.8h5.2"/>',
     dots:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
     home:'<path d="M3 10.5L12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-6h5v6"/>',
     list:'<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',

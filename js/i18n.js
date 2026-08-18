@@ -891,8 +891,6 @@ window.MKR = window.MKR || {};
     // ---- Owner home · the restaurant floor ----
     "🏠 Floor":"🏠 餐厅", "☰ List":"☰ 列表",
     // The wave is inside the same text node, so the key carries it too.
-    "Morning, boss 👋":"早上好，老板 👋", "Middle of the day, boss 👋":"中午好，老板 👋",
-    "Afternoon, boss 👋":"下午好，老板 👋", "Evening, boss 👋":"晚上好，老板 👋",
     "Nothing is waiting on you. Go and run your restaurant.":"没有事等你决定，去忙店里的事吧。",
     "Today's rounds":"今日巡店进度",
     "Clear them all and you can leave the back office alone tonight":"全部清完，今晚就不用再看后台了",
@@ -902,6 +900,9 @@ window.MKR = window.MKR || {};
     //    UI-polish pass introduced. Keys are the plain English the app now
     //    renders; the emoji-era keys still resolve via the bare() index. --
     "Blocks":"方块", "Floor":"平面图", "List":"列表", "More":"更多",
+    // Home springboard · quick actions
+    "Quick actions":"快捷操作", "Add delivery":"登记到货", "Create task":"发布任务",
+    "Add stock":"添加物料", "View roster":"查看排班",
     "Your home screen":"你的主屏", "Tap a block to open it":"点一个方块就能进去",
     "Arrange your blocks":"整理你的方块", "Drag to move · − to take one off":"拖动排序 · 按 − 移除",
     "Add a block":"添加方块", "Add":"添加", "Edit":"编辑", "Done":"完成",
@@ -1146,6 +1147,11 @@ window.MKR = window.MKR || {};
   // Templated strings (numbers / names interpolated) — exact match can't catch
   // these, so match by pattern and re-insert the captured dynamic bits.
   const PATTERNS = [
+    // The greeting carries a name now (the owner is "boss", everyone else is
+    // themselves), so it can't be a fixed key any more.
+    [/^(Morning|Middle of the day|Afternoon|Evening), (.+)$/, m =>
+      ({'Morning':'早上好','Middle of the day':'中午好','Afternoon':'下午好','Evening':'晚上好'}[m[1]])
+      + '，' + (m[2]==='boss' ? '老板' : m[2])],
     // Owner home · the restaurant floor
     [/^(\d+) things? waiting on you · about (\d+) minutes?$/, m => `${m[1]} 件事等你决定 · 约 ${m[2]} 分钟`],
     [/^Start with (.+) →$/, m => `先去${tr(m[1])} →`],

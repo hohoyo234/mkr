@@ -859,8 +859,6 @@
       // ---- Owner home · the restaurant floor ----
       "🏠 Floor":"🏠 餐廳", "☰ List":"☰ 列表",
       // The wave is inside the same text node, so the key carries it too.
-      "Morning, boss 👋":"早上好，老闆 👋", "Middle of the day, boss 👋":"中午好，老闆 👋",
-      "Afternoon, boss 👋":"下午好，老闆 👋", "Evening, boss 👋":"晚上好，老闆 👋",
       "Nothing is waiting on you. Go and run your restaurant.":"沒有事等你決定，去忙店裏的事吧。",
       "Today's rounds":"今日巡店進度",
       "Clear them all and you can leave the back office alone tonight":"全部清完，今晚就不用再看後臺了",
@@ -870,6 +868,9 @@
       //    UI-polish pass introduced. Keys are the plain English the app now
       //    renders; the emoji-era keys still resolve via the bare() index. --
       "Blocks":"方塊", "Floor":"平面圖", "List":"列表", "More":"更多",
+      // Home springboard · quick actions
+      "Quick actions":"快捷操作", "Add delivery":"登記到貨", "Create task":"發佈任務",
+      "Add stock":"添加物料", "View roster":"查看排班",
       "Your home screen":"你的主屏", "Tap a block to open it":"點一個方塊就能進去",
       "Arrange your blocks":"整理你的方塊", "Drag to move · − to take one off":"拖動排序 · 按 − 移除",
       "Add a block":"添加方塊", "Add":"添加", "Edit":"編輯", "Done":"完成",
@@ -1111,6 +1112,11 @@
       "more on the shelf than could have arrived — looks like a miscount":"貨架上的比進的還多 —— 像是盤錯了",
     };
     const PATTERNS = [
+      // The greeting carries a name now (the owner is "boss", everyone else is
+      // themselves), so it can't be a fixed key any more.
+      [/^(Morning|Middle of the day|Afternoon|Evening), (.+)$/, m =>
+        ({'Morning':'早上好','Middle of the day':'中午好','Afternoon':'下午好','Evening':'晚上好'}[m[1]])
+        + '，' + (m[2]==='boss' ? '老闆' : m[2])],
       // Owner home · the restaurant floor
       [/^(\d+) things? waiting on you · about (\d+) minutes?$/, m => `${m[1]} 件事等你決定 · 約 ${m[2]} 分鐘`],
       [/^Start with (.+) →$/, m => `先去${MKR.i18n.t(m[1])} →`],

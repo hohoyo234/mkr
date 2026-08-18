@@ -29,12 +29,16 @@ window.MKR = window.MKR || {};
     {id:'office',   ic:'bell',     tone:'red',    name:'Your office',       note:'Alerts and the week', href:'#/owner/alerts',     cls:'r-office'},
   ];
 
+  // The owner is "boss". A manager now lands on this same screen, and being
+  // called boss by their own roster reads as a bug — greet them by name.
   function greeting(){
     const h = new Date().getHours();
-    if(h<11) return 'Morning, boss';
-    if(h<14) return 'Middle of the day, boss';
-    if(h<18) return 'Afternoon, boss';
-    return 'Evening, boss';
+    const s = MKR.auth && MKR.auth.current && MKR.auth.current();
+    const who = (s && s.role!=='owner' && String(s.name||'').trim().split(/\s+/)[0]) || 'boss';
+    if(h<11) return 'Morning, '+who;
+    if(h<14) return 'Middle of the day, '+who;
+    if(h<18) return 'Afternoon, '+who;
+    return 'Evening, '+who;
   }
 
   // Roughly a minute and a half per thing to decide — enough to be honest about
