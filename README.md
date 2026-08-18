@@ -46,6 +46,8 @@ a matching row in `profiles`.
 | **Usage forecasting** | Derived from stocktakes, not sales: `last count + purchases since − this count`. Days of cover and a suggested order list. |
 | **Deliveries** | Back-door confirmation form: ordered vs received, condition, chilled temperature, photo, signature. |
 | **Training & SOP** | Write a procedure once, assign it with a due date, staff sign it off by name. |
+| **Certificates** | RSA, Food Safety Supervisor, first aid — type, number, expiry and a photo of the ticket itself, sorted soonest-first on one screen so it can be produced while an inspector is standing in the kitchen. Alerts before it lapses. The staff member's own visa expiry is folded into the same list, read-only, from their onboarding record. |
+| **Melbourne, specifically** | Victorian public holidays are drawn on the roster grid (Melbourne Cup is a rostering problem, not a trivia question), and the roster warns when a fortnight goes over a work-hour limit recorded against someone. The AFL Grand Final Friday is gazetted each year and is typed in as an extra date. |
 | **Daily tasks** | Cleaning, prep and temperature checks with photo evidence. |
 
 ### What it deliberately does not do
@@ -60,8 +62,13 @@ These are omissions by design, not gaps in the roadmap:
   Getting an award wrong costs a venue real money, so nothing here guesses one.
 - **No super or bank details** are collected anywhere.
 - **No government integration.** No STP, no ATO, no filing of any kind.
-- **No compliance judgements.** No visa hour limits, and nothing is ever checked
-  against a visa's conditions.
+- **No compliance judgements.** The app never reads a visa's conditions, never
+  infers a limit from a subclass, and never decides who is entitled to work.
+  It does warn when a fortnight goes over a limit — but that limit is a number
+  the **owner** recorded against a person, counted against the venue's own
+  roster, and it warns rather than blocks, like every other roster warning.
+  Certificate expiries are the dates people typed, counted down; nothing is
+  verified with an issuing body.
 - **No customer-facing role.** No QR ordering, loyalty, points or coupons.
 
 ### Employment records the app does hold
@@ -123,14 +130,19 @@ supabase/
 - Every table is `id + data(jsonb) + updated_at`, scoped per venue by
   `data->>'kitchenId'` under RLS. Run `supabase/security-setup.sql` before anything
   else, then `supabase/stock-training-setup.sql` for the stock and training tables and
-  `supabase/takings-setup.sql` for daily takings.
+  `supabase/takings-setup.sql` for daily takings and `supabase/certs-setup.sql`
+  for certificates.
 - Shifts carry a `week` key (the Monday, `YYYY-MM-DD`) so past weeks stay on the
   record and the roster can learn from them.
 - Takings are keyed `tk_<kitchenId>_<date>` — one row per venue per day, so
   entering the same day twice is a correction rather than a second row.
-- Pay rates live on the staff record (`users.payRate`); the multipliers, the
-  default rate and any extra public holidays live in `settings.rosterPrefs`.
-  Nothing new syncs — no table was added for the costing.
+- Pay rates and fortnightly hour limits live on the staff record
+  (`users.payRate`, `users.fortnightCap`); the multipliers, the default rate and
+  any extra public holidays live in `settings.rosterPrefs`.
+- Work rights stay on the staff member's own onboarding record and are never
+  copied. The certificate screen reads them alongside `certs` rows and shows
+  them read-only — an owner quietly editing someone's visa expiry is not a thing
+  this app makes easy.
 - A ratio is only ever taken over days that have BOTH sides. One day of takings
   against a fortnight of dockets reads as a 98% food cost, which is not a bad
   week — it is a mismatched divisor. Food cost and labour cost both restrict

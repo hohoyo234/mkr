@@ -1118,6 +1118,9 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="card" style="padding:6px 18px;margin-bottom:16px"><div class="section-title" style="padding-top:12px">Work details</div><div class="list">
           ${row('Contract type', EMP_LABEL(u.employment))}
           ${row('Hours this week', h.toFixed(2)+'h')}
+          ${row('Fortnightly hour limit', +u.fortnightCap>0
+            ? u.fortnightCap+' h <span class="faint" style="font-weight:400">· your own figure — the roster warns above it, and blocks nothing</span>'
+            : '<span class="faint">None recorded — set it in Rostering → Preferences</span>')}
           ${row('Hourly rate', +u.payRate>0
             ? U.money(u.payRate)+'/h <span class="faint" style="font-weight:400">· your own figure, used to cost the roster</span>'
             : '<span class="faint">Not set — add it in Rostering → Rates</span>')}

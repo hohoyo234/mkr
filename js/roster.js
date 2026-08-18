@@ -63,6 +63,7 @@ window.MKR = window.MKR || {};
     requireCloser:true,
     requireKitchen:true,               // warn if a shift has nobody with 'kitchen'
     notify:true,                       // push warnings to the owner/manager
+    visaCapWarn:true,                  // warn when a fortnight goes over someone's recorded cap
     // ---- your own rates (see the pay block below) ----
     defaultRate:0,                     // $/h for anyone without their own rate
     weekendMult:1,                     // what YOU pay for Sat/Sun, as a multiplier
@@ -128,7 +129,6 @@ window.MKR = window.MKR || {};
     }
     return {table:out, learned:!!learned && !(p.demand && Object.keys(p.demand).length)};
   }
-
 
   // ---------- pay: your own rates, never an award ----------
   /* This app does not interpret an award, calculate pay, produce a payslip or
@@ -239,6 +239,33 @@ window.MKR = window.MKR || {};
     return false;
   }
   const skillsOf = (u)=> Array.isArray(u.skills) ? u.skills : [];
+
+  // ---------- fortnightly work-hour caps ----------
+  /* A student visa carries a limit on hours per fortnight, and rostering someone
+     over it is the VENUE's problem, not the visa holder's. So it belongs in the
+     roster — in the same advisory channel as long weeks and short breaks, and,
+     like everything else in this module, as a warning and never as a block.
+
+     The number is one the OWNER records per person. This app does not read a
+     visa subclass and infer a limit from it: those conditions change, they have
+     exceptions (scheduled course breaks, for one), and a wrong inference would
+     be a compliance judgement dressed up as a feature. It counts rostered hours
+     against a figure the owner typed, and says which fortnight it counted. */
+  const capOf = (u)=> Math.max(0, +((u||{}).fortnightCap) || 0);
+
+  // A visa fortnight is defined by the visa, not by the roster, and nothing here
+  // can know where it starts. So both fortnights this week could sit in are
+  // counted, and the warning names the dates it actually added up.
+  async function fortnights(week){
+    const pair = async (a, b)=> ({
+      from: a, to: U.isoDate(dayTs(b, 6)),
+      shifts: [...(await shiftsFor(a)), ...(await shiftsFor(b))],
+    });
+    return [ await pair(U.isoDate(dayTs(week,-7)), week),
+             await pair(week, U.isoDate(dayTs(week, 7))) ];
+  }
+  const fortnightHours = (f, staffId)=>
+    U.round2(f.shifts.filter(x=>x.staffId===staffId).reduce((t,x)=>t+U.shiftHours(x.start,x.end), 0));
 
   // ---------- generate ----------
   // Greedy, deterministic and explainable: for each day-part we score everyone who
@@ -362,6 +389,23 @@ window.MKR = window.MKR || {};
       }
     }
 
+    // Fortnightly work-hour caps. Red rather than amber: the other warnings cost
+    // the venue goodwill, this one costs it a breach.
+    if(p.visaCapWarn){
+      const fns = await fortnights(week);
+      for(const s of staff){
+        const cap = capOf(s); if(!cap) continue;
+        for(const f of fns){
+          const h = fortnightHours(f, s.id);
+          if(h <= cap) continue;
+          const span = `${U.fmtDate(new Date(f.from+'T00:00:00'))} – ${U.fmtDate(new Date(f.to+'T00:00:00'))}`;
+          push('red', `${s.name} is on ${h.toFixed(1)}h in a fortnight`,
+            `${span} goes over the ${cap}h fortnight you recorded for them. Rostering past a work-hour condition is the venue's problem, not theirs. This counts your number against your roster — it does not read anyone's visa, and it blocks nothing.`);
+          break;    // one warning per person, not two overlapping fortnights
+        }
+      }
+    }
+
     // Skill cover per day
     const sl = (await slots()).slice().sort((a,b)=>U.toMin(a.start)-U.toMin(b.start));
     for(let d=0; d<7; d++){
@@ -467,5 +511,6 @@ window.MKR = window.MKR || {};
     generate, apply, warnings, notifyWarnings, explain, clockIn, clockOut,
     VIC_HOLIDAYS, holidayName, holidaysCovered, rateOf, multOf,
     dateOfShift, shiftEndTs, workedHours, labour, labourOn,
+    capOf, fortnights, fortnightHours,
   };
 })();

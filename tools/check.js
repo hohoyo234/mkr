@@ -118,5 +118,34 @@ const U = window.MKR.util, T = window.MKR.tasks, S = window.MKR.stock, R = windo
   assert.equal(lab2.actual, 292.5 + off.hours*30, 'clocked cost is not worked hours at the rate that applied');
   assert.equal(lab2.planned, lab.planned, 'clocking on changed what had been planned');
 
+  // 9. The fortnight cap. It counts a number the OWNER recorded against the
+  //    roster; it never reads a visa. Both fortnights the week could sit in are
+  //    checked, because nothing here knows where a visa fortnight starts.
+  await R.savePrefs({visaCapWarn:true});
+  await MKRdb.put('users', {id:'u_bo', name:'Bo', role:'staff', fortnightCap:48});
+  const capless = async ()=> (await R.warnings(WK, [await MKRdb.get('users','u_bo')])).filter(w=>/in a fortnight/.test(w.title));
+  assert.equal((await capless()).length, 0, 'an 8h fortnight tripped a 48h cap');
+
+  // 50h across the previous week alone — the fortnight ending this Sunday is over.
+  const PREV = '2026-08-10';
+  for(const d of [0,1,2,3,4])
+    await MKRdb.put('shifts', {id:'sp'+d, week:PREV, day:d, staffId:'u_bo', start:'09:00', end:'19:00'});
+  const hits = await capless();
+  assert.equal(hits.length, 1, 'a 58h fortnight did not raise exactly one warning');
+  assert.equal(hits[0].level, 'red', 'going over the cap is not a red');
+  assert.ok(/58\.0h/.test(hits[0].title), 'the warning did not name the hours: '+hits[0].title);
+  assert.ok(/10 Aug/.test(hits[0].detail) && /23 Aug/.test(hits[0].detail),
+    'the warning did not name the fortnight it added up: '+hits[0].detail);
+
+  await R.savePrefs({visaCapWarn:false});
+  assert.equal((await capless()).length, 0, 'switching the warning off did not switch it off');
+  await R.savePrefs({visaCapWarn:true});
+
+  // 10. Public holidays reach the roster as names, and an owner-declared date
+  //     works exactly like a gazetted one.
+  assert.equal(R.holidayName('2026-11-03', {}), 'Melbourne Cup');
+  assert.equal(R.holidayName('2026-10-02', {}), null, 'a date nobody declared came back a holiday');
+  assert.ok(R.holidayName('2026-10-02', {extraHolidays:'2026-10-02'}), 'a declared date was ignored');
+
   console.log('all good');
 })().catch(e=>{ console.error(e.message); process.exit(1); });

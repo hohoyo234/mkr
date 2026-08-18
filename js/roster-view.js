@@ -158,7 +158,14 @@ window.MKR = window.MKR || {};
       if(!staff.length){ grid.innerHTML=`<div class="empty"><div class="em">${MKR.ui.icon('users')}</div><p>No team members yet</p></div>`; return; }
       const todayIdx = weekOffset===0 ? (new Date().getDay()+6)%7 : -1;
       const cellShifts = (id,d)=> shifts.filter(x=>x.staffId===id && x.day===d).sort((a,b)=>String(a.start).localeCompare(String(b.start)));
-      const head = `<tr><th class="rg-name">Name</th>${DAYS.map((d,di)=>`<th${di===todayIdx?' style="color:var(--accent)"':''}>${d}<br><span class="rg-date">${U.fmtDate(R().dayTs(week,di))}</span></th>`).join('')}<th>Total</th></tr>`;
+      // A roster drawn without Melbourne Cup on it is a roster that gets planned
+      // wrong. The day says what it is, in the column you are already looking at.
+      const holOn = (di)=> R().holidayName(U.isoDate(R().dayTs(week,di)), p);
+      const head = `<tr><th class="rg-name">Name</th>${DAYS.map((d,di)=>{
+        const hol = holOn(di);
+        return `<th${di===todayIdx?' style="color:var(--accent)"':''}>${d}<br><span class="rg-date">${U.fmtDate(R().dayTs(week,di))}</span>${
+          hol?`<br><span class="rg-hol" title="Public holiday">${U.esc(hol)}</span>`:''}</th>`;
+      }).join('')}<th>Total</th></tr>`;
       let body='';
       for(const band of BANDS){
         const people = staff.filter(s=>bandOf(s)===band.key);
@@ -167,7 +174,7 @@ window.MKR = window.MKR || {};
         for(const s of people){
           const cells = DAYS.map((d,di)=>{
             const chips = cellShifts(s.id,di).map(x=>`<span class="rg-chip" draggable="true" data-id="${x.id}" style="background:${band.soft};color:${band.color};border-color:${band.color}55">${x.start}–${x.end}<span class="rg-x" data-rm="${x.id}">×</span></span>`).join('');
-            return `<td class="rg-cell${di===todayIdx?' today':''}" data-day="${di}" data-staff="${s.id}">${chips||'<span class="rg-empty">＋</span>'}</td>`;
+            return `<td class="rg-cell${di===todayIdx?' today':''}${holOn(di)?' hol':''}" data-day="${di}" data-staff="${s.id}">${chips||'<span class="rg-empty">＋</span>'}</td>`;
           }).join('');
           const sk = R().skillsOf(s).map(k=>R().skillIcon(k)).join('');
           body += `<tr><td class="rg-name"><div class="rg-person"><span class="ava">${s.emoji||U.initials(s.name)}</span>
@@ -381,6 +388,11 @@ window.MKR = window.MKR || {};
     const p = await R().prefs();
     const sl = await R().slots();
     const {table, learned} = await R().demandTable(p);
+    // Work rights are the staff member's own record; the cap is the owner's. The
+    // modal shows one next to the other so the number is typed with the visa in
+    // view, but it never derives the second from the first.
+    let onboarding = []; try{ onboarding = await MKR.db.getAll('onboarding'); }catch(e){}
+    const obOf = (id)=> onboarding.find(o=>o.userId===id) || null;
     const num=(id,val,step='1')=>`<input class="input" id="${id}" type="number" step="${step}" value="${val}" style="width:90px;text-align:right">`;
     const check=(id,on,label,hint)=>`<label class="onb-item" style="cursor:pointer"><input type="checkbox" id="${id}" ${on?'checked':''} style="width:20px;height:20px">
       <div class="grow"><b>${label}</b><div class="faint" style="font-size:12px">${hint}</div></div></label>`;
@@ -410,7 +422,25 @@ window.MKR = window.MKR || {};
       <div class="row center" style="gap:10px;margin-bottom:8px"><div class="grow" style="font-size:14px">Tell me when the gap between shifts is under</div>${num('pf_rest', p.minRestHours)}<b>hours</b></div>
       ${check('pf_notify', p.notify, 'Send me a notification for roster warnings', 'Otherwise they only show on this page.')}
 
-      <div class="section-title mt16">4 · Who can do what?</div>
+      <div class="section-title mt16">4 · Anyone on a work-hour limit?</div>
+      <p class="muted" style="font-size:13px">Hours per fortnight. Rostering someone past a condition on their visa is the venue's problem, not theirs — so the roster warns you, in the same list as everything else, and blocks nothing.</p>
+      <div class="alert info" style="margin-bottom:10px"><span>ℹ️</span><div>48 hours is the standard student-visa fortnight and is filled in below for anyone whose recorded visa is a subclass 500. <b>Check it.</b> Conditions change, scheduled course breaks are an exception, and this app does not read anyone's visa — it counts your roster against the number you save here.</div></div>
+      <div id="pf_caps">${staff.map(s=>{
+        const ob = obOf(s.id);
+        const wr = ob && ob.workRights==='visa'
+          ? `visa${ob.visaSubclass?' · subclass '+U.esc(ob.visaSubclass):''}${ob.visaExpiry?' · expires '+U.esc(ob.visaExpiry):''}`
+          : (ob && ob.workRights ? {citizen:'Australian citizen', pr:'Permanent resident'}[ob.workRights] || U.esc(ob.workRights) : 'work rights not recorded yet');
+        const suggested = R().capOf(s) || (ob && String(ob.visaSubclass||'').trim()==='500' ? 48 : '');
+        return `<div class="row center" style="gap:10px;margin-bottom:8px">
+          <span class="ava" style="flex:0 0 auto">${s.emoji||U.initials(s.name)}</span>
+          <div class="grow" style="min-width:0"><b>${U.esc(s.name)}</b>
+            <div class="faint" style="font-size:11.5px">${wr}</div></div>
+          <input class="input" type="number" min="0" step="1" data-cap="${s.id}" value="${suggested}" placeholder="no limit" style="width:96px;text-align:right"><b>h / 14 days</b>
+        </div>`;
+      }).join('')}</div>
+      ${check('pf_cap', p.visaCapWarn, 'Warn me when a fortnight goes over', 'Turn this off and the numbers above are still recorded, just never mentioned.')}
+
+      <div class="section-title mt16">5 · Who can do what?</div>
       <p class="muted" style="font-size:13px">Skills drive the plan — someone who can open gets the early shift, kitchen skill keeps the kitchen covered.</p>
       <div id="pf_skills">${staff.map(s=>`
         <div class="skill-row"><b>${U.esc(s.name)}</b>
@@ -436,7 +466,13 @@ window.MKR = window.MKR || {};
           maxConsecutiveDays: Number(U.qs('#pf_maxd',wrap).value)||6,
           minRestHours: Number(U.qs('#pf_rest',wrap).value)||10,
           notify: U.qs('#pf_notify',wrap).checked,
+          visaCapWarn: U.qs('#pf_cap',wrap).checked,
         });
+        for(const s of staff){
+          const el = U.qs(`[data-cap="${s.id}"]`, wrap);
+          const v = el ? Math.max(0, Number(el.value)||0) : 0;
+          if(v !== R().capOf(s)) await MKR.db.put('users', {id:s.id, fortnightCap:v});
+        }
         // Skills live on the user record so every page sees them.
         for(const s of staff){
           const picked = U.qsa(`[data-sk="${s.id}"]`,wrap).filter(i=>i.checked).map(i=>i.dataset.k);

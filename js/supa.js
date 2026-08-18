@@ -17,8 +17,8 @@ window.MKR = window.MKR || {};
                   // Stock & supply chain
                   'inventory','suppliers','purchases','stocktakes','deliveries','takings',
                   'claims','waste','reconciliations',
-                  // Training / SOP
-                  'sops','trainings'];
+                  // Training / SOP / certificates
+                  'sops','trainings','certs'];
 
   let client=null, signupClient=null;
   try{
