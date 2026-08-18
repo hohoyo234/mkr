@@ -43,16 +43,16 @@ window.MKR = window.MKR || {};
   // Staff have none on purpose: their four blocks already are the whole job.
   const QUICK = {
     owner: [
-      {label:'Add delivery', icon:'truck',    href:'#/owner/deliveries/new'},
-      {label:'Create task',  icon:'checksq',  href:'#/owner/tasks/new'},
-      {label:'Add stock',    icon:'box',      href:'#/owner/stock/new'},
-      {label:'View roster',  icon:'calendar', href:'#/manager/schedule'},
+      {label:'Add delivery', icon:'truck',    tone:'blue',   href:'#/owner/deliveries/new'},
+      {label:'Create task',  icon:'checksq',  tone:'green',  href:'#/owner/tasks/new'},
+      {label:'Add stock',    icon:'box',      tone:'amber',  href:'#/owner/stock/new'},
+      {label:'View roster',  icon:'calendar', tone:'red',    href:'#/manager/schedule'},
     ],
     manager: [
-      {label:'Add delivery', icon:'truck',    href:'#/manager/deliveries/new'},
-      {label:'Create task',  icon:'checksq',  href:'#/manager/tasks/new'},
-      {label:'Add to queue', icon:'clock',    href:'#/manager/bookings/new'},
-      {label:'View roster',  icon:'calendar', href:'#/manager/schedule'},
+      {label:'Add delivery', icon:'truck',    tone:'blue',   href:'#/manager/deliveries/new'},
+      {label:'Create task',  icon:'checksq',  tone:'green',  href:'#/manager/tasks/new'},
+      {label:'Add to queue', icon:'clock',    tone:'amber',  href:'#/manager/bookings/new'},
+      {label:'View roster',  icon:'calendar', tone:'red',    href:'#/manager/schedule'},
     ],
   };
 
@@ -86,19 +86,21 @@ window.MKR = window.MKR || {};
               team:'schedule', training:'training'},
   };
   async function badgesFor(role, portal){
-    let b = {};
+    let b = {}, snap = null;
     try{ b = portal && portal.badges ? await portal.badges() : {}; }catch(e){}
     const map = FLOOR_TO_TILE[role];
     if(map && MKR.gameMap){
       try{
-        const rooms = (await MKR.gameMap.counts()).rooms || {};
+        const m = await MKR.gameMap.counts();
+        snap = m.snapshot || null;
+        const rooms = m.rooms || {};
         Object.keys(map).forEach(k=>{
           const n = rooms[k] && rooms[k].n;
           if(n) b[map[k]] = n; else delete b[map[k]];
         });
       }catch(e){}
     }
-    return b;
+    return {badges:b, snap};
   }
 
   function readLayout(role, cat){
@@ -131,9 +133,38 @@ window.MKR = window.MKR || {};
       ${editing?`<button class="tile-x" data-off="${t.id}" aria-label="Take ${label} off the home screen">${MKR.ui.icon('minus')}</button>`:''}
       <span class="tile-ic">${iconOf(t)}</span>
       <span class="tile-label">${label}</span>
-      <span class="tile-sub">${badge?`<b>${badge}</b> ${U.esc(SUBS[t.id]||'waiting')}`:`${MKR.ui.icon('check')}All clear`}</span>
+      ${badge
+        ? `<b class="tile-n">${badge}</b><span class="tile-unit">${U.esc(SUBS[t.id]||'waiting')}</span>`
+        : `<span class="tile-clear">${MKR.ui.icon('checkcircle')}All clear</span>`}
       ${editing?'':`<span class="tile-go" aria-hidden="true">›</span>`}
     </a>`;
+  }
+
+  // The four counts under the blocks. Same numbers, said the other way round:
+  // the blocks are "what needs you", these are "what today looks like".
+  const SNAP = [
+    {k:'tasks',      label:'Tasks due today',     tone:'blue',  href:(r)=>r==='owner'?'#/manager/tasks':'#/manager/tasks'},
+    {k:'deliveries', label:'Upcoming deliveries', tone:'green', href:(r)=>`#/${r}/deliveries`},
+    {k:'expiring',   label:'Expiring items',      tone:'amber', href:(r)=>`#/${r}/stock`},
+    {k:'onShift',    label:'Team on shift',       tone:'violet',href:()=>'#/manager/schedule'},
+  ];
+  function panelsHtml(role, snap){
+    if(!snap) return '';
+    const quick = QUICK[role] || [];
+    return `<div class="home-panels">
+      <div class="panel">
+        <div class="panel-head">Today's snapshot</div>
+        ${SNAP.map(r=>`<a class="snap-row t-${r.tone}" href="${r.href(role)}">
+          <i class="snap-dot"></i><span>${r.label}</span>
+          <b class="snap-n">${snap[r.k]||0}</b><span class="snap-go" aria-hidden="true">›</span></a>`).join('')}
+      </div>
+      ${quick.length ? `<div class="panel">
+        <div class="panel-head">Quick actions</div>
+        <div class="qa-grid">
+          ${quick.map(q=>`<a class="qa t-${q.tone}" href="${q.href}">
+            <span class="qa-ic">${MKR.ui.icon(q.icon)}</span><span class="qa-label">${U.esc(q.label)}</span></a>`).join('')}
+        </div></div>` : ''}
+    </div>`;
   }
 
   // opts: {role}
@@ -144,7 +175,16 @@ window.MKR = window.MKR || {};
     let ids = readLayout(role, cat);
     let editing = false;
 
-    let badges = await badgesFor(role, portal);
+    let {badges, snap} = await badgesFor(role, portal);
+
+    // The venue signs its own home screen. Its name already carries the branch
+    // ("My Kitchen · Melbourne"), so there is nothing to join on to.
+    let venue = '';
+    try{
+      const sess = MKR.auth.current();
+      const k = sess && sess.kitchenId ? await MKR.db.get('kitchens', sess.kitchenId) : null;
+      venue = (k && k.name) || ((await MKR.db.meta('brand'))||{}).name || '';
+    }catch(e){}
 
     // The numbers on the blocks are the whole point of this screen, and they
     // were counted once when it was drawn. A delivery that lands while the home
@@ -156,7 +196,7 @@ window.MKR = window.MKR || {};
       pending = setTimeout(async ()=>{
         if(!host.isConnected || !U.qs('.tiles-wrap', host)) return off();
         if(editing) return;                       // don't repaint mid-drag
-        badges = await badgesFor(role, portal);
+        ({badges, snap} = await badgesFor(role, portal));
         draw();
       }, 300);
     });
@@ -185,13 +225,9 @@ window.MKR = window.MKR || {};
             ${editing?`<button class="tile tile-add" id="tileAdd" aria-label="Add a block"><span class="tile-ic">${MKR.ui.icon('plus')}</span><span class="tile-label">Add</span></button>`:''}
           </div>
           ${tiles.length?'':`<div class="tiles-empty">No blocks yet — hit Edit and add the pages you open most.</div>`}
-          ${editing||!(QUICK[role]||[]).length ? '' : `
-            <div class="qa-head">Quick actions</div>
-            <div class="qa-grid">
-              ${QUICK[role].map(q=>`<a class="qa" href="${q.href}">
-                <span class="qa-ic">${MKR.ui.icon(q.icon)}</span><span class="qa-label">${U.esc(q.label)}</span></a>`).join('')}
-            </div>`}
+          ${editing ? '' : panelsHtml(role, snap)}
           ${editing?`<div class="kv-hint">This layout is saved on this device only — nothing goes to the cloud.</div>`:''}
+          ${editing||!venue?'':`<div class="home-foot">© ${U.esc(venue)}</div>`}
         </div>`;
       bind();
     }

@@ -870,6 +870,8 @@
       "Blocks":"方塊", "Floor":"平面圖", "List":"列表", "More":"更多",
       // Home springboard · quick actions
       "Quick actions":"快捷操作", "Add delivery":"登記到貨", "Create task":"發佈任務",
+      "Today's snapshot":"今日概覽", "Tasks due today":"今日待辦任務", "Upcoming deliveries":"待確認到貨",
+      "Expiring items":"臨期物料", "Team on shift":"今日在班人數",
       "Add stock":"添加物料", "View roster":"查看排班",
       "Your home screen":"你的主屏", "Tap a block to open it":"點一個方塊就能進去",
       "Arrange your blocks":"整理你的方塊", "Drag to move · − to take one off":"拖動排序 · 按 − 移除",
@@ -1114,9 +1116,9 @@
     const PATTERNS = [
       // The greeting carries a name now (the owner is "boss", everyone else is
       // themselves), so it can't be a fixed key any more.
-      [/^(Morning|Middle of the day|Afternoon|Evening), (.+)$/, m =>
-        ({'Morning':'早上好','Middle of the day':'中午好','Afternoon':'下午好','Evening':'晚上好'}[m[1]])
-        + '，' + (m[2]==='boss' ? '老闆' : m[2])],
+      [/^(Good morning|Good afternoon|Good evening), (.+?) 👋$/, m =>
+        ({'Good morning':'早上好','Good afternoon':'下午好','Good evening':'晚上好'}[m[1]])
+        + '，' + (m[2]==='boss' ? '老闆' : m[2]) + ' 👋'],
       // Owner home · the restaurant floor
       [/^(\d+) things? waiting on you · about (\d+) minutes?$/, m => `${m[1]} 件事等你決定 · 約 ${m[2]} 分鐘`],
       [/^Start with (.+) →$/, m => `先去${MKR.i18n.t(m[1])} →`],

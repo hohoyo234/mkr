@@ -1463,35 +1463,55 @@ body.side-mini .side-toggle::before{content:'»'}
   background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink));flex-shrink:0}
 .tile-ic .ic{width:26px;height:26px}
 .tile-label{font-size:15px;font-weight:700;line-height:1.25}
-/* The status line is what makes a block readable at arm's length: the number is
-   large, its unit is spelled out, and "All clear" is a real state, not a blank. */
-.tile-sub{display:flex;align-items:baseline;gap:6px;margin-top:auto;font-size:12.5px;
-  font-weight:600;color:var(--ink-soft);line-height:1.2}
-.tile-sub b{font-size:22px;font-weight:900;font-family:"Playfair Display",serif;line-height:1}
-.tile-sub .ic{width:15px;height:15px;stroke-width:2.6;align-self:center}
+/* The number is the thing you cross the kitchen to read, so it gets the size and
+   a line of its own; the unit under it says what it counts. "All clear" is a
+   real state and takes the same slot rather than leaving a hole. */
+.tile-n{margin-top:auto;font-size:30px;font-weight:900;font-family:"Playfair Display",serif;
+  line-height:1.05;letter-spacing:-.01em}
+.tile-unit{font-size:12.5px;font-weight:600;color:var(--ink-soft);line-height:1.2;margin-top:3px}
+.tile-clear{display:flex;align-items:center;gap:6px;margin-top:auto;font-size:14px;
+  font-weight:700;color:var(--green);line-height:1.2}
+.tile-clear .ic{width:17px;height:17px;stroke-width:2.4}
 /* A card with a number on it is not obviously a door. The chevron is the whole
    difference between "here is a statistic" and "tap here to deal with it". */
-.tile-go{position:absolute;right:13px;bottom:11px;font-size:20px;line-height:1;
+.tile-go{position:absolute;right:14px;bottom:20px;font-size:20px;line-height:1;
   color:var(--ink-faint);transition:transform .18s var(--ease-out),color .18s}
 .tile:active{transform:scale(.97)}
 @media (hover:hover) and (pointer:fine){ .tile:hover .tile-go{transform:translateX(3px);color:var(--tone,var(--ink-soft))} }
-.tile-sub{padding-right:18px}
+.tile-n,.tile-unit,.tile-clear{padding-right:20px}
 
-/* Quick actions — the blocks above say what needs doing, these are the verbs.
-   Deliberately smaller and quieter: they are the second thing you reach for. */
-.qa-head{margin:26px 0 10px;font-size:11.5px;font-weight:800;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--ink-faint)}
-.qa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px;max-width:1160px;
-  margin-bottom:76px}
-.qa{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:var(--radius);
-  background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
-  font-weight:700;font-size:13.5px;color:inherit;transition:transform .18s var(--ease-out),box-shadow .18s}
-.qa-ic{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;flex:none;
-  background:var(--accent-soft);color:var(--accent-ink)}
-.qa-ic .ic{width:18px;height:18px}
+/* Under the blocks: what today looks like on the left, the verbs on the right.
+   The blocks say what needs you; these two say what is going on and what you
+   can start. */
+.home-panels{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;max-width:1160px;margin-top:16px}
+@media(max-width:820px){ .home-panels{grid-template-columns:1fr} }
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-soft);padding:15px 18px 8px}
+.panel-head{font-size:15px;font-weight:800;letter-spacing:-.01em;margin-bottom:2px}
+
+.snap-row{display:flex;align-items:center;gap:10px;padding:12px 0;color:inherit;
+  border-bottom:1px solid var(--line-2);font-size:14px;font-weight:600}
+.snap-row:last-child{border-bottom:none}
+.snap-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--tone,var(--ink-soft))}
+.snap-n{margin-left:auto;font-family:"Playfair Display",serif;font-size:17px;font-weight:900}
+.snap-go{color:var(--ink-faint);font-size:17px;line-height:1;transition:transform .18s var(--ease-out)}
+@media (hover:hover) and (pointer:fine){ .snap-row:hover .snap-go{transform:translateX(3px);color:var(--tone)} }
+
+/* Quick actions — icon over label, so four of them fit a phone two-up without
+   the words wrapping. */
+.qa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding-bottom:10px}
+.qa{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:15px 8px;border-radius:var(--radius);background:var(--paper-2);border:1px solid transparent;
+  font-weight:700;font-size:13px;text-align:center;color:inherit;line-height:1.2;
+  transition:transform .18s var(--ease-out),background .18s,border-color .18s}
+.qa-ic{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;flex:none;
+  background:var(--tone-soft,var(--accent-soft));color:var(--tone,var(--accent-ink))}
+.qa-ic .ic{width:20px;height:20px}
 .qa:active{transform:scale(.97)}
-@media (hover:hover) and (pointer:fine){ .qa:hover{transform:translateY(-2px);box-shadow:var(--shadow)} }
-@media(max-width:560px){ .qa{padding:11px 12px;font-size:12.5px} .qa-ic{width:30px;height:30px} }
+@media (hover:hover) and (pointer:fine){ .qa:hover{background:var(--card);border-color:var(--line)} }
+
+.home-foot{text-align:center;color:var(--ink-faint);font-size:12px;margin:22px 0 76px}
+@media(max-width:880px){ .home-foot{margin-bottom:22px} }
 @media (hover:hover) and (pointer:fine){ .tile:hover{transform:translateY(-3px);box-shadow:var(--shadow)} }
 
 /* One module, one colour — set once here, read by the icon chip and the border. */
@@ -1504,16 +1524,13 @@ body.side-mini .side-toggle::before{content:'»'}
 .t-accent{--tone:var(--accent-ink);--tone-soft:var(--accent-soft)}
 .t-ink{--tone:var(--ink-soft);--tone-soft:var(--paper-2)}
 
-/* Three states, the same three everywhere: clear · worth a look · do it today. */
-/* The status line never takes the module's own colour — a green "5 jobs left"
-   on the green module reads as "all clear" at a glance. Identity is the icon
-   chip; status is these three and nothing else. */
-.tile.is-ok .tile-sub{color:var(--green)}
-.tile.is-warm{border-color:color-mix(in srgb,var(--amber) 50%,transparent)}
-.tile.is-warm .tile-sub{color:var(--amber-ink)}
-.tile.is-hot{border-color:var(--red);background:linear-gradient(0deg,var(--red-soft),var(--red-soft))}
-.tile.is-hot .tile-ic{background:var(--card)}
-.tile.is-hot .tile-sub{color:var(--red)}
+/* Three states, the same three everywhere: clear · worth a look · do it today.
+   They colour the NUMBER, not the whole card: a wall of tinted cards is a wall,
+   and the one that actually wants you today stops standing out. Identity is the
+   icon chip, status is the number, and nothing else carries either. */
+.tile.is-warm .tile-n{color:var(--amber-ink)}
+.tile.is-hot  .tile-n{color:var(--red)}
+.tile.is-hot{border-color:color-mix(in srgb,var(--red) 34%,transparent)}
 
 /* edit mode */
 .tiles-edit .tile{animation:tile-wobble .28s ease-in-out infinite alternate}

@@ -35,10 +35,8 @@ window.MKR = window.MKR || {};
     const h = new Date().getHours();
     const s = MKR.auth && MKR.auth.current && MKR.auth.current();
     const who = (s && s.role!=='owner' && String(s.name||'').trim().split(/\s+/)[0]) || 'boss';
-    if(h<11) return 'Morning, '+who;
-    if(h<14) return 'Middle of the day, '+who;
-    if(h<18) return 'Afternoon, '+who;
-    return 'Evening, '+who;
+    const part = h<12 ? 'Good morning' : h<18 ? 'Good afternoon' : 'Good evening';
+    return `${part}, ${who} 👋`;
   }
 
   // Roughly a minute and a half per thing to decide — enough to be honest about
@@ -72,6 +70,15 @@ window.MKR = window.MKR || {};
     out.training = {n:training.length,          why: training.length?'Staff still to sign off':''};
     out.office   = {n:alerts.length,            why: alerts.length?'Unread alerts':''};
 
+    // Four plain counts for the home screen's snapshot panel. Everything here
+    // was already read above; this is only a second way of saying it.
+    const todayIdx = (new Date().getDay()+6)%7;
+    m.snapshot = {
+      tasks:      tasks.filter(t=>!t.done).length,
+      deliveries: deliveries.length,
+      expiring:   stock.filter(r=>r.expiring).length,
+      onShift:    shifts.filter(s=>s.day===todayIdx).length,
+    };
     m.rooms = out;
     m.stock = stock;
     m.stockValue = U.round2(stock.reduce((t,r)=>t+r.value,0));
