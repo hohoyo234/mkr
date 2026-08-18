@@ -116,7 +116,8 @@ supabase/
 
 - Every table is `id + data(jsonb) + updated_at`, scoped per venue by
   `data->>'kitchenId'` under RLS. Run `supabase/security-setup.sql` before anything
-  else, then `supabase/stock-training-setup.sql` for the stock and training tables.
+  else, then `supabase/stock-training-setup.sql` for the stock and training tables and
+  `supabase/takings-setup.sql` for daily takings.
 - Shifts carry a `week` key (the Monday, `YYYY-MM-DD`) so past weeks stay on the
   record and the roster can learn from them.
 - Writes are local-first: IndexedDB immediately, Supabase in the background, with an

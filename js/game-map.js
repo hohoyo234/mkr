@@ -73,7 +73,10 @@ window.MKR = window.MKR || {};
     // Four plain counts for the home screen's snapshot panel. Everything here
     // was already read above; this is only a second way of saying it.
     const todayIdx = (new Date().getDay()+6)%7;
+    let tookToday = 0;
+    try{ tookToday = MKR.takings.total(await MKR.takings.forDay(U.todayISO())); }catch(e){}
     m.snapshot = {
+      takings:    tookToday,
       tasks:      tasks.filter(t=>!t.done).length,
       deliveries: deliveries.length,
       expiring:   stock.filter(r=>r.expiring).length,

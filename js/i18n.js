@@ -903,7 +903,18 @@ window.MKR = window.MKR || {};
     // Home springboard · quick actions
     "Quick actions":"快捷操作", "Add delivery":"登记到货", "Create task":"发布任务",
     "Today's snapshot":"今日概览", "Tasks due today":"今日待办任务", "Upcoming deliveries":"待确认到货",
-    "Expiring items":"临期物料", "Team on shift":"今日在班人数",
+    "Expiring items":"临期物料", "Team on shift":"今日在班人数", "Takings today":"今日营业额",
+    "Enter takings":"录入营业额",
+    // ---- Takings ----
+    "Takings":"营业额", "Takings & covers":"营业额与客数",
+    "What the till took, typed once a day — the number every cost in this app is measured against":"每天收工录一次收银机的数 —— app 里所有成本都以它为分母",
+    "Takings at close":"打烊结账", "Which day":"哪一天", "Cash":"现金", "Card / EFTPOS":"刷卡 / EFTPOS",
+    "Covers (customers served)":"客数（接待人数）", "Total":"合计",
+    "Takings recorded":"营业额已记录", "Type what the till says":"填写收银机上的数字",
+    "Covers":"客数", "Food cost":"食材成本占比", "of what you took":"占营业额",
+    "needs takings and dockets":"需要营业额和送货单", "dockets dated on the days you entered":"你录入那几天的送货单",
+    "Day by day":"逐日明细", "Bought · same days":"同期采购",
+    "Today isn\u2019t entered yet.":"今天还没录入。",
     "Add stock":"添加物料", "View roster":"查看排班",
     "Your home screen":"你的主屏", "Tap a block to open it":"点一个方块就能进去",
     "Arrange your blocks":"整理你的方块", "Drag to move · − to take one off":"拖动排序 · 按 − 移除",
@@ -1149,6 +1160,10 @@ window.MKR = window.MKR || {};
   // Templated strings (numbers / names interpolated) — exact match can't catch
   // these, so match by pattern and re-insert the captured dynamic bits.
   const PATTERNS = [
+    // Takings
+    [/^Taken · last (\d+) days$/, m => `近 ${m[1]} 天营业额`],
+    [/^(\d+) days? entered$/, m => `已录入 ${m[1]} 天`],
+    [/^(\$[\d,.]+) a head$/, m => `人均 ${m[1]}`],
     // The greeting carries a name now (the owner is "boss", everyone else is
     // themselves), so it can't be a fixed key any more.
     [/^(Good morning|Good afternoon|Good evening), (.+?) 👋$/, m =>

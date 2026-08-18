@@ -16,6 +16,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       {id:'myshifts', label:'My shifts', short:'Mine'},
       {id:'availability', label:'My availability', short:'Available', feature:'availability'},
       {id:'tasks',    label:'Tasks', short:'Tasks',  feature:'tasks'},
+      {id:'takings',  label:'Takings', short:'Takings'},
       {id:'stock',    label:'Stock & costs', short:'Stock', feature:'stock'},
       {id:'deliveries',label:'Deliveries', short:'Delivery',feature:'deliveries'},
       {id:'training', label:'Training', short:'Training',feature:'training'},
@@ -39,6 +40,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='tasks') return tasks(c);
       if(section==='swaps') return swaps(c);
       if(section==='bookings') return bookings(c);
+      if(section==='takings') return MKR.takings.render(c);
       if(section==='stock') return MKR.stock.render(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
       if(section==='training') return MKR.training.renderManage(c);

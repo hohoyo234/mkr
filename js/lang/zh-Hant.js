@@ -871,7 +871,18 @@
       // Home springboard · quick actions
       "Quick actions":"快捷操作", "Add delivery":"登記到貨", "Create task":"發佈任務",
       "Today's snapshot":"今日概覽", "Tasks due today":"今日待辦任務", "Upcoming deliveries":"待確認到貨",
-      "Expiring items":"臨期物料", "Team on shift":"今日在班人數",
+      "Expiring items":"臨期物料", "Team on shift":"今日在班人數", "Takings today":"今日營業額",
+      "Enter takings":"錄入營業額",
+      // ---- Takings ----
+      "Takings":"營業額", "Takings & covers":"營業額與客數",
+      "What the till took, typed once a day — the number every cost in this app is measured against":"每天收工錄一次收銀機的數 —— app 裏所有成本都以它爲分母",
+      "Takings at close":"打烊結賬", "Which day":"哪一天", "Cash":"現金", "Card / EFTPOS":"刷卡 / EFTPOS",
+      "Covers (customers served)":"客數（接待人數）", "Total":"合計",
+      "Takings recorded":"營業額已記錄", "Type what the till says":"填寫收銀機上的數字",
+      "Covers":"客數", "Food cost":"食材成本佔比", "of what you took":"佔營業額",
+      "needs takings and dockets":"需要營業額和送貨單", "dockets dated on the days you entered":"你錄入那幾天的送貨單",
+      "Day by day":"逐日明細", "Bought · same days":"同期採購",
+      "Today isn\u2019t entered yet.":"今天還沒錄入。",
       "Add stock":"添加物料", "View roster":"查看排班",
       "Your home screen":"你的主屏", "Tap a block to open it":"點一個方塊就能進去",
       "Arrange your blocks":"整理你的方塊", "Drag to move · − to take one off":"拖動排序 · 按 − 移除",
@@ -1114,6 +1125,10 @@
       "more on the shelf than could have arrived — looks like a miscount":"貨架上的比進的還多 —— 像是盤錯了",
     };
     const PATTERNS = [
+      // Takings
+      [/^Taken · last (\d+) days$/, m => `近 ${m[1]} 天營業額`],
+      [/^(\d+) days? entered$/, m => `已錄入 ${m[1]} 天`],
+      [/^(\$[\d,.]+) a head$/, m => `人均 ${m[1]}`],
       // The greeting carries a name now (the owner is "boss", everyone else is
       // themselves), so it can't be a fixed key any more.
       [/^(Good morning|Good afternoon|Good evening), (.+?) 👋$/, m =>

@@ -64,6 +64,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     nav:[
       {id:'dashboard', label:'Dashboard', short:'Dash'},
       {id:'assistant', label:'AI Assistant', short:'AI',        feature:'o_assistant'},
+      {id:'takings',   label:'Takings', short:'Takings'},
       {id:'stock',     label:'Stock & costs', short:'Stock',     feature:'stock'},
       {id:'deliveries',label:'Deliveries', short:'Delivery',  feature:'deliveries'},
       {id:'training',  label:'Training & SOP',short:'Training',  feature:'training'},
@@ -100,6 +101,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='team') return team(c,arg);
       if(section==='performance') return performanceView(c);
       if(section==='branches') return branches(c);
+      if(section==='takings') return MKR.takings.render(c);
       if(section==='stock') return MKR.stock.render(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
       if(section==='training') return MKR.training.renderManage(c);
