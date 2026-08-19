@@ -1591,15 +1591,15 @@ body.side-mini .side-toggle::before{content:'»'}
 .kv-top-num i{font-style:normal;font-size:11.5px;color:var(--ink-soft)}
 .kv-top-num.hot b{color:var(--red)}
 
-.kv-room{position:relative;margin-top:16px;padding:56px 18px 24px;border-radius:var(--radius-lg);
+.kv-room{position:relative;margin-top:16px;padding:18px 18px 24px;border-radius:var(--radius-lg);
   border:6px solid var(--fp-wall,#3C4A3E);
   background-color:var(--fp-floor,#EDE6D8);
   background-image:linear-gradient(#0000 0 0),
     repeating-linear-gradient(90deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px),
     repeating-linear-gradient(0deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px);
   overflow:hidden}
-.kv-room-label{position:absolute;top:13px;left:16px;right:16px;max-width:max-content;background:var(--card);border-radius:14px;
-  padding:6px 13px;box-shadow:var(--shadow-soft)}
+.kv-room-label{display:inline-block;background:var(--card);border-radius:14px;
+  padding:6px 13px;margin-bottom:22px;box-shadow:var(--shadow-soft)}
 .kv-room-label span{display:block;font-size:13.5px;font-weight:700}
 .kv-room-label small{font-size:11.5px;color:var(--ink-soft)}
 
@@ -1640,7 +1640,7 @@ body.side-mini .side-toggle::before{content:'»'}
 @media(max-width:880px){ .kv-stations{grid-template-columns:repeat(3,1fr)} }
 @media(max-width:560px){
   .kv-stations{grid-template-columns:repeat(2,1fr);gap:12px}
-  .kv-room{padding:84px 12px 20px}
+  .kv-room{padding:18px 12px 20px}
   .kv-st{min-height:110px;padding:13px 8px}
   .kv-st b{font-size:13px}
   .kv-st-ic{width:38px;height:38px;border-radius:12px}
