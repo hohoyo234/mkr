@@ -798,29 +798,56 @@ window.MKR = window.MKR || {};
   }
   const webLabel = (href)=>{ try{ return new URL(href).hostname.replace(/^www\./,''); }catch(e){ return href; } };
 
+  // Suppliers is a master–detail, not a wall of cards: past three or four
+  // suppliers the cards stop being scannable, and the one thing you come here
+  // to do — find a supplier, then act on them — is a lookup. The left column is
+  // the lookup; everything about one supplier lives on the right.
   async function suppliersTab(c, actions, reload){
     const [sups, purch, rows, recs] = await Promise.all([S().suppliers(), S().purchases(), S().overview(), S().reconciliations()]);
     actions.innerHTML = `<button class="btn btn-dark btn-sm" id="supAdd">${MKR.ui.icon('plus')} Add supplier</button>`;
+
     // Months with dockets but no signed-off statement check — the number that
     // makes the button worth pressing.
     const todo = (id)=> Array.from(new Set(purch.filter(p=>p.supplierId===id).map(p=>S().periodOf(p.ts))))
       .filter(k=>!recs.some(r=>r.supplierId===id && r.period===k)).length;
 
-    const card = (s)=>{
+    // Everything the two panes need about one supplier, worked out once.
+    const factsOf = (s)=>{
       const mine  = purch.filter(p=>p.supplierId===s.id);
-      const spend = mine.reduce((t,p)=>t+(p.total||0),0);
-      const last  = mine[0];
       const buys  = rows.filter(i=>i.supplierId===s.id);
-      const short = buys.filter(i=>i.low||i.short).length;
-      const href  = webURL(s.website);
-      const days  = (s.deliveryDays||[]).map(d=>DOW[d]).filter(Boolean);
-      // How many of their lines have gone up in the last month — and only the
-      // last month, or a rise from spring is still on the card in winter.
-      const up = buys.filter(i=> i.move && i.move.dir==='up' && i.move.ts > Date.now()-30*864e5).length;
+      return {
+        s, mine, buys,
+        spend: mine.reduce((t,p)=>t+(p.total||0),0),
+        last:  mine[0],
+        short: buys.filter(i=>i.low||i.short).length,
+        // Only the last month, or a rise from spring is still flagged in winter.
+        up:    buys.filter(i=> i.move && i.move.dir==='up' && i.move.ts > Date.now()-30*864e5).length,
+        days:  (s.deliveryDays||[]).map(d=>DOW[d]).filter(Boolean),
+        todo:  todo(s.id),
+      };
+    };
+    const all = sups.map(factsOf);
 
+    // The filter offers the four reasons anyone opens this tab, and each one is
+    // read off data already on screen — no new counting, nothing invented.
+    const FILTERS = [
+      {id:'',      label:'All suppliers', fn:()=>true},
+      {id:'order', label:'Something to order', fn:f=>f.short>0},
+      {id:'dear',  label:'Dearer this month', fn:f=>f.up>0},
+      {id:'stmt',  label:'Statement to check', fn:f=>f.todo>0},
+    ];
+    let filter = '', term = '', pick = (all[0]||{s:{}}).s.id;
+
+    function detail(f){
+      if(!f) return `<div class="empty" style="padding:40px 20px"><div class="em">${MKR.ui.icon('truck')}</div>
+        <p>Pick a supplier on the left.</p></div>`;
+      const s = f.s, href = webURL(s.website);
       const fact = (k,v)=> v ? `<div class="sup-fact"><span>${k}</span><b>${v}</b></div>` : '';
-      return `<div class="card pad20 sup-card">
-        <div class="section-title">${MKR.ui.icon('truck')} ${U.esc(s.name)}<button class="btn btn-ghost btn-sm" data-sup="${s.id}">Edit</button></div>
+      return `
+        <div class="sup-d-head">
+          <h3>${U.esc(s.name)}</h3>
+          <button class="btn btn-ghost btn-sm" data-sup="${s.id}">${MKR.ui.icon('pencil')} Edit</button>
+        </div>
 
         <div class="sup-links">
           ${s.phone?`<a class="btn btn-ghost btn-sm" href="tel:${U.esc(s.phone)}">${MKR.ui.icon('phone')} ${U.esc(s.phone)}</a>`:''}
@@ -828,49 +855,93 @@ window.MKR = window.MKR || {};
           ${href?`<a class="btn btn-ghost btn-sm" href="${U.esc(href)}" target="_blank" rel="noopener noreferrer">${MKR.ui.icon('globe')} ${U.esc(webLabel(href))} ↗</a>`:''}
         </div>
 
-        <div class="sup-facts">
-          ${fact('Who you ask for', U.esc(s.contact||''))}
-          ${fact('Delivers', days.length ? U.esc(days.join(' · ')) : '')}
-          ${fact('Order by', U.esc(s.cutoff||''))}
-          ${fact('Minimum order', +s.minOrder ? U.money0(s.minOrder) : '')}
-          ${fact('Payment terms', U.esc(s.terms||''))}
-          ${fact('Account no.', U.esc(s.account||''))}
-          ${fact('ABN', U.esc(s.abn||''))}
-          ${fact('Address', U.esc(s.address||''))}
+        <div class="sup-d-grid">
+          <div class="sup-facts">
+            ${fact('Who you ask for', U.esc(s.contact||''))}
+            ${fact('Delivers', f.days.length ? U.esc(f.days.join(' · ')) : '')}
+            ${fact('Order by', U.esc(s.cutoff||''))}
+            ${fact('Minimum order', +s.minOrder ? U.money0(s.minOrder) : '')}
+            ${fact('Payment terms', U.esc(s.terms||''))}
+            ${fact('Account no.', U.esc(s.account||''))}
+            ${fact('ABN', U.esc(s.abn||''))}
+            ${fact('Address', U.esc(s.address||''))}
+          </div>
+          <div class="sup-stats sup-d-stats">
+            <span><b>${f.mine.length}</b><i>dockets</i></span>
+            <span><b>${U.money0(f.spend)}</b><i>spent with them</i></span>
+            <span><b>${f.last?U.fmtDate(f.last.ts):'—'}</b><i>last delivery</i></span>
+            <span${f.up?' class="hot"':''}><b>${f.up}</b><i>dearer this month</i></span>
+          </div>
         </div>
 
-        <div class="sup-stats">
-          <span><b>${mine.length}</b><i>dockets</i></span>
-          <span><b>${U.money0(spend)}</b><i>spent with them</i></span>
-          <span><b>${last?U.fmtDate(last.ts):'—'}</b><i>last delivery</i></span>
-          <span${up?' class="hot"':''}><b>${up}</b><i>dearer this month</i></span>
-        </div>
+        ${f.buys.length?`<div class="sup-items">
+          <div class="sup-items-h${f.short?' pw-worse':''}">${f.short?`What they bring · ${f.short} to order`:'What they bring'}</div>
+          ${f.buys.map(i=>`<button class="chip${i.low||i.short?' chip-hot':''}" data-item="${i.id}">${U.esc(i.name)} <i>${U.money(i.price)}/${U.esc(i.unit||'')}</i></button>`).join('')}
+        </div>`:`<p class="faint" style="font-size:12.5px;margin-top:14px">No stock items point at this supplier yet — set one on the item and it shows up here.</p>`}
 
-        ${buys.length?`<div class="sup-items">
-          <div class="sup-items-h${short?' pw-worse':''}">${short?`What they bring · ${short} to order`:'What they bring'}</div>
-          ${buys.map(i=>`<button class="chip${i.low||i.short?' chip-hot':''}" data-item="${i.id}">${U.esc(i.name)} <i>${U.money(i.price)}/${U.esc(i.unit||'')}</i></button>`).join('')}
-        </div>`:`<p class="faint" style="font-size:12.5px;margin-top:12px">No stock items point at this supplier yet — set one on the item and it shows up here.</p>`}
+        ${f.last?`<div class="sup-last">
+          <div><span>Latest docket</span><b>${U.esc(f.last.invoiceNo||'no number')} · ${U.fmtDate(f.last.ts)} · ${(f.last.lines||[]).length} line${(f.last.lines||[]).length===1?'':'s'}</b></div>
+          <b class="sup-last-amt">${U.money(f.last.total||0)}</b>
+          <button class="btn btn-ghost btn-sm" data-dockets="${s.id}">Their dockets (${f.mine.length})</button>
+        </div>`:''}
 
         ${s.note?`<p class="muted" style="font-size:13px;margin-top:12px">${U.esc(s.note)}</p>`:''}
 
-        <div class="row gap8 wrap mt12 sup-actions">
-          <button class="btn btn-ghost btn-sm" data-dockets="${s.id}">${MKR.ui.icon('receipt')} Their dockets (${mine.length})</button>
-          ${mine.length?`<button class="btn btn-ghost btn-sm${todo(s.id)?' chip-hot':''}" data-stmt="${s.id}">${MKR.ui.icon('checksq')} Check their statement${todo(s.id)?` (${todo(s.id)})`:''}</button>`:''}
+        <div class="row gap8 wrap mt16 sup-actions">
+          ${f.mine.length?`<button class="btn btn-ghost btn-sm${f.todo?' chip-hot':''}" data-stmt="${s.id}">${MKR.ui.icon('checksq')} Check their statement${f.todo?` (${f.todo})`:''}</button>`:''}
           <button class="btn btn-dark btn-sm" data-order="${s.id}">${MKR.ui.icon('inbox')} Build their order</button>
+        </div>`;
+    }
+
+    function draw(){
+      const t = term.trim().toLowerCase();
+      const fil = FILTERS.find(x=>x.id===filter) || FILTERS[0];
+      const list = all.filter(fil.fn)
+        .filter(f=> !t || (f.s.name+' '+(f.s.contact||'')).toLowerCase().includes(t));
+      if(!list.some(f=>f.s.id===pick)) pick = list.length ? list[0].s.id : null;
+      const sel = all.find(f=>f.s.id===pick);
+
+      c.innerHTML = `<div class="sup-split mt16">
+        <div class="card sup-list">
+          <div class="sup-search">
+            <input class="input" id="supQ" placeholder="Search suppliers…" value="${U.esc(term)}">
+            <select class="input" id="supF">${FILTERS.map(x=>`<option value="${x.id}"${x.id===filter?' selected':''}>${x.label}</option>`).join('')}</select>
+          </div>
+          <div class="sup-count">${list.length} supplier${list.length===1?'':'s'}</div>
+          <div class="sup-rows">${list.map(f=>`<button class="sup-row${f.s.id===pick?' on':''}" data-pick="${f.s.id}">
+            <span class="grow">
+              <b>${U.esc(f.s.name)}</b>${f.short?`<span class="pill warn">${f.short} to order</span>`:''}
+              <i>${U.esc(f.s.contact||'no contact')}${f.days.length?' · '+U.esc(f.days.join(' · ')):''}</i>
+            </span>
+            <span class="sup-row-last"><b>${f.last?U.fmtDate(f.last.ts):'—'}</b><i>last delivery</i></span>
+          </button>`).join('')}</div>
+          ${list.length?`<div class="sup-foot">Showing ${list.length} of ${all.length} suppliers</div>`
+            : `<div class="empty" style="padding:26px 18px"><p>${all.length?'Nothing matches that.':'No suppliers yet. Add the people you actually ring when you need stock.'}</p></div>`}
         </div>
+        <div class="card sup-detail">${detail(sel)}</div>
       </div>`;
-    };
 
-    c.innerHTML = sups.length
-      ? `<div class="sup-grid mt16">${sups.map(card).join('')}</div>`
-      : `<div class="empty mt16"><div class="em">${MKR.ui.icon('truck')}</div><p>No suppliers yet. Add the people you actually ring when you need stock — name, phone, what they bring and when they deliver.</p></div>`;
+      const q = U.qs('#supQ',c);
+      q.oninput = ()=>{ term = q.value; const at = q.selectionStart; draw();
+        const nq = U.qs('#supQ',c); nq.focus(); try{ nq.setSelectionRange(at,at); }catch(e){} };
+      U.qs('#supF',c).onchange = (e)=>{ filter = e.target.value; draw(); };
+      U.qsa('[data-pick]',c).forEach(b=> b.onclick = ()=>{ pick = b.dataset.pick; draw();
+        if(window.matchMedia('(max-width:880px)').matches) U.qs('.sup-detail',c).scrollIntoView({behavior:'smooth',block:'start'}); });
 
+      U.qsa('[data-sup]',c).forEach(b=> b.onclick=()=> supplierModal(sups.find(x=>x.id===b.dataset.sup), reload));
+      U.qsa('[data-item]',c).forEach(b=> b.onclick=()=> itemModal(rows.find(x=>x.id===b.dataset.item), reload));
+      U.qsa('[data-dockets]',c).forEach(b=> b.onclick=()=> dockets(sups.find(x=>x.id===b.dataset.dockets), purch));
+      U.qsa('[data-stmt]',c).forEach(b=> b.onclick=()=> statementModal(sups.find(x=>x.id===b.dataset.stmt), purch, recs, reload));
+      U.qsa('[data-order]',c).forEach(b=> b.onclick=()=> orderSheet(sups.find(x=>x.id===b.dataset.order), rows));
+    }
+
+    if(!sups.length){
+      c.innerHTML = `<div class="empty mt16"><div class="em">${MKR.ui.icon('truck')}</div><p>No suppliers yet. Add the people you actually ring when you need stock — name, phone, what they bring and when they deliver.</p></div>`;
+      U.qs('#supAdd',actions).onclick = ()=> supplierModal(null, reload);
+      return;
+    }
+    draw();
     U.qs('#supAdd',actions).onclick = ()=> supplierModal(null, reload);
-    U.qsa('[data-sup]',c).forEach(b=> b.onclick=()=> supplierModal(sups.find(x=>x.id===b.dataset.sup), reload));
-    U.qsa('[data-item]',c).forEach(b=> b.onclick=()=> itemModal(rows.find(x=>x.id===b.dataset.item), reload));
-    U.qsa('[data-dockets]',c).forEach(b=> b.onclick=()=> dockets(sups.find(x=>x.id===b.dataset.dockets), purch));
-    U.qsa('[data-stmt]',c).forEach(b=> b.onclick=()=> statementModal(sups.find(x=>x.id===b.dataset.stmt), purch, recs, reload));
-    U.qsa('[data-order]',c).forEach(b=> b.onclick=()=> orderSheet(sups.find(x=>x.id===b.dataset.order), rows));
   }
 
   // Every docket from one supplier, newest first — the drawer, filtered.
