@@ -124,8 +124,9 @@ window.MKR = window.MKR || {};
   // A docket only has to stay READABLE, not printable: 1600px on the long edge
   // at JPEG 0.7 keeps every number legible and lands around 200–400 KB.
   U.IMG_MAX = 1600;
-  U.readImage = (file, cb)=>{
+  U.readImage = (file, cb, max)=>{
     if(!file) return;
+    const MAX = max || U.IMG_MAX;
     const r = new FileReader();
     r.onload = ()=>{
       const img = new Image();
@@ -134,7 +135,7 @@ window.MKR = window.MKR || {};
       // original in that case, it's rare and correctness beats the saving.
       img.onerror = ()=> cb(r.result);
       img.onload = ()=>{
-        const scale = Math.min(1, U.IMG_MAX/Math.max(img.width, img.height));
+        const scale = Math.min(1, MAX/Math.max(img.width, img.height));
         if(scale === 1 && r.result.length < 400e3) return cb(r.result);
         const cv = document.createElement('canvas');
         cv.width = Math.round(img.width*scale); cv.height = Math.round(img.height*scale);

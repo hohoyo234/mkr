@@ -54,13 +54,6 @@
   --violet:#A392E0; --violet-soft:#272138;
   --teal:#5FBFB9; --teal-soft:#12302F;
   --fp-floor:#221F1B; --fp-floor-2:#2C2823; --fp-wall:#4A5A4C;
-  --gv-wood:#6B563A; --gv-wood-dk:#4E3F2A;
-  --gv-cold:#1F2A33; --gv-cold-2:#26333D;
-  --gv-dry:#2A2620;  --gv-dry-2:#332E26;
-  /* Deepened a little so a full jar isn't a glaring slab against the dark room,
-     but still mid-tone: the quantity label on top of it is dark in both themes. */
-  --fill-ok:#4FA876; --fill-warn:#D2A343; --fill-low:#D45F56;
-  --gloss:.26; --gloss-2:.14;
   --ink-grad:linear-gradient(152deg,#F5F2ED,#DCD7CE);
   --green-grad:linear-gradient(140deg,#6FD199,#4FB37B);
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 36px -20px rgba(0,0,0,.7);
@@ -186,6 +179,17 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .side-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
 .side-brand .logo{width:36px;height:36px;border-radius:11px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-weight:900;font-family:"Playfair Display",serif}
 .side-brand .logo .ic{width:21px;height:21px;stroke-width:1.7}
+/* An owner's logo is a button: the mark in the corner is the one place it shows
+   on every screen, so it is where they look to change it. The camera badge only
+   shows on hover / focus so the sidebar isn't wearing an icon it doesn't need. */
+.side-brand .logo.has-img{overflow:hidden;padding:0}
+.logo-btn{position:relative;border:none;padding:0;cursor:pointer;font:inherit;overflow:hidden}
+.logo-edit{position:absolute;inset:0;display:grid;place-items:center;opacity:0;
+  background:color-mix(in srgb,var(--ink) 62%,transparent);color:#fff;transition:opacity .18s}
+.logo-edit .ic{width:16px;height:16px}
+.logo-btn:focus-visible .logo-edit{opacity:1}
+@media (hover:hover) and (pointer:fine){ .logo-btn:hover .logo-edit{opacity:1} }
+@media (hover:none){ .logo-btn .logo-edit{opacity:0} }
 /* A venue called "My Kitchen · Melbourne" wrapped to three lines and shoved the
    fold button off the row. One line, elided. */
 .side-brand b{font-size:16px;font-family:"Playfair Display",serif;letter-spacing:-.01em;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -698,6 +702,12 @@ body.side-mini .branch-pick{display:none}
 .gauge-fill{height:100%;width:0;border-radius:99px;transition:width .6s var(--ease-out)}
 .gauge-line{position:absolute;top:-3px;width:2px;height:20px;background:var(--ink);border-radius:2px}
 .gauge-legend{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);margin-top:8px}
+/* An item can carry a photo of the actual thing. Small, square, and never
+   required — the name is still the item, the picture only makes it faster to
+   find on a shelf you're standing in front of. */
+.itm-nm{display:inline-flex;align-items:center;gap:8px}
+.itm-ph{width:30px;height:30px;border-radius:8px;object-fit:cover;flex:none;background:var(--paper-2)}
+.ds-li-ic .itm-ph{width:100%;height:100%;border-radius:inherit}
 .ds-li-ic{width:40px;height:40px;flex:0 0 auto;border-radius:12px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center}
 .ds-li-ic .ic{width:20px;height:20px}
 /* Severity as a tinted chip rather than a 🔴/🟠/🔵 emoji: an emoji circle is
@@ -1124,195 +1134,82 @@ img,svg,video{max-width:100%}
 .preview-box p{font-size:12.5px;color:var(--ink-soft);margin:4px 0 10px;line-height:1.5}
 .preview-box .btn{flex:1;min-width:96px}
 
-/* ===== Stock · Shelf view =====
-   A picture of the room instead of a table. How full the jar is IS the quantity,
-   so an owner who never reads a spreadsheet can still see what's running out.
-   Flat vector only — no 3D, no sprites, nothing to download. */
-:root{
-  --gv-wood:#D8B98C; --gv-wood-dk:#B4915F;
-  --gv-cold:#EAF1F6; --gv-cold-2:#DCE8F1;
-  --gv-dry:#F5EFE4;  --gv-dry-2:#EDE3D2;
-  /* What is IN the jar is a data graphic, not a surface — like a bar in a chart.
-     So it keeps its own mid-tone scale rather than using --green/--amber/--red,
-     which are tuned to be read as text and go too dark to hold a quantity label.
-     Same three steps as everywhere else, just at fill weight. */
-  --fill-ok:#6FBF8F; --fill-warn:#EBC062; --fill-low:#E8776E;
-  /* Specular highlight on the glass. A fixed white streak that reads as a
-     subtle sheen on a pale jar becomes a hard white bar on a dark one. */
-  --gloss:.85; --gloss-2:.35;
-}
-
-/* view switch (Shelf / List) */
+/* ===== The row of ways to show one screen (Blocks / Floor / List) ===== */
 .home-switch{display:flex;justify-content:flex-end;margin-bottom:4px}
 .viewswitch{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card);flex-shrink:0}
 .viewswitch button{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink-soft);padding:0 14px;min-height:48px;line-height:1;white-space:nowrap;transition:background .2s,color .2s}
 .viewswitch button .ic{width:17px;height:17px}
 .viewswitch button.on{background:var(--ink);color:var(--paper)}
 
-/* the board across the top */
-.gv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
-.gv-top-num{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:8px 16px;min-height:48px;
-  display:flex;flex-direction:column;justify-content:center}
-.gv-top-num b{font-size:19px;line-height:1.15}
-.gv-top-num i{font-style:normal;font-size:11.5px;color:var(--ink-faint)}
-.gv-top-num.hot{background:var(--red-soft);border-color:color-mix(in srgb,var(--red) 35%,transparent)}
-.gv-top-num.hot b{color:var(--red)}
-.gv-top .btn{margin-left:auto}
+/* A docket can take as many photos as it takes: two pages of invoice and a
+   picture of the broken crate is three, and picking one of them is how the
+   evidence for a claim goes missing. */
+.shots{display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px dashed var(--line);
+  border-radius:var(--radius);background:var(--paper-2);min-height:66px;align-items:center}
+.shots.needs{border-color:var(--red);background:var(--red-soft)}
+.shot{position:relative;width:74px;height:74px;flex:none}
+.shot img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:block}
+.shot-x{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:999px;
+  background:var(--ink);color:var(--paper);font-size:15px;line-height:1;
+  display:grid;place-items:center;border:2px solid var(--paper);box-shadow:var(--shadow-soft)}
+.shot-empty{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-faint);padding:0 4px}
+.shot-empty .ic{width:16px;height:16px}
 
-/* a room = a cabinet with a back wall */
-.gv-room{margin-top:16px;border-radius:var(--radius-lg);border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-soft)}
-.gv-room.cold{background:linear-gradient(180deg,var(--gv-cold) 0%,var(--gv-cold-2) 100%)}
-.gv-room.dry {background:linear-gradient(180deg,var(--gv-dry) 0%,var(--gv-dry-2) 100%)}
-.gv-room-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:14px 18px 10px}
-.gv-room-head b{font-size:15px;font-weight:700}
-.gv-room-head span{font-size:12px;color:var(--ink-soft)}
-.gv-room-ic{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;flex-shrink:0;
-  background:var(--card);color:var(--ink-soft)}
-.gv-room-ic .ic{width:17px;height:17px}
-/* On a phone the hint drops under the title rather than squeezing it. */
-@media(max-width:560px){ .gv-room-head>span:last-child{flex-basis:100%} }
-.gv-empty{padding:0 18px 22px;font-size:13px;color:var(--ink-soft)}
+/* Waiting deliveries, grouped by week. The date column is the point of the
+   block, so it leads the row instead of hiding in the second line. */
+.dlv-week + .dlv-week{margin-top:10px}
+.dlv-week-head{display:flex;align-items:baseline;gap:8px;padding:10px 0 2px;
+  font-size:13px;font-weight:800;letter-spacing:-.01em}
+.dlv-week-head span{font-size:12px;font-weight:600;color:var(--ink-faint)}
+.dlv-week-head.late{color:var(--red)}
+.dlv-when{flex:none;min-width:92px;font-size:12.5px;font-weight:700;line-height:1.25;color:var(--ink-soft)}
+.dlv-when i{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:var(--ink-faint)}
+.dlv-when.now{color:var(--accent-ink)}
+.dlv-when.late{color:var(--red)}
+@media(max-width:560px){ .dlv-when{min-width:74px;font-size:12px} }
 
-/* the shelf itself — planks are a repeating background so every row is one
-   continuous board no matter how many items land on it */
-.gv-shelf{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));
-  grid-auto-rows:126px;row-gap:52px;column-gap:0;
-  justify-items:center;
-  padding:6px 12px 50px;
-  /* One period = one row: jar height + row gap. The shelf-edge label carries a
-     price line now, so the gap and the last (empty) band grew together. */
-  background-image:repeating-linear-gradient(to bottom,
-    transparent 0 126px,
-    var(--gv-wood) 126px 140px,
-    var(--gv-wood-dk) 140px 146px,
-    color-mix(in srgb,var(--ink) 8%,transparent) 146px 151px,
-    transparent 151px 178px);
-  background-position:0 6px;
-}
-.gv-slot{position:relative;width:100%;max-width:106px;display:flex;flex-direction:column;
-  justify-content:flex-end;align-items:center;padding:0 5px}
+/* ===== Calendar (owner) =====
+   A month you can read at arm's length. The grid is the whole page: no side
+   panel, no agenda column — a cell is a day, a chip is a thing happening, and
+   tapping the number puts something new on that day. */
+.cal-bar{display:flex;align-items:center;gap:8px;margin:16px 0 10px}
+.cal-title{font-family:"Playfair Display",serif;font-size:22px;font-weight:900;letter-spacing:-.01em;
+  min-width:190px;text-align:center}
+.cal-bar #calToday{margin-left:auto}
 
-/* the jar */
-.gv-tap{display:block;width:100%;padding:0;background:none;border:none}
-.gv-jar{display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;
-  transition:transform .18s var(--ease-out)}
-.gv-tap:active .gv-jar{transform:translateY(2px) scale(.97)}
-.gv-em{font-size:22px;line-height:1.1;filter:drop-shadow(0 1px 1px rgba(33,30,27,.18))}
-.gv-glass{position:relative;display:block;width:100%;height:76px;border-radius:7px 7px 11px 11px;overflow:hidden;
-  background:color-mix(in srgb,var(--card) 72%,transparent);border:2px solid var(--line);
-  box-shadow:inset 0 -3px 8px rgba(33,30,27,.06), 0 3px 6px -3px rgba(33,30,27,.35)}
-.gv-fill{position:absolute;left:0;right:0;bottom:0;transition:height .55s var(--ease-out);
-  background:linear-gradient(180deg,rgba(255,255,255,var(--gloss-2)) 0,rgba(255,255,255,0) 18px)}
-.gv-jar.st-ok   .gv-fill{background-color:var(--fill-ok)}
-.gv-jar.st-warn .gv-fill{background-color:var(--fill-warn)}
-.gv-jar.st-low  .gv-fill{background-color:var(--fill-low)}
-/* an empty jar should look alarming, not just empty */
-.gv-jar.st-warn .gv-glass{border-color:color-mix(in srgb,var(--amber) 45%,transparent);background:color-mix(in srgb,var(--amber-soft) 90%,transparent)}
-.gv-jar.st-low  .gv-glass{border-color:color-mix(in srgb,var(--red) 50%,transparent);background:color-mix(in srgb,var(--red-soft) 95%,transparent)}
-.gv-glass::after{content:"";position:absolute;left:6px;top:6px;width:7px;bottom:10px;border-radius:4px;
-  background:linear-gradient(180deg,rgba(255,255,255,var(--gloss)),rgba(255,255,255,calc(var(--gloss) * .18)))}
-.gv-qty{position:absolute;left:3px;right:3px;bottom:5px;display:flex;align-items:baseline;
-  justify-content:center;gap:1px;padding:1px 3px;border-radius:5px;font-size:11px;font-weight:800;
-  background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink);
-  white-space:nowrap;overflow:hidden}
-/* The unit is the first thing to go when the number is long — "1,526" alone
-   still reads; "1,52…" does not. */
-.gv-qty i{font-style:normal;font-weight:600;opacity:.7;font-size:9.5px;overflow:hidden;text-overflow:ellipsis}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-soft)}
+.cal-dow{background:var(--paper-2);padding:8px 10px;font-size:11.5px;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-faint)}
+.cal-cell{background:var(--card);min-height:116px;padding:6px 6px 8px;display:flex;flex-direction:column;gap:4px;
+  /* Grid items refuse to shrink under their content by default, which on a
+     phone pushed Saturday and Sunday off the edge of the month. */
+  min-width:0}
+.cal-off{background:var(--paper-2)}
+/* Today is a ring on the date, not a tinted cell: a whole coloured column reads
+   as "something is wrong here" on a calendar. */
+.cal-cell.is-today .cal-day{background:var(--ink);color:var(--paper)}
+.cal-day{align-self:flex-start;min-width:26px;height:26px;border-radius:50%;font:inherit;font-size:13px;
+  font-weight:700;color:var(--ink-soft);display:grid;place-items:center;
+  transition:background .16s,color .16s}
+@media (hover:hover) and (pointer:fine){ .cal-day:hover{background:var(--paper-2);color:var(--ink)} }
+.cal-items{display:flex;flex-direction:column;gap:3px;overflow:hidden}
+.cal-chip{display:flex;align-items:center;gap:5px;width:100%;min-width:0;padding:3px 6px;border-radius:7px;
+  font:inherit;font-size:11.5px;font-weight:700;line-height:1.3;text-align:left;color:var(--tone,var(--ink));
+  background:var(--tone-soft,var(--paper-2));border:1px solid transparent;transition:border-color .16s}
+.cal-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.cal-chip .ic{width:12px;height:12px;flex:none}
+@media (hover:hover) and (pointer:fine){ .cal-chip:hover{border-color:var(--tone,var(--line))} }
 
-/* the "n days left" tab clipped to the jar */
-.gv-cover{position:absolute;top:16px;right:-3px;z-index:2;font-size:9.5px;font-weight:800;line-height:1;
-  padding:3px 5px;border-radius:5px;background:var(--ink);color:var(--paper);opacity:.82}
-.gv-jar.st-low .gv-cover{background:var(--red);opacity:1;animation:gvPulse 1.9s var(--ease-in-out) infinite}
-@keyframes gvPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-
-/* one tap = straight into the basket */
-.gv-add{position:absolute;top:14px;left:-4px;z-index:3;width:26px;height:26px;border-radius:50%;
-  background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
-  font-size:15px;font-weight:700;line-height:1;color:var(--ink-soft);
-  display:flex;align-items:center;justify-content:center;transition:transform .16s var(--ease-out),background .2s}
-.gv-add:active{transform:scale(.88)}
-.gv-add.on{background:var(--accent);border-color:var(--accent);color:#fff;font-size:11.5px;font-weight:800}
-@media (hover:hover) and (pointer:fine){ .gv-add:hover{background:var(--ink);color:var(--paper)} }
-
-/* the shelf-edge label, sitting on the plank like a supermarket price tag */
-.gv-tag{position:absolute;top:calc(100% + 4px);left:3px;right:3px;z-index:2;
-  background:var(--card);border:1px solid var(--line);border-radius:5px;
-  padding:3px 4px;text-align:center;box-shadow:0 1px 2px rgba(33,30,27,.14)}
-.gv-tag b{display:block;font-size:10.5px;font-weight:700;line-height:1.25;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* the price line — the second thing you want off a shelf label */
-.gv-tag i{display:block;font-style:normal;font-size:9px;font-weight:600;line-height:1.3;
-  color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gv-tag.st-warn{border-color:color-mix(in srgb,var(--amber) 50%,transparent);background:var(--amber-soft)}
-.gv-tag.st-low{border-color:color-mix(in srgb,var(--red) 50%,transparent);background:var(--red-soft)}
-.gv-tag.st-low b{color:var(--red-ink)}
-
-/* the reorder point, drawn across the glass */
-.gv-mark{position:absolute;left:0;right:0;height:0;z-index:2;pointer-events:none;
-  border-top:1.5px dashed color-mix(in srgb,var(--ink) 45%,transparent)}
-.gv-mark::after{content:"";position:absolute;right:1px;top:-3px;width:0;height:0;
-  border:3px solid transparent;border-right-color:color-mix(in srgb,var(--ink) 52%,transparent)}
-
-/* the items that need topping up, by name, each one a tap into the basket */
-.gv-needs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;
-  padding:12px 14px;border-radius:var(--radius);background:var(--red-soft);border:1px solid color-mix(in srgb,var(--red) 35%,transparent)}
-.gv-needs-h{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--red-ink)}
-.gv-needs .btn{margin-left:auto}
-@media(max-width:560px){ .gv-needs .btn{margin-left:0;width:100%} }
-
-.gv-hint{margin-top:14px;font-size:12.5px;color:var(--ink-faint);text-align:center}
-
-/* the basket rides along the bottom, above the mobile nav */
-.gv-bar[hidden]{display:none}
-.gv-bar{position:sticky;bottom:12px;z-index:20;margin:14px 76px 0 0;
-  display:flex;align-items:center;gap:12px;padding:10px 12px 10px 18px;
-  background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:var(--shadow)}
-.gv-bar-txt{white-space:nowrap}
-.gv-bar-txt b{font-size:17px}
-.gv-bar-txt i{font-style:normal;font-size:12.5px;color:var(--ink-soft)}
-.gv-bar-sum{margin-left:auto;font-weight:700;font-size:15px}
-.gv-bar .btn{flex-shrink:0}
-@media(max-width:880px){
-  .gv-bar{bottom:calc(78px + env(safe-area-inset-bottom));margin-right:0;padding:8px 8px 8px 14px;gap:8px}
-  .gv-bar-txt b{font-size:15px}
-  .gv-bar-txt i{font-size:11.5px}
-  .gv-bar-sum{font-size:14px}
-  .gv-bar .btn{padding:0 14px;font-size:13.5px}
-  /* the assistant bubble lives in the same corner — lift it while the basket is up */
-  body.gv-basket .ai-fab{bottom:calc(150px + env(safe-area-inset-bottom))}
-}
-
-/* the sheet you get when you tap a jar */
-.gv-sheet-top{display:flex;gap:16px;align-items:flex-start}
-.gv-sheet-top .gv-jar{width:88px;flex-shrink:0}
-.gv-jar.big .gv-glass{height:96px}
-.gv-jar.big .gv-em{font-size:26px}
-.gv-jar.big .gv-qty{font-size:13px;bottom:7px}
-.gv-sheet-meta p{font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.5}
-.gv-sheet-meta .gv-warnline{color:var(--accent-ink);font-weight:600}
-.gv-order{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-2)}
-.gv-order>label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:8px}
-.gv-order .faint{font-size:11.5px;margin-top:8px;line-height:1.45}
-.gv-step{display:flex;align-items:center;gap:8px}
-.gv-step .input{text-align:center;font-weight:700;max-width:120px}
-.gv-step.tight{gap:4px;flex-shrink:0}
-.gv-step.tight .input{max-width:66px;padding:0 4px;font-size:14px}
-.gv-step-b{width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--card);border:1px solid var(--line);
-  font-size:19px;font-weight:700;line-height:1;color:var(--ink);transition:transform .16s var(--ease-out)}
-.gv-step-b:active{transform:scale(.9)}
-.gv-step.tight .gv-step-b{width:34px;height:34px;font-size:16px}
-.gv-step-u{font-size:12.5px;color:var(--ink-faint);font-weight:600}
-
-.gv-group{margin-bottom:14px}
-.gv-group-head{font-size:13px;font-weight:700;padding:0 2px 6px}
-.gv-line-amt{flex-shrink:0;min-width:66px;text-align:right;font-size:13.5px}
-
-@media(max-width:520px){
-  .gv-shelf{grid-template-columns:repeat(auto-fill,minmax(82px,1fr));padding:6px 8px 38px}
-  .gv-top .btn{margin-left:0;width:100%}
-  .gv-sheet-top{gap:12px}
-  .gv-sheet-top .gv-jar{width:74px}
+/* On a phone seven columns of 116px is a wall of nothing. Keep the grid — the
+   month shape is the point — but let a day be as tall as what's in it. */
+@media(max-width:700px){
+  .cal-cell{min-height:74px;padding:4px 3px 6px}
+  .cal-day{min-width:22px;height:22px;font-size:12px}
+  .cal-chip{padding:2px 4px;font-size:10px;gap:3px}
+  .cal-chip .ic{display:none}
+  .cal-dow{padding:6px 4px;font-size:10px;text-align:center}
+  .cal-title{font-size:18px;min-width:0;flex:1}
 }
 
 /* ===== The restaurant floor (owner home) =====
@@ -1476,7 +1373,24 @@ body.side-mini .side-toggle::before{content:'»'}
 .tiles-wrap{margin-top:8px}
 /* Greeting, today's count and Edit on one line — the springboard used to stack
    a greeting, a "Your home screen" heading and a hint before the first block. */
+/* The greeting can sit on a photo of the venue's own kitchen. With no photo
+   this is the plain two-line header it has always been — the band only exists
+   once somebody uploads one. */
 .tiles-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:16px}
+.tiles-head.has-hero{position:relative;overflow:hidden;border-radius:var(--radius-lg);
+  padding:26px 22px;min-height:150px;align-items:flex-end;
+  background:var(--paper-2);box-shadow:var(--shadow-soft)}
+.tiles-head.has-hero::before{content:"";position:absolute;inset:0;z-index:0;
+  background-image:var(--hero);background-size:cover;background-position:center}
+/* The text has to stay readable over whatever photo they picked, so the page
+   colour is washed across it from the left rather than dimming the whole image. */
+.tiles-head.has-hero::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(90deg,var(--paper) 8%,color-mix(in srgb,var(--paper) 72%,transparent) 46%,transparent 92%)}
+.tiles-head.has-hero>*{position:relative;z-index:2}
+@media(max-width:560px){
+  .tiles-head.has-hero{padding:18px 16px;min-height:132px}
+  .tiles-head.has-hero::after{background:linear-gradient(90deg,var(--paper) 20%,color-mix(in srgb,var(--paper) 82%,transparent) 70%,color-mix(in srgb,var(--paper) 40%,transparent) 100%)}
+}
 .tiles-head h2{font-size:30px;line-height:1.15;letter-spacing:-.02em}
 .tiles-head .fp-count{font-size:15px;color:var(--ink-soft);margin-top:6px;font-weight:600}
 .tiles-head .btn{margin-left:auto;flex:none}
@@ -1491,7 +1405,7 @@ body.side-mini .side-toggle::before{content:'»'}
   background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow-soft);
   font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:none;
   transition:transform .18s var(--ease-out),box-shadow .18s,border-color .2s}
-.tile-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;
+.tile-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;
   background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink));flex-shrink:0}
 .tile-ic .ic{width:26px;height:26px}
 .tile-label{font-size:15px;font-weight:700;line-height:1.25}
@@ -1501,37 +1415,38 @@ body.side-mini .side-toggle::before{content:'»'}
 .tile-n{margin-top:auto;font-size:30px;font-weight:900;font-family:"Playfair Display",serif;
   line-height:1.05;letter-spacing:-.01em}
 .tile-unit{font-size:12.5px;font-weight:600;color:var(--ink-soft);line-height:1.2;margin-top:3px}
-.tile-clear{display:flex;align-items:center;gap:6px;margin-top:auto;font-size:14px;
-  font-weight:700;color:var(--green);line-height:1.2}
-.tile-clear .ic{width:17px;height:17px;stroke-width:2.4}
+.tile-n.tile-ok{font-size:24px;color:var(--green);margin-bottom:18px}
 /* A card with a number on it is not obviously a door. The chevron is the whole
    difference between "here is a statistic" and "tap here to deal with it". */
 .tile-go{position:absolute;right:14px;bottom:20px;font-size:20px;line-height:1;
   color:var(--ink-faint);transition:transform .18s var(--ease-out),color .18s}
 .tile:active{transform:scale(.97)}
 @media (hover:hover) and (pointer:fine){ .tile:hover .tile-go{transform:translateX(3px);color:var(--tone,var(--ink-soft))} }
-.tile-n,.tile-unit,.tile-clear{padding-right:20px}
+.tile-n,.tile-unit{padding-right:20px}
 
 /* Under the blocks: what today looks like on the left, the verbs on the right.
    The blocks say what needs you; these two say what is going on and what you
    can start. */
-.home-panels{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;max-width:1160px;margin-top:16px}
-@media(max-width:820px){ .home-panels{grid-template-columns:1fr} }
+.home-panels{display:grid;gap:16px;max-width:1160px;margin-top:16px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);
   box-shadow:var(--shadow-soft);padding:15px 18px 8px}
 .panel-head{font-size:15px;font-weight:800;letter-spacing:-.01em;margin-bottom:2px}
 
-.snap-row{display:flex;align-items:center;gap:10px;padding:12px 0;color:inherit;
-  border-bottom:1px solid var(--line-2);font-size:14px;font-weight:600}
-.snap-row:last-child{border-bottom:none}
-.snap-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--tone,var(--ink-soft))}
-.snap-n{margin-left:auto;font-family:"Playfair Display",serif;font-size:17px;font-weight:900}
-.snap-go{color:var(--ink-faint);font-size:17px;line-height:1;transition:transform .18s var(--ease-out)}
-@media (hover:hover) and (pointer:fine){ .snap-row:hover .snap-go{transform:translateX(3px);color:var(--tone)} }
+/* Across, not down: five short columns read in one sweep where five stacked
+   rows made the owner scan a list to find the one number they came for. */
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));padding:8px 0 14px}
+.ov{display:flex;align-items:center;gap:12px;padding:8px 16px 8px 0;color:inherit}
+.ov+.ov{border-left:1px solid var(--line-2);padding-left:16px}
+.ov-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;flex:none;
+  background:var(--tone-soft,var(--paper-2));color:var(--tone,var(--ink))}
+.ov-ic .ic{width:22px;height:22px}
+.ov-label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);line-height:1.25}
+.ov-n{font-family:"Playfair Display",serif;font-size:26px;font-weight:900;line-height:1.15}
+@media(max-width:560px){ .ov+.ov{border-left:none;padding-left:0} }
 
 /* Quick actions — icon over label, so four of them fit a phone two-up without
    the words wrapping. */
-.qa-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding-bottom:10px}
+.qa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding-bottom:10px}
 .qa{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
   padding:15px 8px;border-radius:var(--radius);background:var(--paper-2);border:1px solid transparent;
   font-weight:700;font-size:13px;text-align:center;color:inherit;line-height:1.2;
@@ -1574,6 +1489,23 @@ body.side-mini .side-toggle::before{content:'»'}
   background:var(--ink);color:var(--paper);line-height:1;
   display:grid;place-items:center;border:2px solid var(--paper);box-shadow:var(--shadow-soft)}
 .tile-x .ic{width:16px;height:16px;stroke-width:2.6}
+/* Same badge, other corner: one to take the block off, one to give it a
+   picture. Only ever visible while arranging. */
+.tile-cam{position:absolute;top:-9px;right:-9px;z-index:3;width:28px;height:28px;border-radius:999px;
+  background:var(--card);color:var(--ink);line-height:1;
+  display:grid;place-items:center;border:2px solid var(--paper);box-shadow:var(--shadow-soft)}
+.tile-cam .ic{width:15px;height:15px;stroke-width:2.2}
+.tile-artx{right:24px;background:var(--red-soft);color:var(--red)}
+
+/* The venue's own picture on a block: a watermark behind the number, never in
+   front of it. Bottom-right, because that corner is the only one that carries
+   nothing — the chevron sits above it and the number runs along the left. */
+.tile.has-art::after{content:"";position:absolute;right:0;bottom:0;width:56%;height:64%;
+  background-image:var(--art);background-size:cover;background-position:center;
+  border-radius:0 0 var(--radius-lg) 0;opacity:.16;pointer-events:none;
+  -webkit-mask-image:linear-gradient(300deg,#000 30%,transparent 78%);
+          mask-image:linear-gradient(300deg,#000 30%,transparent 78%)}
+:root[data-theme="dark"] .tile.has-art::after{opacity:.22}
 .tile-dragging{opacity:.95;z-index:5;animation:none!important;transform:scale(1.04);box-shadow:var(--shadow)}
 .tile-add{align-items:center;justify-content:center;background:transparent;box-shadow:none;
   border:2px dashed var(--line);color:var(--ink-faint)}
@@ -1589,7 +1521,7 @@ body.side-mini .side-toggle::before{content:'»'}
 @media(max-width:560px){
   .tiles-grid{grid-template-columns:repeat(2,1fr);gap:12px}
   .tile{min-height:124px;padding:14px 13px 12px;border-radius:22px}
-  .tile-ic{width:46px;height:46px;border-radius:14px}
+  .tile-ic{width:46px;height:46px;border-radius:50%}
   .tile-label{font-size:14px}
 }
 
@@ -1875,8 +1807,6 @@ body.side-mini .side-toggle::before{content:'»'}
 .ai-input-row .btn .ic{width:18px;height:18px}
 .ai-msg .ic,.aa-msg .ic{width:14px;height:14px;vertical-align:-2px}
 .dkt-flag .ic,.dkt-stamp .ic{width:12px;height:12px;vertical-align:-1px}
-.gv-group-head .ic{width:15px;height:15px;vertical-align:-2px;margin-right:4px}
-.gv-warnline .ic{width:14px;height:14px;vertical-align:-2px}
 .li .meta .ic,.meta span .ic{width:13px;height:13px;vertical-align:-2px}
 .offbar .ic{width:15px;height:15px;vertical-align:-3px;margin-right:3px}
 .img-preview .ic{width:22px;height:22px;margin-bottom:4px}

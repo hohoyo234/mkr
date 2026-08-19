@@ -366,7 +366,11 @@ window.MKR = window.MKR || {};
   function sync(){
     if(!btn) return;
     const h=location.hash||'';
-    const hide = h.startsWith('#/order') || h.startsWith('#/join') || h==='' || h==='#/login' || h==='#/';
+    // The assistant is the corner button and nothing else — it left the owner's
+    // sidebar, so this button is what the venue's own switch now turns off.
+    const sess = MKR.auth && MKR.auth.current && MKR.auth.current();
+    const off = sess && sess.role==='owner' && MKR.features && !MKR.features.can('o_assistant','owner');
+    const hide = off || h.startsWith('#/order') || h.startsWith('#/join') || h==='' || h==='#/login' || h==='#/';
     btn.style.display = hide?'none':'';
     if(hide) close();
   }
@@ -429,5 +433,23 @@ window.MKR = window.MKR || {};
     }catch(e){ return null; }
   }
 
-  MKR.assistant = { mount, ask, answer, llm };
+  // Photo → form fields. Same Edge Function, same key: it swaps to a vision
+  // model when it sees an image. Returns {} on any failure — a form that fills
+  // itself is a convenience, and a convenience may never block typing it in.
+  async function readImage(dataUrl, want){
+    try{
+      if(!MKR.supa || !MKR.supa.client || !MKR.supa.URL || !dataUrl) return {};
+      let token=''; try{ const {data}=await MKR.supa.client.auth.getSession(); token=(data&&data.session&&data.session.access_token)||''; }catch(e){}
+      const res = await fetch(`${MKR.supa.URL}/functions/v1/ai-assistant`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'apikey':MKR.supa.ANON, ...(token?{Authorization:'Bearer '+token}:{}) },
+        body: JSON.stringify({ image:dataUrl, want: typeof want==='string' ? want : JSON.stringify(want) })
+      });
+      if(!res.ok) return {};
+      const out = await res.json().catch(()=>null);
+      return (out && out.fields) || {};
+    }catch(e){ return {}; }
+  }
+
+  MKR.assistant = { mount, ask, answer, llm, readImage };
 })();

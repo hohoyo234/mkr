@@ -152,9 +152,16 @@ window.MKR = window.MKR || {};
       }catch(e){}
     }
 
-    const logoHtml = brandLogo
-      ? `<div class="logo" style="overflow:hidden;padding:0"><img src="${brandLogo}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`
-      : `<div class="logo">${MKR.ui.icon('chef')}</div>`;
+    // Only the owner can change the venue's mark, so only the owner gets a
+    // button here — for everyone else it stays a picture.
+    const canBrand = sess.role==='owner';
+    const logoInner = brandLogo
+      ? `<img src="${brandLogo}" alt="" style="width:100%;height:100%;object-fit:cover">`
+      : MKR.ui.icon('chef');
+    const logoHtml = canBrand
+      ? `<button class="logo logo-btn${brandLogo?' has-img':''}" id="brandLogo" title="Upload your logo" aria-label="Upload your logo">${logoInner}
+           <span class="logo-edit" aria-hidden="true">${MKR.ui.icon('camera')}</span></button>`
+      : `<div class="logo${brandLogo?' has-img':''}">${logoInner}</div>`;
 
     // Collapsed sidebar is a per-device preference, applied before first paint so
     // the shell never renders wide and then snaps narrow. Three states, not two:
@@ -210,6 +217,28 @@ window.MKR = window.MKR || {};
 
     const newSidebar = root.querySelector('.sidebar');
     if(newSidebar && savedSideScroll) newSidebar.scrollTop = savedSideScroll;
+
+    // Tap the logo → pick a file → it is the venue's logo everywhere (sign-in
+    // page included) and the app offers to take its colour, same as Settings.
+    const logoBtn = document.getElementById('brandLogo');
+    if(logoBtn) logoBtn.onclick = ()=>{
+      const input = MKR.util.el('<input type="file" accept="image/*" hidden>');
+      document.body.appendChild(input);
+      input.onchange = ()=>{
+        const f = input.files[0]; input.remove();
+        if(!f) return;
+        MKR.util.readImage(f, async(data)=>{
+          await MKR.db.put('kitchens', {id:sess.kitchenId, logo:data});
+          const brand = await MKR.db.meta('brand') || {};
+          await MKR.db.meta('brand', {...brand, avatar:data});
+          const b = await MKR.brand.fromLogo(data);
+          if(b){ await MKR.brand.save(b); }
+          MKR.util.toast(b?'Logo saved · colour picked up from it':'Logo saved','green');
+          render();
+        }, 512);
+      };
+      input.click();
+    };
 
     const sideToggle = document.getElementById('sideToggle');
     if(sideToggle) sideToggle.onclick = ()=>{

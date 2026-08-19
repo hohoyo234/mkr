@@ -18,27 +18,14 @@ window.MKR = window.MKR || {};
 
   // How much to order: enough to cover the delivery lead time plus a week, less
   // whatever is already on the shelf. One definition, used by the forecast, the
-  // supplier order sheets and the shelf's basket — three screens that would
-  // otherwise quietly disagree about the same number.
+  // supplier order sheets and the forecast — screens that would otherwise
+  // quietly disagree about the same number.
   const suggestQty = (r)=>{
     const target = r.daily>0 ? r.daily*((+r.leadTimeDays||2)+7) : (+r.safety||0)*2;
     return Math.max(0, U.round2(target - (+r.qty||0)));
   };
 
-  // The Stock tab draws the same data two ways: the shelf (a picture of the room)
-  // or the list (the table). Shelf is the default — it's what an owner who never
-  // reads a spreadsheet can act on — and the choice sticks per device.
-  const VKEY = 'mkr_stock_view';
-  let view = (function(){ try{ return localStorage.getItem(VKEY)==='list' ? 'list' : 'shelf'; }catch(e){ return 'shelf'; } })();
-  const viewSwitch = ()=> `<div class="viewswitch" role="group" aria-label="How to show stock">
-      <button class="${view==='shelf'?'on':''}" data-view="shelf">${MKR.ui.icon('inbox')}Shelf</button>
-      <button class="${view==='list'?'on':''}" data-view="list">${MKR.ui.icon('list')}List</button>
-    </div>`;
-
   async function render(c){
-    // Any re-render tears the shelf's basket bar down; the shelf puts this back
-    // when it draws one again.
-    document.body.classList.remove('gv-basket');
     c.innerHTML = `
       <div class="section-head"><div><h2>Stock &amp; costs</h2><p>Ingredients and tools · what you hold, what it cost, who you buy it from</p></div>
         <div class="row gap8 wrap" id="stockActions"></div></div>
@@ -95,7 +82,7 @@ window.MKR = window.MKR || {};
     // buttons of equal weight wrapping over two rows told the owner nothing
     // about which one they open every day (Add items) and which one they open
     // once a month (Export CSV).
-    actions.innerHTML = `${viewSwitch()}
+    actions.innerHTML = `
       <button class="btn btn-dark btn-sm" id="stkAdd" data-new>${MKR.ui.icon('plus')} Add items</button>
       <details class="omenu"><summary class="btn btn-ghost btn-sm" aria-label="More stock actions">${MKR.ui.icon('dots')}</summary>
         <div class="omenu-pop">
@@ -104,12 +91,6 @@ window.MKR = window.MKR || {};
           <button id="stkCsv">${MKR.ui.icon('download')} Export CSV</button>
         </div>
       </details>`;
-
-    U.qsa('[data-view]',actions).forEach(b=> b.onclick = ()=>{
-      view = b.dataset.view;
-      try{ localStorage.setItem(VKEY, view); }catch(e){}
-      reload();
-    });
 
     // The icon is a separate argument, not baked into `title`: the title runs
     // through U.esc (and through the translator), and neither should be handed
@@ -131,13 +112,7 @@ window.MKR = window.MKR || {};
       <div>Until they do, stock value, forecast and dish costs are all working off zero.</div>
       </div><button class="btn btn-dark btn-sm" id="gapFix">Fill them in</button></div>` : '';
 
-    if(view==='shelf' && MKR.stockGame){
-      await MKR.stockGame.render(c, {rows, reload, onEdit:(r)=> itemModal(r, reload)});
-      // The shelf paints the whole pane itself, so the category bar goes back on
-      // top of it afterwards rather than being handed in.
-      c.insertAdjacentHTML('afterbegin', catBar + gapBar);
-    } else {
-      c.innerHTML = `${catBar}${gapBar}
+    c.innerHTML = `${catBar}${gapBar}
         <div class="statline">
           <span class="statcell"><b>${U.money(total)}</b><i>stock value</i></span>
           <span class="statcell"><b>${U.money(perish.reduce((t,r)=>t+r.value,0))}</b><i>perishable</i></span>
@@ -148,9 +123,8 @@ window.MKR = window.MKR || {};
         ${group('utensils', 'Non-perishable · tools & consumables', 'chopsticks, containers, gloves — counted, never expires', durable)}
         <div class="disclaimer mt16"><span>ℹ️</span>Amount = quantity × the last price you actually paid. Price trend compares your two most recent purchase prices for that item.</div>`;
 
-      U.qsa('[data-edit]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.edit); itemModal(r, reload); });
-      U.qsa('[data-hist]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.hist); historyModal(r); });
-    }
+    U.qsa('[data-edit]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.edit); itemModal(r, reload); });
+    U.qsa('[data-hist]',c).forEach(b=> b.onclick=()=>{ const r=rows.find(x=>x.id===b.dataset.hist); historyModal(r); });
 
     U.qsa('[data-cat]',c).forEach(b=> b.onclick = ()=>{
       cat = b.dataset.cat;
@@ -181,7 +155,7 @@ window.MKR = window.MKR || {};
       r.expiring ? '<span class="pill danger">Near expiry</span>' : '',
     ].join(' ');
     return `<tr>
-      <td><b>${U.esc(r.name)}</b> ${flags}<div class="faint" style="font-size:11.5px">reorder at ${r.safety} ${U.esc(r.unit||'')}${r.kind==='perishable'&&r.shelfLifeDays?` · ${r.shelfLifeDays}-day shelf life`:''}</div></td>
+      <td><span class="itm-nm">${r.photo?`<img class="itm-ph" src="${r.photo}" alt="">`:''}<b>${U.esc(r.name)}</b></span> ${flags}<div class="faint" style="font-size:11.5px">reorder at ${r.safety} ${U.esc(r.unit||'')}${r.kind==='perishable'&&r.shelfLifeDays?` · ${r.shelfLifeDays}-day shelf life`:''}</div></td>
       <td class="num">${r.qty}<small class="faint"> ${U.esc(r.unit||'')}</small></td>
       <td class="num">${U.money(r.price)}</td>
       <td class="num"><b>${U.money(r.value)}</b></td>
@@ -308,11 +282,27 @@ window.MKR = window.MKR || {};
           ${sups.map(s=>`<option value="${s.id}" ${r.supplierId===s.id?'selected':''}>${U.esc(s.name)}</option>`).join('')}
         </select></div>
         <div class="field grow"><label>Delivery lead time (days)</label><input class="input" id="i_lt" type="number" step="1" value="${r.leadTimeDays||2}"></div></div>
+      <div class="field"><label>Photo — optional</label>
+        <label class="img-drop"><div class="img-preview" id="i_phPrev">${r.photo?`<img src="${r.photo}">`:`<span>${MKR.ui.icon('camera')} Take a photo or pick one</span>`}</div>
+          <input type="file" id="i_ph" accept="image/*" hidden></label>
+        <button type="button" class="btn btn-ghost btn-sm mt8" id="i_phX" ${r.photo?'':'hidden'}>Remove photo</button></div>
       <div class="field" id="i_slWrap"><label>Shelf life (days) — perishable only</label><input class="input" id="i_sl" type="number" step="1" value="${r.shelfLifeDays||''}" placeholder="e.g. 5"></div>
       <div class="disclaimer"><span>${MKR.ui.icon('sparkle')}</span>Changing the unit price here records a price change, so it shows up in the ▲▼ trend.</div>
     </div>`);
     const syncKind=()=>{ U.qs('#i_slWrap',wrap).style.display = U.qs('#i_k',wrap).value==='perishable'?'':'none'; };
     U.qs('#i_k',wrap).onchange=syncKind; syncKind();
+
+    // A picture of the actual jar beats any name in a language the next person
+    // doesn't read — but it stays optional: nothing on this page needs it.
+    // 480px is plenty for a thumbnail and keeps the row small enough to sync.
+    let photo = r.photo || null;
+    const drawPhoto=()=>{
+      U.qs('#i_phPrev',wrap).innerHTML = photo ? `<img src="${photo}">`
+        : `<span>${MKR.ui.icon('camera')} Take a photo or pick one</span>`;
+      U.qs('#i_phX',wrap).hidden = !photo;
+    };
+    U.qs('#i_ph',wrap).onchange = (e)=> U.readImage(e.target.files[0], (d)=>{ photo=d; drawPhoto(); }, 480);
+    U.qs('#i_phX',wrap).onclick = ()=>{ photo=null; drawPhoto(); };
 
     // The pack never becomes a second unit of account — it only changes what the
     // back door is allowed to type. Say that in the form, because an owner who
@@ -341,7 +331,7 @@ window.MKR = window.MKR || {};
       const price=Number(U.qs('#i_p',wrap).value)||0;
       const kind=U.qs('#i_k',wrap).value;
       const patch={
-        id:r.id, name, kind, unit:U.qs('#i_u',wrap).value.trim()||'units',
+        id:r.id, name, kind, photo, unit:U.qs('#i_u',wrap).value.trim()||'units',
         qty:Number(U.qs('#i_q',wrap).value)||0, safety:Number(U.qs('#i_s',wrap).value)||0,
         price, supplierId:U.qs('#i_sup',wrap).value||null,
         leadTimeDays:Number(U.qs('#i_lt',wrap).value)||2,
@@ -1205,7 +1195,7 @@ window.MKR = window.MKR || {};
     };
     const wrap = U.el(`<div>
       <div class="list">${list.map(x=>{ const o=ordered(x), r=x.r; return `<div class="li">
-        <div class="ds-li-ic">${MKR.stockGame?MKR.stockGame.emojiFor(r):MKR.ui.icon('box')}</div>
+        <div class="ds-li-ic">${r.photo?`<img class="itm-ph" src="${r.photo}" alt="">`:S().emojiFor(r)}</div>
         <div class="meta"><b>${U.esc(r.name)} · ${o.packs?plural(o.packs,U.esc(o.label)):`${o.qty} ${U.esc(r.unit||'')}`}</b>
           <span>${o.packs?`${o.qty} ${U.esc(r.unit||'')} · `:''}${r.cover!=null?`${r.cover.toFixed(1)} days left`:'no usage data yet'} · last paid ${U.money(r.price)}</span></div>
         <b>${U.money(S().lineAmount(o.qty,r.price))}</b></div>`; }).join('')}</div>

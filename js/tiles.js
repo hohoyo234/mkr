@@ -121,7 +121,7 @@ window.MKR = window.MKR || {};
   // — otherwise the kitchen's 5 jobs show on the floor and nowhere here.
   const badgeOf = (t, badges)=> badges[t.badgeKey || t.id];
 
-  function tileHtml(t, badge, editing){
+  function tileHtml(t, badge, editing, art){
     const label = U.esc(t.label);
     const tone  = MKR.ui.tone(t.icon);
     const state = MKR.ui.tier(badge, URGENT.includes(t.id));
@@ -129,13 +129,18 @@ window.MKR = window.MKR || {};
     // is not a status anyone can read in a hurry, or at all if they can't see it.
     const line  = badge ? `${badge} ${SUBS[t.id] || 'waiting'}` : 'All clear';
     const aria  = `${label} — ${line}`;
-    return `<a class="tile t-${tone} is-${state}" data-tile="${t.id}" ${editing?'':`href="${t.href}"`} aria-label="${aria}">
-      ${editing?`<button class="tile-x" data-off="${t.id}" aria-label="Take ${label} off the home screen">${MKR.ui.icon('minus')}</button>`:''}
+    // The picture is a background, never an <img>: it sits behind the number,
+    // and a block with no picture must look exactly like it does today.
+    return `<a class="tile t-${tone} is-${state}${art?' has-art':''}" data-tile="${t.id}" ${editing?'':`href="${t.href}"`}
+      ${art?`style="--art:url('${art}')"`:''} aria-label="${aria}">
+      ${editing?`<button class="tile-x" data-off="${t.id}" aria-label="Take ${label} off the home screen">${MKR.ui.icon('minus')}</button>
+        <button class="tile-cam" data-art="${t.id}" aria-label="Choose a picture for ${label}">${MKR.ui.icon('camera')}</button>
+        ${art?`<button class="tile-cam tile-artx" data-artx="${t.id}" aria-label="Remove the picture on ${label}">${MKR.ui.icon('trash')}</button>`:''}`:''}
       <span class="tile-ic">${iconOf(t)}</span>
       <span class="tile-label">${label}</span>
       ${badge
         ? `<b class="tile-n">${badge}</b><span class="tile-unit">${U.esc(SUBS[t.id]||'waiting')}</span>`
-        : `<span class="tile-clear">${MKR.ui.icon('checkcircle')}All clear</span>`}
+        : `<b class="tile-n tile-ok">All clear</b>`}
       ${editing?'':`<span class="tile-go" aria-hidden="true">›</span>`}
     </a>`;
   }
@@ -143,22 +148,24 @@ window.MKR = window.MKR || {};
   // The four counts under the blocks. Same numbers, said the other way round:
   // the blocks are "what needs you", these are "what today looks like".
   const SNAP = [
-    {k:'takings',    label:'Takings today',       tone:'green', money:true, href:(r)=>`#/${r}/takings`},
-    {k:'tasks',      label:'Tasks due today',     tone:'blue',  href:(r)=>r==='owner'?'#/manager/tasks':'#/manager/tasks'},
-    {k:'deliveries', label:'Upcoming deliveries', tone:'green', href:(r)=>`#/${r}/deliveries`},
-    {k:'expiring',   label:'Expiring items',      tone:'amber', href:(r)=>`#/${r}/stock`},
-    {k:'onShift',    label:'Team on shift',       tone:'violet',href:()=>'#/manager/schedule'},
+    {k:'takings',    label:'Takings today',       tone:'green', icon:'receipt', money:true, href:(r)=>`#/${r}/takings`},
+    {k:'tasks',      label:'Tasks due today',     tone:'blue',  icon:'checksq', href:(r)=>r==='owner'?'#/manager/tasks':'#/manager/tasks'},
+    {k:'deliveries', label:'Deliveries today',    tone:'green', icon:'truck',   href:(r)=>`#/${r}/deliveries`},
+    {k:'expiring',   label:'Expiring items',      tone:'amber', icon:'box',     href:(r)=>`#/${r}/stock`},
+    {k:'onShift',    label:'Team on shift',       tone:'violet',icon:'users',   href:()=>'#/manager/schedule'},
   ];
   function panelsHtml(role, snap){
     if(!snap) return '';
     const quick = QUICK[role] || [];
     return `<div class="home-panels">
       <div class="panel">
-        <div class="panel-head">Today's snapshot</div>
-        ${SNAP.map(r=>`<a class="snap-row t-${r.tone}" href="${r.href(role)}">
-          <i class="snap-dot"></i><span>${r.label}</span>
-          <b class="snap-n">${r.money ? U.money0(snap[r.k]||0) : (snap[r.k]||0)}</b>
-          <span class="snap-go" aria-hidden="true">›</span></a>`).join('')}
+        <div class="panel-head">Today's overview</div>
+        <div class="ov-grid">
+          ${SNAP.map(r=>`<a class="ov t-${r.tone}" href="${r.href(role)}">
+            <span class="ov-ic">${MKR.ui.icon(r.icon)}</span>
+            <span class="ov-body"><span class="ov-label">${r.label}</span>
+              <b class="ov-n">${r.money ? U.money0(snap[r.k]||0) : (snap[r.k]||0)}</b></span></a>`).join('')}
+        </div>
       </div>
       ${quick.length ? `<div class="panel">
         <div class="panel-head">Quick actions</div>
@@ -181,12 +188,22 @@ window.MKR = window.MKR || {};
 
     // The venue signs its own home screen. Its name already carries the branch
     // ("My Kitchen · Melbourne"), so there is nothing to join on to.
-    let venue = '';
+    let venue = '', kid = null;
+    // The venue's own pictures: one behind the greeting, one per block. Stored
+    // on the kitchen record, so every device in the venue gets the same home
+    // screen — unlike the block LAYOUT, which is per device on purpose.
+    let art = {hero:null, tiles:{}};
     try{
       const sess = MKR.auth.current();
-      const k = sess && sess.kitchenId ? await MKR.db.get('kitchens', sess.kitchenId) : null;
+      kid = sess && sess.kitchenId ? sess.kitchenId : null;
+      const k = kid ? await MKR.db.get('kitchens', kid) : null;
       venue = (k && k.name) || ((await MKR.db.meta('brand'))||{}).name || '';
+      if(k && k.homeArt) art = {hero:k.homeArt.hero||null, tiles:{...(k.homeArt.tiles||{})}};
     }catch(e){}
+    async function saveArt(){
+      if(!kid) return;                    // preview mode has no venue to save to
+      await MKR.db.put('kitchens', {id:kid, homeArt:art});
+    }
 
     // The numbers on the blocks are the whole point of this screen, and they
     // were counted once when it was drawn. A delivery that lands while the home
@@ -211,19 +228,21 @@ window.MKR = window.MKR || {};
       const mins = Math.max(1, Math.round(total*1.5));
       host.innerHTML = `
         <div class="tiles-wrap${editing?' tiles-edit':''}">
-          <div class="tiles-head">
+          <div class="tiles-head${art.hero?' has-hero':''}"${art.hero?` style="--hero:url('${art.hero}')"`:''}>
             <div>
               <h2>${editing ? 'Arrange your blocks' : MKR.gameMap ? MKR.gameMap.greeting() : 'Hello'}</h2>
               ${editing
-                ? `<p class="fp-count">Drag to move · − to take one off</p>`
+                ? `<p class="fp-count">Drag to move · − to take one off · ${MKR.ui.icon('camera')} to set a picture</p>`
                 : total
                 ? `<p class="fp-count">${total} thing${total===1?'':'s'} waiting on you · about ${mins} minute${mins===1?'':'s'}</p>`
                 : `<p class="fp-count">Nothing is waiting on you. Go and run your restaurant.</p>`}
             </div>
+            ${editing?`<button class="btn btn-ghost btn-sm" data-art="hero">${MKR.ui.icon('camera')} ${art.hero?'Change':'Add'} banner</button>
+              ${art.hero?`<button class="btn btn-ghost btn-sm" data-artx="hero">${MKR.ui.icon('trash')}</button>`:''}`:''}
             <button class="btn ${editing?'btn-dark':'btn-ghost'} btn-sm" id="tilesEdit">${editing?'Done':'Edit'}</button>
           </div>
           <div class="tiles-grid" id="tilesGrid">
-            ${tiles.map(t=>tileHtml(t, badgeOf(t, badges), editing)).join('')}
+            ${tiles.map(t=>tileHtml(t, badgeOf(t, badges), editing, art.tiles[t.id])).join('')}
             ${editing?`<button class="tile tile-add" id="tileAdd" aria-label="Add a block"><span class="tile-ic">${MKR.ui.icon('plus')}</span><span class="tile-label">Add</span></button>`:''}
           </div>
           ${tiles.length?'':`<div class="tiles-empty">No blocks yet — hit Edit and add the pages you open most.</div>`}
@@ -244,6 +263,35 @@ window.MKR = window.MKR || {};
         e.stopPropagation();
         ids = ids.filter(x=>x!==b.dataset.off);
         writeLayout(role, ids); draw();
+      });
+
+      // One hidden file input for every camera button on the screen: which slot
+      // it lands in is whatever was tapped last.
+      U.qsa('[data-art]', host).forEach(b=> b.onclick = (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const slot = b.dataset.art;
+        const input = U.el('<input type="file" accept="image/*" hidden>');
+        document.body.appendChild(input);
+        input.onchange = ()=>{
+          const f = input.files[0]; input.remove();
+          if(!f) return;
+          // The banner is a band across the top; a block's picture is a
+          // watermark the size of a thumbnail. Sizing them the same would put
+          // half a megabyte on the kitchen record for no visible difference.
+          U.readImage(f, async(data)=>{
+            if(slot==='hero') art.hero = data; else art.tiles[slot] = data;
+            await saveArt(); U.toast('Picture saved','green'); draw();
+          }, slot==='hero' ? 1200 : 240);
+        };
+        input.click();
+      });
+      // Long-press-free way back out: the same button clears it when held is a
+      // hidden gesture, so removal is its own (edit-mode only) control.
+      U.qsa('[data-artx]', host).forEach(b=> b.onclick = async(e)=>{
+        e.preventDefault(); e.stopPropagation();
+        const slot = b.dataset.artx;
+        if(slot==='hero') art.hero = null; else delete art.tiles[slot];
+        await saveArt(); U.toast('Picture removed','amber'); draw();
       });
 
       const add = U.qs('#tileAdd', host);
@@ -295,7 +343,7 @@ window.MKR = window.MKR || {};
 
       U.qsa('.tile[data-tile]', grid).forEach(el=>{
         el.addEventListener('pointerdown', (e)=>{
-          if(e.target.closest('.tile-x')) return;
+          if(e.target.closest('.tile-x, .tile-cam')) return;
           drag = {el, moved:false};
           window.addEventListener('pointermove', onMove);
           window.addEventListener('pointerup', onEnd);

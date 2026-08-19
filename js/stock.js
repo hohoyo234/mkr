@@ -49,6 +49,41 @@ window.MKR = window.MKR || {};
   async function stocktakes(){ return (await mineOf('stocktakes')).sort((a,b)=>(b.ts||0)-(a.ts||0)); }
   async function wastes(){ return (await mineOf('waste')).sort((a,b)=>(b.ts||0)-(a.ts||0)); }
 
+  // ---------- one glance = one picture ----------
+  // Names are typed by the owner in whatever language they think in, so match
+  // English and Chinese both. Falls back to the item kind.
+  const EM = [
+    [/tomato|番茄|西红柿/i,'🍅'], [/potato|土豆|薯仔/i,'🥔'], [/onion|洋葱/i,'🧅'],
+    [/garlic|大蒜|蒜/i,'🧄'], [/carrot|胡萝卜/i,'🥕'], [/ginger|生姜|姜/i,'🫚'],
+    [/lettuce|cabbage|salad|greens|白菜|生菜|青菜|菜心/i,'🥬'], [/mushroom|蘑菇|香菇/i,'🍄'],
+    [/chilli|chili|pepper|capsicum|辣椒|青椒/i,'🌶️'], [/cucumber|黄瓜/i,'🥒'],
+    [/corn|玉米/i,'🌽'], [/broccoli|西兰花/i,'🥦'], [/eggplant|aubergine|茄子/i,'🍆'],
+    [/avocado|牛油果/i,'🥑'], [/lemon|lime|柠檬/i,'🍋'], [/apple|苹果/i,'🍎'],
+    [/beef|steak|牛肉|牛排/i,'🥩'], [/pork|bacon|猪肉|培根|五花/i,'🥓'],
+    [/chicken|poultry|鸡肉|鸡/i,'🍗'], [/lamb|羊肉/i,'🍖'], [/duck|鸭/i,'🦆'],
+    [/fish|salmon|鱼|三文鱼/i,'🐟'], [/prawn|shrimp|虾/i,'🍤'], [/squid|calamari|鱿鱼/i,'🦑'],
+    [/crab|蟹/i,'🦀'], [/oyster|scallop|蚝|生蚝|扇贝/i,'🦪'],
+    [/egg|鸡蛋|蛋/i,'🥚'], [/milk|cream|牛奶|奶油|淡奶/i,'🥛'], [/cheese|芝士|奶酪/i,'🧀'],
+    [/butter|黄油/i,'🧈'], [/tofu|豆腐/i,'🍢'],
+    // noodles before rice: "rice noodles" is a noodle, not a bowl of rice
+    [/noodle|udon|ramen|vermicelli|面条|拉面|米粉|河粉/i,'🍜'], [/pasta|spaghetti|意面/i,'🍝'],
+    [/rice|米|饭/i,'🍚'],
+    [/flour|面粉/i,'🌾'], [/bread|bun|toast|面包|馒头/i,'🍞'], [/dumpling|饺子|包子/i,'🥟'],
+    [/oil|油/i,'🫒'], [/soy|sauce|vinegar|酱油|醋|酱/i,'🍶'], [/salt|盐/i,'🧂'],
+    [/sugar|糖/i,'🍬'], [/honey|蜂蜜/i,'🍯'], [/spice|powder|香料|粉/i,'🫙'],
+    [/wine|酒/i,'🍷'], [/beer|啤酒/i,'🍺'], [/coffee|咖啡/i,'☕'], [/tea|茶/i,'🍵'],
+    [/water|水/i,'💧'], [/ice|冰/i,'🧊'],
+    [/chopstick|筷/i,'🥢'], [/glove|手套/i,'🧤'], [/container|box|takeaway|打包|餐盒|盒/i,'🥡'],
+    [/bag|袋/i,'🛍️'], [/napkin|tissue|paper|纸巾|纸/i,'🧻'], [/clean|detergent|soap|清洁|洗洁精/i,'🧴'],
+    [/foil|wrap|保鲜膜|锡纸/i,'🧾'], [/cup|杯/i,'🥤'], [/plate|bowl|碟|碗|盘/i,'🍽️'],
+    [/knife|刀/i,'🔪'], [/towel|sponge|抹布|海绵/i,'🧽'], [/straw|吸管/i,'🥤'],
+  ];
+  function emojiFor(r){
+    const n = String(r.name||'');
+    for(const [re, em] of EM) if(re.test(n)) return em;
+    return (KIND[r.kind]||{}).em || '📦';
+  }
+
   async function saveItem(p){
     const row = {
       kind:'perishable', unit:'kg', qty:0, safety:0, price:0, priceHistory:[],
@@ -673,7 +708,7 @@ window.MKR = window.MKR || {};
     overview, usageOf, usageIntervals, saveWaste, wasteSince,
     reconciliations, statementFor, statementPeriods, saveReconciliation, periodOf,
     recipes, saveRecipe, dishCost, gstSettings, setGstInc, exGst,
-    saveItem, removeItem, savePurchase, saveStocktake, shrinkSince, priceWatch, previousPrice,
+    saveItem, removeItem, emojiFor, savePurchase, saveStocktake, shrinkSince, priceWatch, previousPrice,
     priceMove, moveBadge, itemValue, lineAmount, totalValue, scanWarnings,
     packSizeOf, packLabelOf, packHint, packLine, unitOf,
     categories, saveCategories, renameCategory, moveToCategory,

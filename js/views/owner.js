@@ -63,12 +63,12 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     home:'dashboard',
     nav:[
       {id:'dashboard', label:'Dashboard', short:'Dash'},
-      {id:'assistant', label:'AI Assistant', short:'AI',        feature:'o_assistant'},
-      {id:'takings',   label:'Takings', short:'Takings'},
+      {id:'tasks',     label:'Daily tasks', short:'Tasks',     feature:'tasks'},
       {id:'stock',     label:'Stock & costs', short:'Stock',     feature:'stock'},
       {id:'deliveries',label:'Deliveries', short:'Delivery',  feature:'deliveries'},
+      {id:'calendar',  label:'Calendar', short:'Calendar'},
+      {id:'takings',   label:'Takings', short:'Takings'},
       {id:'training',  label:'Training & SOP',short:'Training',  feature:'training'},
-      {id:'tasks',     label:'Daily tasks', short:'Tasks',     feature:'tasks'},
       {id:'alerts',    label:'Alerts', short:'Alerts'},
       {id:'team',      label:'Team', short:'Team',      feature:'o_team'},
       {id:'hire',      label:'Add people', short:'Add',       feature:'hire'},
@@ -87,11 +87,16 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       return b;
     },
     async view(section,c,arg){
-      // First-run setup gate: a freshly-approved owner must add a logo + pick features.
+      // First-run setup gate. Nothing else in the owner portal opens until the
+      // form is finished — that form IS the venue's data, and every page behind
+      // it reads zeroes without it. `!== true` on purpose: a kitchen row that
+      // never got the flag (or hasn't synced down yet) is not a set-up venue,
+      // and treating "missing" as "done" is how an owner ends up inside an
+      // empty app wondering which page to fill in first.
       const sess=MKR.auth.current();
       if(sess && sess.role==='owner' && sess.kitchenId){
         const k=await MKR.db.get('kitchens', sess.kitchenId);
-        if(k && k.setupComplete===false && section!=='setup') return setupWizard(c, k);
+        if((!k || k.setupComplete!==true) && section!=='setup') return setupWizard(c, k);
       }
       if(section==='setup') return setupWizard(c, sess && sess.kitchenId ? await MKR.db.get('kitchens', sess.kitchenId) : null);
       if(section==='dashboard') return dashboard(c);
@@ -104,6 +109,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='takings') return MKR.takings.render(c);
       if(section==='stock') return MKR.stock.render(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
+      if(section==='calendar') return MKR.calendar.render(c);
       if(section==='training') return MKR.training.renderManage(c);
       // Rendered by the manager module, not reimplemented here — see the note
       // on MKR.portals.manager.renderTasks.
@@ -115,32 +121,172 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
     }
   };
 
-  // ---------- First-run owner setup wizard (logo + feature selection) ----------
+  // ---------- First-run owner setup ----------
+  // The one form a new owner fills in before the app is theirs. Everything on it
+  // is something the app needs to stop showing zeroes: the venue, the people,
+  // who you buy from, and what you keep on the shelf. Filling it in IS the
+  // setup — each block writes real records, so the team page, the supplier list
+  // and the stock page are already populated the first time they're opened.
+  //
+  // Nothing here is compulsory except the venue's name. A row left blank is
+  // skipped, and every page can still add its own later.
+  const ROLES = [['staff','Staff'],['manager','Manager']];
+
+  // A small repeating block of inputs. Three of these on the page, all the same
+  // shape, so there is one way to add a row and one way to read them back.
+  function repeater(host, cols, rows){
+    const rowHtml = (r={})=> `<div class="rep-row row gap6 wrap">
+      ${cols.map(c=> c.opts
+        ? `<select class="input ${c.grow===false?'':'grow'}" data-k="${c.k}">${
+            c.opts.map(([v,l])=>`<option value="${v}" ${r[c.k]===v?'selected':''}>${l}</option>`).join('')}</select>`
+        : `<input class="input ${c.grow===false?'':'grow'}" data-k="${c.k}" type="${c.type||'text'}"
+             ${c.step?`step="${c.step}"`:''} value="${U.esc(r[c.k]||'')}" placeholder="${U.esc(c.ph||'')}"
+             ${c.grow===false?'style="max-width:110px"':''}>`).join('')}
+      <button type="button" class="btn btn-ghost btn-sm rep-x" aria-label="Remove this row">${MKR.ui.icon('minus')}</button>
+    </div>`;
+    const bind = (el)=>{ U.qs('.rep-x',el).onclick = ()=>{
+      if(U.qsa('.rep-row',host).length>1) el.remove(); else U.qsa('[data-k]',el).forEach(i=>{ i.value=''; });
+    }; };
+    host.innerHTML = (rows&&rows.length?rows:[{}]).map(rowHtml).join('')
+      + `<button type="button" class="btn btn-ghost btn-sm mt8 rep-add">${MKR.ui.icon('plus')} Add another</button>`;
+    U.qsa('.rep-row',host).forEach(bind);
+    const add = (r, focus)=>{
+      const el = U.el(rowHtml(r)); U.qs('.rep-add',host).before(el); bind(el);
+      if(focus){ const first = U.qs('[data-k]',el); if(first) first.focus(); }
+      return el;
+    };
+    U.qs('.rep-add',host).onclick = ()=> add(undefined, true);
+    const read = ()=> U.qsa('.rep-row',host).map(el=>{
+      const o={}; U.qsa('[data-k]',el).forEach(i=> o[i.dataset.k] = i.value.trim());
+      return o;
+    });
+    // A blank first row is a placeholder, not data — fill it before adding one.
+    const put = (r)=>{
+      // A <select> always has a value, so only the typed fields decide whether
+      // a row is still blank — otherwise the first row is never reused and the
+      // AI's first find always lands under an empty one.
+      const empty = U.qsa('.rep-row',host).find(el=>
+        U.qsa('[data-k]',el).filter(i=>i.tagName!=='SELECT').every(i=>!i.value.trim()));
+      const el = empty || add();
+      U.qsa('[data-k]',el).forEach(i=>{ if(r[i.dataset.k]!=null && r[i.dataset.k]!=='') i.value = r[i.dataset.k]; });
+    };
+    return {read, put};
+  }
+
   async function setupWizard(c, kitchen){
     const sess=MKR.auth.current();
     kitchen = kitchen || {id:sess&&sess.kitchenId, name:'Your restaurant'};
     const mods = await MKR.features.load();
     const work = JSON.parse(JSON.stringify(mods));
+    const oh = kitchen.operatingHours || {};
     let logo = kitchen.logo || null;
+
     c.innerHTML=`
       <div class="section-head"><div><h2>Welcome — let's set up ${U.esc(kitchen.name||'your restaurant')}</h2>
-        <p>Two quick steps: add your logo, then choose the features you want. You can change these later in Settings.</p></div></div>
-      <div class="grid g2" style="align-items:start">
-        <div class="card" style="padding:22px">
-          <div class="section-title">1 · Restaurant logo</div>
-          <p class="muted" style="font-size:13px;margin-bottom:10px">Your logo appears on the sign-in page and in every portal.</p>
-          <label class="img-drop"><div class="img-preview" id="logoPrev">${logo?`<img src="${logo}">`:`<span>${MKR.ui.icon('camera')} Tap to upload your logo</span>`}</div><input type="file" id="logoFile" accept="image/*" hidden></label>
-          <div class="field mt12"><label>Display name</label><input class="input" id="setName" value="${U.esc(kitchen.name||'')}"></div>
-        </div>
-        <div class="card" style="padding:22px">
-          <div class="section-title">2 · Choose your features</div>
-          <p class="muted" style="font-size:13px;margin-bottom:10px">Tick the modules you want. Unticked ones are hidden from your team.</p>
-          <div id="featList"></div>
+        <p>Fill this in once and the app is yours: your venue, your people, your suppliers, your shelf. Everything here can be changed later.</p></div></div>
+
+      <div class="card mt16" style="padding:18px 22px">
+        <div class="row gap12 wrap center">
+          <div class="grow" style="min-width:240px">
+            <b style="font-size:15px">${MKR.ui.icon('sparkle')} Have it on paper? Photograph it.</b>
+            <div class="faint" style="font-size:13px;margin-top:2px">A menu, a business card, a supplier invoice, the staff list on the wall — the AI reads it and fills in what it can see below. Check it before you finish; it fills blanks, it never overwrites what you typed.</div>
+          </div>
+          <label class="btn btn-dark btn-sm" style="flex:none;cursor:pointer" id="aiPickWrap">
+            ${MKR.ui.icon('camera')} <span id="aiPickTxt">Read a photo</span>
+            <input type="file" id="aiPick" accept="image/*" hidden></label>
         </div>
       </div>
+
+      <div class="card mt16" style="padding:22px">
+        <div class="section-title">1 · Your restaurant</div>
+        <div class="grid g2" style="align-items:start">
+          <div>
+            <label class="img-drop"><div class="img-preview" id="logoPrev">${logo?`<img src="${logo}">`:`<span>${MKR.ui.icon('camera')} Tap to upload your logo</span>`}</div><input type="file" id="logoFile" accept="image/*" hidden></label>
+            <p class="muted" style="font-size:12.5px;margin-top:8px">Your logo appears on the sign-in page and in every portal.</p>
+          </div>
+          <div>
+            <div class="field"><label>Restaurant name</label><input class="input" id="setName" value="${U.esc(kitchen.name||'')}" placeholder="e.g. Noodle House"></div>
+            <div class="row"><div class="field grow"><label>Suburb / branch</label><input class="input" id="setLoc" value="${U.esc(kitchen.location||'')}" placeholder="e.g. Melbourne CBD"></div>
+              <div class="field grow"><label>Phone</label><input class="input" id="setPhone" value="${U.esc(kitchen.phone||'')}"></div></div>
+            <div class="row"><div class="field grow"><label>Email</label><input class="input" id="setEmail" type="email" value="${U.esc(kitchen.email||'')}"></div>
+              <div class="field grow"><label>Opens</label><input class="input" id="setOpen" type="time" value="${U.esc(oh.open||'09:00')}"></div>
+              <div class="field grow"><label>Closes</label><input class="input" id="setClose" type="time" value="${U.esc(oh.close||'22:00')}"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt16" style="padding:22px">
+        <div class="section-title">2 · Who works here</div>
+        <p class="muted" style="font-size:13px;margin-bottom:10px">Names go straight onto the roster and the task lists. Their logins are made later under Add people, one at a time, so each person gets their own password.</p>
+        <div id="setTeam"></div>
+      </div>
+
+      <div class="card mt16" style="padding:22px">
+        <div class="section-title">3 · Who you buy from</div>
+        <p class="muted" style="font-size:13px;margin-bottom:10px">Just enough to ring them. Delivery days, cut-offs and account numbers live on the Suppliers page when you need them.</p>
+        <div id="setSup"></div>
+      </div>
+
+      <div class="card mt16" style="padding:22px">
+        <div class="section-title">4 · What you keep in stock</div>
+        <p class="muted" style="font-size:13px;margin-bottom:10px">The things you reorder every week. Price is what you last paid per unit — it's what makes stock value and dish costs real numbers instead of zero.</p>
+        <div id="setStock"></div>
+      </div>
+
+      <div class="card mt16" style="padding:22px">
+        <div class="section-title">5 · Choose your features</div>
+        <p class="muted" style="font-size:13px;margin-bottom:10px">Tick the modules you want. Unticked ones are hidden from your team.</p>
+        <div id="featList"></div>
+      </div>
+
       <div class="row gap8 mt16" style="max-width:560px"><button class="btn btn-dark grow" id="finishSetup">${MKR.ui.icon('checkcircle')} Finish setup</button></div>
-      <div class="disclaimer mt12"><span>ℹ️</span>You can revisit Settings anytime to toggle features or switch language.</div>`;
+      <div class="disclaimer mt12"><span>ℹ️</span>Leave any row blank and it's skipped. You can revisit Settings anytime to toggle features or switch language.</div>`;
+
     U.qs('#logoFile',c).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{ logo=data; U.qs('#logoPrev',c).innerHTML=`<img src="${logo}">`; });
+
+    const team  = repeater(U.qs('#setTeam',c), [
+      {k:'name', ph:'Name'}, {k:'role', opts:ROLES, grow:false}, {k:'position', ph:'Job — e.g. Chef, Floor'}, {k:'phone', ph:'Phone'}]);
+    const sups  = repeater(U.qs('#setSup',c), [
+      {k:'name', ph:'Business — e.g. Vic Fresh Produce'}, {k:'contact', ph:'Who you ring'}, {k:'phone', ph:'Phone'}]);
+    const stock = repeater(U.qs('#setStock',c), [
+      {k:'name', ph:'Item — e.g. Tomatoes'}, {k:'unit', ph:'kg / box', grow:false},
+      {k:'price', ph:'Unit price', type:'number', step:'0.01', grow:false},
+      {k:'safety', ph:'Reorder at', type:'number', step:'0.01', grow:false}]);
+
+    // ---- Photograph the paperwork, let the AI type it in ----
+    // The shape asked for is the shape of this form, so filling it is a copy,
+    // not a mapping. Blanks only: anything already typed is the owner's.
+    const WANT = `{"restaurant":{"name":"","location":"","phone":"","email":"","open":"HH:MM","close":"HH:MM"},
+ "team":[{"name":"","role":"staff|manager","position":"","phone":""}],
+ "suppliers":[{"name":"","contact":"","phone":""}],
+ "stock":[{"name":"","unit":"","price":0,"safety":0}]}`;
+    const setIfBlank = (sel, v)=>{ const el=U.qs(sel,c); if(el && v!=null && v!=='' && !el.value.trim()){ el.value=v; return 1; } return 0; };
+    U.qs('#aiPick',c).onchange = (ev)=>{
+      const f = ev.target.files[0]; if(!f) return;
+      const txt = U.qs('#aiPickTxt',c);
+      txt.textContent = 'Reading…';
+      // 800px: the vision endpoint rejects big inline images, and a menu is
+      // still legible at that size.
+      U.readImage(f, async(dataUrl)=>{
+        const got = await MKR.assistant.readImage(dataUrl, WANT);
+        ev.target.value = '';
+        txt.textContent = 'Read a photo';
+        const r = got.restaurant || {};
+        let n = 0;
+        n += setIfBlank('#setName', r.name);
+        n += setIfBlank('#setLoc', r.location);
+        n += setIfBlank('#setPhone', r.phone);
+        n += setIfBlank('#setEmail', r.email);
+        n += setIfBlank('#setOpen', /^\d{2}:\d{2}$/.test(r.open||'') ? r.open : '');
+        n += setIfBlank('#setClose', /^\d{2}:\d{2}$/.test(r.close||'') ? r.close : '');
+        (got.team||[]).slice(0,20).forEach(x=>{ if(x&&x.name){ team.put({name:x.name, role:x.role==='manager'?'manager':'staff', position:x.position||'', phone:x.phone||''}); n++; } });
+        (got.suppliers||[]).slice(0,20).forEach(x=>{ if(x&&x.name){ sups.put({name:x.name, contact:x.contact||'', phone:x.phone||''}); n++; } });
+        (got.stock||[]).slice(0,40).forEach(x=>{ if(x&&x.name){ stock.put({name:x.name, unit:x.unit||'', price:x.price||'', safety:x.safety||''}); n++; } });
+        U.toast(n ? `AI filled ${n} thing${n===1?'':'s'} — check them` : "Couldn't read anything from that photo — type it in",
+                n ? 'green' : 'amber');
+      }, 800);
+    };
+
     const fl=U.qs('#featList',c);
     fl.innerHTML=Object.keys(work).map(k=>{
       const m=work[k];
@@ -149,13 +295,46 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
         <div class="grow"><b>${U.esc(m.label)}</b><div class="faint" style="font-size:12px">for ${(m.roles||[]).join(', ')||'everyone'}</div></div></label>`;
     }).join('');
     U.qsa('[data-feat]',fl).forEach(ch=>ch.onchange=()=>{ work[ch.dataset.feat].on=ch.checked; });
-    U.qs('#finishSetup',c).onclick=async()=>{
+
+    U.qs('#finishSetup',c).onclick=async(e)=>{
+      const btn=e.currentTarget;
       const name=U.qs('#setName',c).value.trim()||kitchen.name;
-      await MKR.db.put('kitchens',{id:kitchen.id, name, logo, modules:work, setupComplete:true});
-      await MKR.features.save(work, kitchen.id);
+      if(!name){ U.toast('Your restaurant needs a name','red'); return; }
+      btn.disabled=true;
+      const kid = kitchen.id || 'k_main';
+      await MKR.db.put('kitchens',{id:kid, name, logo, modules:work, setupComplete:true,
+        location:U.qs('#setLoc',c).value.trim(), phone:U.qs('#setPhone',c).value.trim(),
+        email:U.qs('#setEmail',c).value.trim(),
+        operatingHours:{open:U.qs('#setOpen',c).value, close:U.qs('#setClose',c).value}});
+      await MKR.features.save(work, kid);
       await MKR.db.meta('brand', {name, avatar:logo});       // syncs logo to the login page
-      await MKR.audit.log({action:'settings.update', desc:'Completed restaurant setup'});
-      U.toast('Setup complete — welcome aboard','green');
+
+      // Available all week by default: an empty availability grid means the
+      // auto-roster has nobody it is allowed to place, which reads as a broken
+      // roster on day one.
+      const ALLWEEK = {0:'all',1:'all',2:'all',3:'all',4:'all',5:'all',6:'all'};
+      let people=0, supN=0, items=0;
+      for(const r of team.read()){
+        if(!r.name) continue;
+        await MKR.db.put('users',{id:U.uid('u'), role:r.role||'staff', name:r.name, position:r.position||'',
+          phone:r.phone||'', kitchenId:kid, status:'active', onboarded:false, employment:'casual',
+          availability:{...ALLWEEK}, createdAt:Date.now()});
+        people++;
+      }
+      for(const r of sups.read()){
+        if(!r.name) continue;
+        await MKR.db.put('suppliers',{id:U.uid('sup'), name:r.name, contact:r.contact||'', phone:r.phone||'', kitchenId:kid});
+        supN++;
+      }
+      for(const r of stock.read()){
+        if(!r.name) continue;
+        await MKR.stock.saveItem({name:r.name, unit:r.unit||'units', price:Number(r.price)||0,
+          safety:Number(r.safety)||0, kind:'perishable'});
+        items++;
+      }
+      await MKR.audit.log({action:'settings.update',
+        desc:`Completed restaurant setup — ${people} people, ${supN} suppliers, ${items} stock items`});
+      U.toast(`Setup complete — ${people} people, ${supN} suppliers, ${items} items added`,'green');
       location.hash='#/owner/dashboard'; MKR.router.render();
     };
   }
@@ -295,23 +474,24 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
   }
 
   // ---------- Switch view (owner is super admin, can preview any portal) ----------
+  // Three portals, three cards. It used to list seven shortcuts to particular
+  // pages, which answers "where do I go" — but the question this screen exists
+  // for is "what does my manager see", and that is a portal, not a page.
   function switchView(c){
-    const card=(href,em,title,desc)=>`<a class="card clickable" href="${href}" style="padding:22px;display:block">
-      <div style="font-size:30px">${em}</div><b style="font-size:17px;display:block;margin-top:8px">${title}</b>
+    const card=(href,ic,title,desc)=>`<a class="card clickable" href="${href}" style="padding:22px;display:block">
+      <div class="ds-ico">${MKR.ui.icon(ic)}</div>
+      <b style="font-size:17px;display:block;margin-top:10px">${title}</b>
       <span class="muted" style="font-size:13px">${desc}</span></a>`;
     c.innerHTML=`
-      <div class="section-head"><div><h2>Switch view</h2><p>The owner can preview any portal and see exactly what staff / managers see</p></div></div>
+      <div class="section-head"><div><h2>Switch view</h2><p>The owner can preview any portal and see exactly what managers and staff see</p></div></div>
       <div class="grid g3">
-        ${card('#/owner/dashboard','grid','Owner','Dashboard · your current portal')}
-        ${card('#/manager/schedule','calendar','Manager · Roster','AI rostering / warnings / add users')}
-        ${card('#/manager/stock','inbox','Stock & costs','Ingredients, tools, suppliers, purchases')}
-        ${card('#/manager/deliveries','receipt','Deliveries','Confirm what actually turned up')}
-        ${card('#/manager/training','book','Training & SOP','Write it once, assign it, track it')}
-        ${card('#/staff/my','calcheck','Staff · Shifts','Clock-in / availability / claim')}
-        ${card('#/staff/training','book','Staff · Training','What a new starter sees')}
+        ${card('#/owner/dashboard','grid','Owner','Where you are now — the whole venue')}
+        ${card('#/manager/schedule','users','Manager','Roster, tasks, stock, deliveries, adding people')}
+        ${card('#/staff/my','calcheck','Staff',"Shifts, clock-in, today's tasks, training")}
       </div>
       <div class="disclaimer mt16"><span>${MKR.ui.icon('eye')}</span>Inside another portal the top shows an "Owner preview" banner — tap "Back to Owner" to return.</div>`;
   }
+
 
   // ---------- Settings (feature switches + role permissions) ----------
   async function settings(c){
