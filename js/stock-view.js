@@ -67,6 +67,7 @@ window.MKR = window.MKR || {};
   async function stockTab(c, actions, reload){
     const all = await S().overview();
     const cats = await S().categories();
+    const sups = await S().suppliers();   // for the fill-in-the-blanks sheet
     // A category the owner deleted from the list but that items still point at
     // would otherwise make those items unreachable — no tab, and filtered out
     // of every other tab. Show it rather than hiding stock.
@@ -122,13 +123,21 @@ window.MKR = window.MKR || {};
           :`<div class="empty" style="padding:18px"><div class="em">${MKR.ui.icon('box')}</div><p>Nothing here yet</p></div>`}
       </div>`;
 
+    // Items that arrived as names only make every number on this page zero, so
+    // say it once, at the top, with the one button that fixes all of them.
+    const gapN = all.filter(r=>needsFilling(r, shelves.length>0)).length;
+    const gapBar = gapN ? `<div class="alert amber mt16" id="gapBar"><span>${MKR.ui.icon('pencil')}</span><div>
+      <b>${gapN} item${gapN===1?'':'s'} ${gapN===1?'has':'have'} no unit, price or shelf yet</b>
+      <div>Until they do, stock value, forecast and dish costs are all working off zero.</div>
+      </div><button class="btn btn-dark btn-sm" id="gapFix">Fill them in</button></div>` : '';
+
     if(view==='shelf' && MKR.stockGame){
       await MKR.stockGame.render(c, {rows, reload, onEdit:(r)=> itemModal(r, reload)});
       // The shelf paints the whole pane itself, so the category bar goes back on
       // top of it afterwards rather than being handed in.
-      c.insertAdjacentHTML('afterbegin', catBar);
+      c.insertAdjacentHTML('afterbegin', catBar + gapBar);
     } else {
-      c.innerHTML = `${catBar}
+      c.innerHTML = `${catBar}${gapBar}
         <div class="statline">
           <span class="statcell"><b>${U.money(total)}</b><i>stock value</i></span>
           <span class="statcell"><b>${U.money(perish.reduce((t,r)=>t+r.value,0))}</b><i>perishable</i></span>
@@ -150,6 +159,9 @@ window.MKR = window.MKR || {};
     });
     const editBtn = U.qs('#catEdit',c);
     if(editBtn) editBtn.onclick = ()=> categoryModal(shelves, all, reload);
+
+    const gapBtn = U.qs('#gapFix',c);
+    if(gapBtn) gapBtn.onclick = ()=> fillGapsModal(all, sups, shelves, reload);
 
     U.qs('#stkAdd',actions).onclick   = ()=> bulkAddModal(reload);
     U.qs('#stkCount',actions).onclick = ()=> stocktakeModal(rows, reload);
@@ -504,6 +516,64 @@ window.MKR = window.MKR || {};
           });
         }
         close(); U.toast(`${good.length} item${good.length===1?'':'s'} added`,'green'); after();
+      }},
+    ]});
+  }
+
+  // A venue whose items arrived as names only — pasted in, or imported from a
+  // menu — reads $0.00 everywhere: no unit, no price, no shelf. Every screen
+  // downstream (value, forecast, dish costs, food cost %) is then arithmetic on
+  // zero. Filling that in one item at a time is fifteen modals; this is one.
+  // A shelf only counts as missing when the venue has shelves to file into —
+  // otherwise a venue that never uses categories carries this banner forever.
+  const needsFilling = (r, hasShelves)=> !(+r.price>0) || !((r.unit||'').trim())
+    || (hasShelves && !((r.category||'').trim()));
+
+  function fillGapsModal(rows, sups, shelves, after){
+    const gaps = rows.filter(r=>needsFilling(r, shelves.length>0));
+    if(!gaps.length){ U.toast('Every item already has a unit, a price and a shelf','green'); return; }
+
+    const shelfOpts = (r)=> `<option value="">— Unfiled —</option>` +
+      shelves.map(x=>`<option value="${U.esc(x)}"${(r.category||'')===x?' selected':''}>${U.esc(x)}</option>`).join('');
+    const supOpts = (r)=> `<option value="">— no supplier —</option>` +
+      sups.map(x=>`<option value="${x.id}"${r.supplierId===x.id?' selected':''}>${U.esc(x.name)}</option>`).join('');
+
+    const wrap = U.el(`<div>
+      <p class="muted" style="font-size:13.5px">${gaps.length} item${gaps.length===1?'':'s'} ${gaps.length===1?'is':'are'} missing a unit, a price or a shelf. Anything you leave blank stays as it is — nothing here is compulsory.</p>
+      <p class="muted" style="font-size:12.5px">The price is what you last paid. If you'd rather not type it, record a delivery instead and it fills itself in.</p>
+      <div class="tablewrap mt12"><table class="dtable entry">
+        <thead><tr><th>Item</th><th style="width:88px">Unit</th><th class="num" style="width:104px">Price</th><th style="width:132px">Shelf</th><th style="width:150px">Supplier</th></tr></thead>
+        <tbody>${gaps.map(r=>`<tr>
+          <td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${U.esc(S().KIND[r.kind]?S().KIND[r.kind].label:'')} · ${r.qty} on hand</div></td>
+          <td><span class="cell-l">Unit</span><input class="input" data-fu="${r.id}" value="${U.esc((r.unit||'').trim())}" placeholder="kg"></td>
+          <td class="num"><span class="cell-l">Price</span><input class="input" type="number" min="0" step="0.01" data-fp="${r.id}" value="${+r.price>0?r.price:''}" placeholder="0.00" style="text-align:right"></td>
+          <td><span class="cell-l">Shelf</span><select class="input" data-fc="${r.id}">${shelfOpts(r)}</select></td>
+          <td><span class="cell-l">Supplier</span><select class="input" data-fs="${r.id}">${supOpts(r)}</select></td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`);
+
+    U.modal('Fill in the blanks', wrap, {wide:true, actions:[
+      {label:'Cancel', class:'btn-ghost', onClick:c=>c()},
+      {label:`Save ${gaps.length} item${gaps.length===1?'':'s'}`, class:'btn-dark', onClick:async(close)=>{
+        let n = 0;
+        for(const r of gaps){
+          const unit  = U.qs(`[data-fu="${r.id}"]`,wrap).value.trim();
+          const priceV= U.qs(`[data-fp="${r.id}"]`,wrap).value;
+          const cat   = U.qs(`[data-fc="${r.id}"]`,wrap).value;
+          const sup   = U.qs(`[data-fs="${r.id}"]`,wrap).value;
+          const price = priceV===''? null : Number(priceV);
+          if(price!=null && price<0){ U.toast(`${r.name}: a price can't be negative`,'red'); return; }
+          const patch = {id:r.id};
+          if(unit && unit!==(r.unit||'')) patch.unit = unit;
+          if(price!=null && price!==+r.price) patch.price = price;
+          if(cat !== (r.category||'')) patch.category = cat;
+          if(sup !== (r.supplierId||'')) patch.supplierId = sup || null;
+          if(Object.keys(patch).length>1){ await S().saveItem(patch); n++; }
+        }
+        close();
+        U.toast(n?`${n} item${n===1?'':'s'} filled in`:'Nothing changed','green');
+        if(after) after();
       }},
     ]});
   }
