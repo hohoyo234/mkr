@@ -327,6 +327,21 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .task-item.done{opacity:.7}
 .thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line)}
 
+/* A collapsible .alert: the marker sits inline with the headline so a folded
+   block reads as one line, not as a heading with a stray triangle. */
+details.alert>summary{display:flex;align-items:flex-start;gap:10px;cursor:pointer;list-style:none;
+  font-weight:600}
+details.alert>summary::-webkit-details-marker{display:none}
+details.alert>summary::after{content:'▸';margin-left:auto;opacity:.55;transition:transform .18s var(--ease-out)}
+details.alert[open]>summary::after{transform:rotate(90deg)}
+details.alert>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+.fc-how-body{margin-top:8px;padding-left:28px}
+details.disclaimer>summary{cursor:pointer;list-style:none}
+details.disclaimer>summary::-webkit-details-marker{display:none}
+details.disclaimer>summary::after{content:'▸';margin-left:6px;opacity:.55;display:inline-block;
+  transition:transform .18s var(--ease-out)}
+details.disclaimer[open]>summary::after{transform:rotate(90deg)}
+
 /* ---------- modal / toast ---------- */
 /* The page behind a sheet must not scroll — see U.modal(). */
 body.modal-open{overflow:hidden}
@@ -1591,15 +1606,15 @@ body.side-mini .side-toggle::before{content:'»'}
 .kv-top-num i{font-style:normal;font-size:11.5px;color:var(--ink-soft)}
 .kv-top-num.hot b{color:var(--red)}
 
-.kv-room{position:relative;margin-top:16px;padding:56px 18px 24px;border-radius:var(--radius-lg);
+.kv-room{position:relative;margin-top:16px;padding:18px 18px 24px;border-radius:var(--radius-lg);
   border:6px solid var(--fp-wall,#3C4A3E);
   background-color:var(--fp-floor,#EDE6D8);
   background-image:linear-gradient(#0000 0 0),
     repeating-linear-gradient(90deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px),
     repeating-linear-gradient(0deg,rgba(33,30,27,.05) 0 1px,transparent 1px 44px);
   overflow:hidden}
-.kv-room-label{position:absolute;top:13px;left:16px;right:16px;max-width:max-content;background:var(--card);border-radius:14px;
-  padding:6px 13px;box-shadow:var(--shadow-soft)}
+.kv-room-label{display:inline-block;background:var(--card);border-radius:14px;
+  padding:6px 13px;margin-bottom:22px;box-shadow:var(--shadow-soft)}
 .kv-room-label span{display:block;font-size:13.5px;font-weight:700}
 .kv-room-label small{font-size:11.5px;color:var(--ink-soft)}
 
@@ -1640,7 +1655,7 @@ body.side-mini .side-toggle::before{content:'»'}
 @media(max-width:880px){ .kv-stations{grid-template-columns:repeat(3,1fr)} }
 @media(max-width:560px){
   .kv-stations{grid-template-columns:repeat(2,1fr);gap:12px}
-  .kv-room{padding:84px 12px 20px}
+  .kv-room{padding:18px 12px 20px}
   .kv-st{min-height:110px;padding:13px 8px}
   .kv-st b{font-size:13px}
   .kv-st-ic{width:38px;height:38px;border-radius:12px}
@@ -1711,6 +1726,58 @@ body.side-mini .side-toggle::before{content:'»'}
 .spark{display:block;overflow:visible}
 
 /* Supplier cards — the page you open with the phone already in your hand */
+/* Suppliers · master–detail. The list is the lookup, the panel is the supplier.
+   Past three or four suppliers a wall of cards stops being scannable, and the
+   panel can hold everything about one of them without any card growing taller
+   than its neighbours. */
+.sup-split{display:grid;grid-template-columns:minmax(300px,4fr) 6fr;gap:16px;align-items:start}
+.sup-list{padding:0;overflow:hidden}
+.sup-search{display:flex;gap:8px;padding:14px 16px 10px}
+.sup-search .input{min-height:40px;font-size:13.5px}
+.sup-search #supQ{flex:1;min-width:0}
+.sup-search #supF{flex:0 0 auto;width:auto;max-width:46%}
+.sup-count{padding:0 16px 8px;font-size:12px;color:var(--ink-faint)}
+/* A row, not a table: the master column is narrow by definition and four
+   columns truncate in it. Name and last delivery are the two facts you scan
+   for; who to ask and which days ride under the name. */
+.sup-rows{display:flex;flex-direction:column}
+.sup-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;color:inherit;
+  padding:11px 16px;background:none;border:none;border-top:1px solid var(--line-2);cursor:pointer}
+.sup-row:first-child{border-top:1px solid var(--line)}
+.sup-row .grow{flex:1;min-width:0}
+.sup-row b{display:inline;font-size:13.5px;font-weight:700}
+.sup-row i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-faint);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sup-row .pill{margin-left:7px;font-size:10.5px}
+.sup-row-last{flex:none;text-align:right}
+.sup-row-last b{font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+.sup-row-last i{font-size:10px;margin-top:1px}
+.sup-row:hover{background:var(--paper-2)}
+.sup-row.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.sup-row.on b{color:var(--ink)}
+.sup-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.sup-foot{padding:11px 16px;border-top:1px solid var(--line-2);font-size:12px;color:var(--ink-faint)}
+.sup-detail{padding:20px}
+.sup-d-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sup-d-head h3{margin:0;font-size:19px;letter-spacing:-.01em}
+.sup-d-head .btn{margin-left:auto;flex:none}
+/* Facts on the left, the four counts on the right — the panel is wide enough
+   that stacking them would leave half of it empty. */
+.sup-d-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;align-items:start}
+.sup-d-stats{margin-top:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sup-d-stats span{flex:none}
+.sup-last{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;padding:12px 14px;
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--paper-2)}
+.sup-last span{display:block;font-size:11px;color:var(--ink-faint)}
+.sup-last b{font-size:13px}
+.sup-last-amt{margin-left:auto;font-family:"Playfair Display",serif;font-size:17px}
+@media(max-width:880px){
+  .sup-split{grid-template-columns:1fr}
+  .sup-d-grid{grid-template-columns:1fr}
+  .sup-d-stats{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:520px){ .sup-d-stats{grid-template-columns:1fr 1fr} .sup-search{flex-wrap:wrap} .sup-search #supF{max-width:100%} }
+
 .sup-grid{display:grid;gap:16px;align-items:start;
   grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
 .sup-card{display:flex;flex-direction:column}
