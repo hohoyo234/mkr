@@ -327,6 +327,21 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .task-item.done{opacity:.7}
 .thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid var(--line)}
 
+/* A collapsible .alert: the marker sits inline with the headline so a folded
+   block reads as one line, not as a heading with a stray triangle. */
+details.alert>summary{display:flex;align-items:flex-start;gap:10px;cursor:pointer;list-style:none;
+  font-weight:600}
+details.alert>summary::-webkit-details-marker{display:none}
+details.alert>summary::after{content:'▸';margin-left:auto;opacity:.55;transition:transform .18s var(--ease-out)}
+details.alert[open]>summary::after{transform:rotate(90deg)}
+details.alert>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+.fc-how-body{margin-top:8px;padding-left:28px}
+details.disclaimer>summary{cursor:pointer;list-style:none}
+details.disclaimer>summary::-webkit-details-marker{display:none}
+details.disclaimer>summary::after{content:'▸';margin-left:6px;opacity:.55;display:inline-block;
+  transition:transform .18s var(--ease-out)}
+details.disclaimer[open]>summary::after{transform:rotate(90deg)}
+
 /* ---------- modal / toast ---------- */
 /* The page behind a sheet must not scroll — see U.modal(). */
 body.modal-open{overflow:hidden}

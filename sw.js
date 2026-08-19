@@ -1,5 +1,5 @@
 /* ===== Service Worker — offline shell + background push ===== */
-const CACHE = 'mkr-cache-v158';
+const CACHE = 'mkr-cache-v159';
 
 self.addEventListener('install', e => self.skipWaiting());
 

@@ -130,8 +130,8 @@ window.MKR = window.MKR || {};
     c.innerHTML = `
       <div class="statline">
         <span class="statcell"><b>${purch.length}</b><i>dockets kept</i></span>
-        <span class="statcell"><b>${U.money0(spendThis)}</b><i>spent this month</i></span>
-        <span class="statcell"${monthDelta!=null&&monthDelta>0?' style="color:var(--amber-ink)"':''}><b>${monthDelta==null?'—':(monthDelta>0?'+':'')+monthDelta.toFixed(0)+'%'}</b><i>vs the same days last month</i></span>
+        <span class="statcell"><b>${U.money0(spendThis)}</b><i>spent this month${
+           monthDelta==null ? '' : ` · ${(monthDelta>0?'+':'')+monthDelta.toFixed(0)}% vs the same days last month`}</i></span>
         <span class="statcell"><b>${U.money0(avg)}</b><i>average docket</i></span>
       </div>
 

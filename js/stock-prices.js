@@ -98,11 +98,15 @@ window.MKR = window.MKR || {};
 
     c.innerHTML = `
       <div class="alert ${!t.compared?'info':(worse?'amber':'green')} mt16"><span>${MKR.ui.icon(!t.compared?'receipt':'trend')}</span><div>${headline}</div></div>
+      <!-- The headline above already says what this ${label} cost against last
+           one. Two money cells here repeated it — and worse, "the ${label}
+           before" ($815) sat directly under the same basket priced at last
+           ${label}'s rates ($815.67): two different facts, near-identical
+           numbers, stacked. What is left is the count nobody else states. -->
       <div class="statline">
-        <span class="statcell"><b>${U.money0(t.spendThis)}</b><i>spent this ${label}</i></span>
-        <span class="statcell"><b>${U.money0(t.spendPrev)}</b><i>the ${label} before</i></span>
         <span class="statcell"${t.up?' style="color:var(--amber-ink)"':''}><b>${t.up}</b><i>went up</i></span>
         <span class="statcell"${t.down?' style="color:var(--green)"':''}><b>${t.down}</b><i>came down</i></span>
+        <span class="statcell"><b>${U.money0(t.spendThis)}</b><i>spent this ${label}</i></span>
       </div>
       ${table(`${MKR.ui.icon('trend')} What moved`, 'ordered by what the move cost you, not by percent', movers)}
       ${table(`${MKR.ui.icon('minus')} Held their price`, 'same money as last '+label, steady)}

@@ -664,12 +664,16 @@ window.MKR = window.MKR || {};
     actions.innerHTML = `<button class="btn btn-dark btn-sm" id="dshAdd" data-new>${MKR.ui.icon('plus')} Add a dish</button>`;
 
     c.innerHTML = `
-      <div class="statline">
+      <!-- Nothing costed yet means every one of these reads 0 / — / 0: four
+           cells of noise in front of the one thing to do. The GST switch is the
+           exception — it belongs to the first dish you cost, so it moves into
+           the empty state rather than disappearing. -->
+      ${!cards.length ? '' : `<div class="statline">
         <span class="statcell"><b>${cards.length}</b><i>dishes costed</i></span>
         <span class="statcell"${avg!=null&&avg>DISH_LINE?' style="color:var(--red)"':''}><b>${avg!=null?avg+'%':'—'}</b><i>average food cost</i></span>
         <span class="statcell"${moved.length?' style="color:var(--amber-ink)"':''}><b>${moved.length}</b><i>moved this month</i></span>
         <span class="statcell clickable" id="dshGst"><b>${g.inc?'inc':'ex'}</b><i>menu prices ${g.inc?'include':'exclude'} GST</i></span>
-      </div>
+      </div>`}
 
       ${moved.length?`<div class="alert amber mt16"><span>${MKR.ui.icon('trend')}</span><div>
         <b>${moved.length} dish${moved.length===1?'':'es'} cost more than ${moved.length===1?'it':'they'} did a month ago</b>
@@ -679,17 +683,23 @@ window.MKR = window.MKR || {};
 
       ${cards.length? `<div class="grid g3 mt16" id="dshGrid">${cards.map(dishCard).join('')}</div>`
         : `<div class="card pad20 mt16"><div class="empty"><div class="em">${MKR.ui.icon('utensils')}</div>
-          <p>No dishes costed yet. Start with the three you sell most of — the ones where a price rise actually costs you money.</p></div></div>`}
+          <p>No dishes costed yet. Start with the three you sell most of — the ones where a price rise actually costs you money.</p>
+          <div class="row gap8 center wrap mt12" style="justify-content:center">
+            <button class="btn btn-dark btn-sm" id="dshAdd2">${MKR.ui.icon('plus')} Add a dish</button>
+            <button class="btn btn-ghost btn-sm clickable" id="dshGst">Menu prices ${g.inc?'include':'exclude'} GST</button>
+          </div></div></div>`}
 
-      <div class="disclaimer mt16"><span>${MKR.ui.icon('utensils')}</span><div>
+      <details class="disclaimer mt16"${cards.length?' open':''}><summary style="cursor:pointer;font-weight:700">How these numbers work</summary>
+        <div class="mt8">
         <div>Cost is your recipe times the last price you actually paid for each ingredient, so it moves when your supplier moves.</div>
         <div>${g.inc
           ? 'Menu prices are treated as GST-inclusive and the GST is taken out before the ratio — comparing a GST-inclusive price against GST-free ingredient costs makes every dish look about a tenth better than it is. Tap the GST cell to change that.'
           : 'Menu prices are treated as GST-free. Tap the GST cell to change that.'}</div>
         <div>35% is a common line in the trade, not your line — read it against the food cost on your Takings page, which is the one that is actually yours.</div>
-      </div></div>`;
+      </div></details>`;
 
     U.qs('#dshAdd',actions).onclick = ()=> dishModal(null, its, reload);
+    const add2 = U.qs('#dshAdd2',c); if(add2) add2.onclick = ()=> dishModal(null, its, reload);
     U.qs('#dshGst',c).onclick = async()=>{ await S().setGstInc(!g.inc); reload(); };
     U.qsa('[data-dish]',c).forEach(b=> b.onclick = ()=>
       dishModal(rs.find(r=>r.id===b.dataset.dish), its, reload));
@@ -1192,13 +1202,14 @@ window.MKR = window.MKR || {};
     }
 
     c.innerHTML = `
-      <div class="alert info mt16"><span>${MKR.ui.icon('bars')}</span><div>
-        <b>Nothing here is guessed — it's your stocktakes, added up.</b>
+      <details class="alert info mt16 fc-how"><summary><span>${MKR.ui.icon('bars')}</span>
+        <b>Nothing here is guessed — it's your stocktakes, added up.</b></summary>
+      <div class="fc-how-body">
         <div>There's no till in this app, so nobody can deduct an ingredient per dish. Instead usage is what the shelf actually shows:</div>
         <code class="fc-formula">counted last time + everything the dockets brought in − counted this time = used</code>
         <div>Divide by the days between the two counts and you have a daily rate. Two counts is the minimum; more counts, steadier number.</div>
         <div>${lastCount?`Your last count was ${U.fmtDate(lastCount)} · ${takes.length} count${takes.length===1?'':'s'} on file.`:`No stocktakes yet — that's the one thing this page needs from you.`}</div>
-      </div></div>
+      </div></details>
       ${bin.rows.length ? `<div class="alert amber mt16"><span>${MKR.ui.icon('trash')}</span><div>
         <b>${U.money(bin.cost)}</b> <b>went in the bin in the last 30 days</b>
         <div>${bin.byItem.slice(0,3).map(b=>`${U.esc(b.name)} ${U.money(b.cost)}`).join(' · ')}${bin.byItem.length>3?` · +${bin.byItem.length-3} more`:''}</div>
