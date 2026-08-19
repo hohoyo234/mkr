@@ -80,20 +80,30 @@ window.MKR = window.MKR || {};
       console.warn(`[mkr.db] "${t}" is written but not in MKR.supa.TABLES — it will never sync back down. Add it there and create the table in supabase/.`);
     }
   }
+  // Preview runs on this device's own sample data with no auth session, so
+  // every cloud write comes back 401 and drops into the outbox — a queue that
+  // can never drain, a sync pill stuck on "Saving 104 changes…" for the rest of
+  // the session, and a console full of red for anyone being shown the app.
+  // Preview is local by definition: don't send it, and don't queue it either.
+  const previewing = ()=> !!(MKR.auth && MKR.auth.isPreview && MKR.auth.isPreview());
+
   async function pushUpsert(t,obj){
     warnUnsynced(t);
+    if(previewing()) return;
     if(sb() && navigator.onLine){
       const {error}=await sb().from(t).upsert({id:obj.id,data:obj,updated_at:new Date().toISOString()});
       if(error){ await outAdd({type:'upsert',t,obj}); }
     } else if(sb()){ await outAdd({type:'upsert',t,obj}); }
   }
   async function pushDelete(t,id){
+    if(previewing()) return;
     if(sb() && navigator.onLine){
       const {error}=await sb().from(t).delete().eq('id',id);
       if(error){ await outAdd({type:'delete',t,id}); }
     } else if(sb()){ await outAdd({type:'delete',t,id}); }
   }
   async function pushMeta(k,v){
+    if(previewing()) return;
     if(sb() && navigator.onLine){
       const {error}=await sb().from('app_meta').upsert({key:k,value:v});
       if(error){ await outAdd({type:'meta',k,v}); }
@@ -103,7 +113,7 @@ window.MKR = window.MKR || {};
   // ---------- flush the outbox ----------
   let flushing=false, _subscribed=false;
   async function flush(){
-    if(flushing || !sb() || !navigator.onLine) return;
+    if(flushing || !sb() || !navigator.onLine || previewing()) return;
     flushing=true;
     try{
       const items=await outAll();
