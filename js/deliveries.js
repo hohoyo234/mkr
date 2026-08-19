@@ -100,7 +100,7 @@ window.MKR = window.MKR || {};
   // GST the supplier put on it and how it's being paid. Anything left out here
   // is something the owner has to type a second time later, which is exactly the
   // job this app exists to delete.
-  async function confirm(d, {lines, receivedBy, signature, tempC, note, photo, docketNo, payMethod, fee, gst}){
+  async function confirm(d, {lines, receivedBy, signature, tempC, note, photo, photos, docketNo, payMethod, fee, gst}){
     const got = lines.filter(l=>(+l.received||0)>0);
     let purchaseId = null;
     if(got.length){
@@ -125,7 +125,7 @@ window.MKR = window.MKR || {};
     const saved = await MKR.db.put('deliveries', {
       id:d.id, status:'confirmed', lines, receivedBy, signature:signature||null, tempC:tempC===''?null:tempC,
       docketNo: docketNo || d.docketNo || '', payMethod: payMethod||'', fee:+fee||0, gst:+gst||0,
-      note, photo:photo||null, confirmedAt:Date.now(), purchaseId
+      note, photo:photo||null, photos:photos||[], confirmedAt:Date.now(), purchaseId
     });
     // A reading that is only filed is not a check — same rule the fridge
     // checklist applies, same alert.
@@ -154,6 +154,47 @@ window.MKR = window.MKR || {};
     try{ await MKR.audit.log({action:'delivery.reject', desc:`Rejected delivery from ${d.supplierName||'supplier'}`}); }catch(e){}
   }
 
+  // Waiting deliveries, a week at a time. "3 waiting" tells nobody whether to
+  // be at the back door this morning or next Tuesday — a date does, and the
+  // week it sits in is how a kitchen already thinks about the next fortnight.
+  const MON = (ts)=>{ const d=new Date(ts); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d.getTime(); };
+  function weekLabel(mon, thisMon){
+    const diff = Math.round((mon-thisMon)/(7*864e5));
+    const end = mon + 6*864e5;
+    const range = `${U.fmtDate(mon)} – ${U.fmtDate(end)}`;
+    const name = diff<0 ? 'Overdue' : diff===0 ? 'This week' : diff===1 ? 'Next week' : `In ${diff} weeks`;
+    return {name, range, late:diff<0};
+  }
+  function waitingWeeks(wait){
+    if(!wait.length) return '';
+    const thisMon = MON(Date.now()), today = U.isoDate();
+    const byWeek = {};
+    wait.forEach(d=>{
+      const ts = d.dueTs || d.ts || Date.now();
+      (byWeek[MON(ts)] = byWeek[MON(ts)] || []).push({d, ts});
+    });
+    const weeks = Object.keys(byWeek).map(Number).sort((a,b)=>a-b);
+    return `<div class="card pad20 mt16">
+      <div class="section-title">${MKR.ui.icon('calendar')}Coming up<span class="faint" style="font-size:12px;font-weight:500">what to expect at the back door, week by week</span></div>
+      ${weeks.map(mon=>{
+        const w = weekLabel(mon, thisMon);
+        const list = byWeek[mon].sort((a,b)=>a.ts-b.ts);
+        return `<div class="dlv-week">
+          <div class="dlv-week-head${w.late?' late':''}"><b>${w.name}</b><span>${w.range}</span></div>
+          ${list.map(({d,ts})=>{
+            const iso = U.isoDate(ts);
+            const when = iso===today ? 'Today' : new Date(ts).toLocaleDateString('en-AU',{weekday:'short', day:'numeric', month:'short'});
+            return `<div class="li clickable" data-dlv="${d.id}">
+              <div class="dlv-when${iso===today?' now':''}${iso<today?' late':''}">${when}${d.dueTime?`<i>${U.esc(d.dueTime)}</i>`:''}</div>
+              <div class="meta"><b>${U.esc(d.supplierName||'Supplier')}${d.docketNo?' · '+U.esc(d.docketNo):''}</b>
+                <span>${(d.lines||[]).length} line${(d.lines||[]).length===1?'':'s'} ordered · tap to check it in</span></div>
+              <span class="pill ghost">${MKR.ui.icon('clock')} Expected</span></div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
   // ---------------- page ----------------
   async function render(c){
     const [rows, sups, its, purch, clms] = await Promise.all([all(), MKR.stock.suppliers(), MKR.stock.items(), MKR.stock.purchases(), claims()]);
@@ -180,6 +221,7 @@ window.MKR = window.MKR || {};
         <div class="faint">${chasing.slice(0,4).map(x=>`<div>${U.esc(x.supplierName||'Supplier')} ${U.money(x.amount)} · <span>${CLAIM[x.status].label}</span></div>`).join('')}</div>
         <div>Open the delivery to log what they said, or mark it settled once the credit lands.</div>
       </div></div>`:''}
+      ${waitingWeeks(wait)}
       <div class="card pad20 mt16">
         <div class="section-title">Delivery log</div>
         ${rows.length? `<div class="list">${rows.map(d=>{
@@ -189,7 +231,7 @@ window.MKR = window.MKR || {};
           return `<div class="li clickable" data-dlv="${d.id}">
             <div class="ds-li-ic">${MKR.ui.icon(st.ic)}</div>
             <div class="meta"><b>${U.esc(d.supplierName||supName(d.supplierId))}${d.docketNo?' · '+U.esc(d.docketNo):''}</b>
-              <span>${U.fmtDateTime(d.ts)} · ${(d.lines||[]).length} line${(d.lines||[]).length===1?'':'s'}${d.receivedBy?' · signed '+U.esc(d.receivedBy):''}${bad?` · ${bad} problem`:''}</span></div>
+              <span>${d.status==='expected'&&d.dueTs?'due '+U.fmtDate(d.dueTs)+(d.dueTime?' '+U.esc(d.dueTime):''):U.fmtDateTime(d.ts)} · ${(d.lines||[]).length} line${(d.lines||[]).length===1?'':'s'}${d.receivedBy?' · signed '+U.esc(d.receivedBy):''}${bad?` · ${bad} problem`:''}</span></div>
             ${dk?`<b class="dlv-amt">${U.money(dk.total)}</b>`:''}
             ${cl?`<span class="pill ${CLAIM[cl.status].pill}">${MKR.ui.icon(CLAIM[cl.status].ic)} ${cl.amount?U.money(cl.amount):CLAIM[cl.status].label}</span>`:''}
             <span class="pill ${st.pill}">${st.label}</span></div>`;
@@ -219,6 +261,8 @@ window.MKR = window.MKR || {};
         <option value="">— not recorded —</option>${sups.map(s=>`<option value="${s.id}">${U.esc(s.name)}</option>`).join('')}
       </select></div>
       <div class="field grow"><label>Docket / invoice no.</label><input class="input" id="d_doc" placeholder="optional"></div></div>
+      <div class="row"><div class="field grow"><label>Expected on</label><input class="input" id="d_due" type="date" value="${U.todayISO()}"></div>
+        <div class="field grow"><label>Expected time — optional</label><input class="input" id="d_dueT" type="time"></div></div>
       <div class="tablewrap"><table class="dtable">
         <thead><tr><th>Item</th><th class="num" style="width:110px">Ordered</th><th></th></tr></thead>
         <tbody id="d_lines">${lineHtml()}</tbody></table></div>
@@ -241,7 +285,9 @@ window.MKR = window.MKR || {};
         }).filter(l=>l.ordered>0);
         if(!lines.length){ U.toast('Add at least one line','red'); return; }
         const s = sups.find(x=>x.id===supId);
-        await save({supplierId:supId, supplierName:s?s.name:'', docketNo:U.qs('#d_doc',wrap).value.trim(), lines});
+        const due = U.qs('#d_due',wrap).value, dueT = U.qs('#d_dueT',wrap).value;
+        await save({supplierId:supId, supplierName:s?s.name:'', docketNo:U.qs('#d_doc',wrap).value.trim(), lines,
+          dueTs: due ? new Date(due+'T'+(dueT||'00:00')).getTime() : Date.now(), dueTime: dueT||''});
         close(); U.toast('Delivery created','green'); after();
       }}
     ]});
@@ -298,11 +344,21 @@ window.MKR = window.MKR || {};
           <label>Signature</label><button type="button" class="btn btn-ghost btn-sm" id="d_sigclr">Clear</button></div>
         <div class="sigpad" id="d_sig" aria-label="Sign here with your finger or mouse"><canvas></canvas></div></div>
       <div class="field"><label>Note (optional)</label><input class="input" id="d_note" placeholder="e.g. 2 boxes short, driver to redeliver Friday"></div>
-      <label class="img-drop" id="d_drop"><div class="img-preview" id="d_prev"><span id="d_photoLabel">${MKR.ui.icon('camera')} Photo of the docket or the problem</span></div><input type="file" id="d_photo" accept="image/*" hidden></label>
+      <div class="field"><label id="d_photoLabel">Photos of the docket or the problem</label>
+        <div class="shots" id="d_shots"></div>
+        <div class="row gap8 wrap mt8">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">${MKR.ui.icon('camera')} Add photos
+            <input type="file" id="d_photo" accept="image/*" multiple hidden></label>
+          <button type="button" class="btn btn-dark btn-sm" id="d_read" disabled>${MKR.ui.icon('sparkle')} <span id="d_readTxt">Read the docket</span></button>
+        </div></div>
       <div class="disclaimer" id="d_photoWhy" hidden><span>${MKR.ui.icon('camera')}</span>A short or damaged line needs the photo. Suppliers refuse claims they can't see, and by the time anyone chases it the crate has been thrown out.</div>
       <div class="disclaimer mt12"><span>${MKR.ui.icon('receipt')}</span>Signing here files the docket as well: received quantities go into stock at the prices above, and the whole thing lands in Purchases. You never type it twice.</div>
     </div>`);
-    let photo=null;
+    // As many photos as the docket needs — a two-page invoice and a photo of the
+    // broken crate are three pictures, and making someone choose one of them is
+    // how the evidence for a claim goes missing. Each is kept twice: full size
+    // for the record, and a small copy the reader can actually be sent.
+    let shots=[];
     // A name in a box proves nothing to a supplier arguing about a short
     // delivery — the mark does. Same pad the complaint form signs on.
     const sig = U.signaturePad(U.qs('#d_sig',wrap));
@@ -368,8 +424,65 @@ window.MKR = window.MKR || {};
     });
     ['#d_fee','#d_gst'].forEach(sel=> U.qs(sel,wrap).oninput = recalc);
     recalc();
-    U.qs('#d_photo',wrap).onchange=(e)=> U.readImage(e.target.files[0], (data)=>{
-      photo=data; U.qs('#d_prev',wrap).innerHTML=`<img src="${photo}">`; syncPhotoReq(); });
+    function drawShots(){
+      const host = U.qs('#d_shots',wrap);
+      host.innerHTML = shots.length
+        ? shots.map((sh,i)=>`<div class="shot"><img src="${sh.big}" alt="">
+            <button type="button" class="shot-x" data-shot="${i}" aria-label="Remove photo ${i+1}">×</button></div>`).join('')
+        : `<div class="shot-empty">${MKR.ui.icon('camera')} No photos yet</div>`;
+      U.qsa('[data-shot]',host).forEach(b=> b.onclick=()=>{ shots.splice(+b.dataset.shot,1); drawShots(); syncPhotoReq(); });
+      U.qs('#d_read',wrap).disabled = !shots.length;
+      syncPhotoReq();
+    }
+    U.qs('#d_photo',wrap).onchange=(e)=>{
+      const files = Array.from(e.target.files||[]);
+      e.target.value = '';
+      files.forEach(f=>{
+        const sh = {};
+        // Full size stays legible enough to argue with a supplier about; the
+        // small copy is what the reader accepts inline.
+        U.readImage(f, (big)=>{ sh.big = big; shots.push(sh); drawShots(); });
+        U.readImage(f, (small)=>{ sh.small = small; }, 800);
+      });
+    };
+
+    // One tap: the paper the driver handed over, typed in for you. It fills the
+    // form — it never saves. What gets signed for is still what the person at
+    // the back door read off the docket and agreed with.
+    const WANT = `{"docketNo":"","fee":0,"gst":0,"lines":[{"name":"","qty":0,"unitPrice":0}]}`;
+    U.qs('#d_read',wrap).onclick = async()=>{
+      const img = (shots.find(s=>s.small)||{}).small || (shots[0]||{}).big;
+      if(!img) return;
+      const btn = U.qs('#d_read',wrap), txt = U.qs('#d_readTxt',wrap);
+      btn.disabled = true; txt.textContent = 'Reading…';
+      const got = await MKR.assistant.readImage(img, WANT);
+      btn.disabled = false; txt.textContent = 'Read the docket';
+      let hits = 0;
+      const doc = U.qs('#d_doc',wrap);
+      if(got.docketNo && !doc.value.trim()){ doc.value = got.docketNo; hits++; }
+      [['fee', got.fee], ['gst', got.gst]].forEach(([k,v])=>{
+        const el = U.qs('#d_'+k,wrap);
+        if(v>0 && !(Number(el.value)>0)){ el.value = U.round2(v); hits++; }
+      });
+      // Match on the name that is already on the row: the docket's wording and
+      // the venue's own item names rarely agree word for word, so either one
+      // containing the other is close enough to fill in — and the person is
+      // looking straight at both.
+      const norm = (x)=> String(x||'').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g,'');
+      (got.lines||[]).forEach(l=>{
+        const key = norm(l.name); if(!key) return;
+        const tr = U.qsa('.dc-row',wrap).find(r=>{
+          const n = norm(U.qs('b',r).textContent);
+          return n && (n.includes(key) || key.includes(n));
+        });
+        if(!tr) return;
+        if(l.qty>0){ U.qs('.dc-rec',tr).value = U.round2(l.qty); hits++; }
+        if(l.unitPrice>0){ U.qs('.dc-price',tr).value = U.round2(l.unitPrice); hits++; }
+      });
+      recalc();
+      U.toast(hits ? `Read ${hits} figure${hits===1?'':'s'} — check them against the paper`
+                   : "Couldn't read that docket — type it in", hits?'green':'amber');
+    };
 
     // The photo stays optional for a clean delivery — nobody needs a picture of
     // three good crates, and a form that demands one gets worked around. It
@@ -379,16 +492,13 @@ window.MKR = window.MKR || {};
     function syncPhotoReq(){
       const need = photoNeeded();
       U.qs('#d_photoWhy',wrap).hidden = !need;
-      // The label lives inside the preview box, which is replaced wholesale by
-      // the <img> once a photo is chosen — so by then there is nothing to
-      // relabel, and looking for it must not take the rest of this function
-      // down with it. The red outline is cleared below either way.
       const lbl = U.qs('#d_photoLabel',wrap);
       if(lbl) lbl.textContent = need
-        ? 'Photo of the problem — required'
-        : 'Photo of the docket or the problem (optional)';
-      U.qs('#d_drop',wrap).classList.toggle('needs', need && !photo);
+        ? 'Photo of the problem — at least one is required'
+        : 'Photos of the docket or the problem (optional)';
+      U.qs('#d_shots',wrap).classList.toggle('needs', need && !shots.length);
     }
+    drawShots();          // after syncPhotoReq's own dependencies exist
 
     // Receiving less than ordered is the usual reason for a problem — pre-flag
     // it. Compared in the item's own unit, because the box on screen may be
@@ -435,15 +545,16 @@ window.MKR = window.MKR || {};
         }
         // Checked against the lines being saved, not the form state, so this
         // can't be slipped past by changing a condition after the last redraw.
-        if(lines.some(l=>l.condition && l.condition!=='ok') && !photo){
+        if(lines.some(l=>l.condition && l.condition!=='ok') && !shots.length){
           U.toast('Add a photo of the problem — the claim needs it','red');
-          U.qs('#d_drop',wrap).classList.add('needs');
-          U.qs('#d_drop',wrap).scrollIntoView({block:'center', behavior:'smooth'});
+          U.qs('#d_shots',wrap).classList.add('needs');
+          U.qs('#d_shots',wrap).scrollIntoView({block:'center', behavior:'smooth'});
           return;
         }
         const tempEl = U.qs('#d_temp',wrap);
         await confirm(d, {lines, receivedBy:by, signature:sig.data(), tempC:tempEl?tempEl.value:'',
-          note:U.qs('#d_note',wrap).value.trim(), photo,
+          note:U.qs('#d_note',wrap).value.trim(),
+          photo:(shots[0]||{}).big||null, photos:shots.map(x=>x.big).filter(Boolean),
           docketNo:U.qs('#d_doc',wrap).value.trim(), payMethod:U.qs('#d_pay',wrap).value,
           fee:Number(U.qs('#d_fee',wrap).value)||0, gst:Number(U.qs('#d_gst',wrap).value)||0});
         close(); U.toast('Signed · stock updated and the docket is filed','green'); after();
@@ -517,7 +628,8 @@ window.MKR = window.MKR || {};
         ${d.note?`<div class="li"><div class="meta"><span>Note</span><b>${U.esc(d.note)}</b></div></div>`:''}
       </div>
       ${claim && claim.note ? `<div class="disclaimer mt12"><span>${MKR.ui.icon(CLAIM[claim.status].ic)}</span><div>${U.esc(claim.note)}</div></div>`:''}
-      ${d.photo?`<img src="${d.photo}" style="max-width:100%;border-radius:12px;margin-top:12px">`:''}`}
+      ${(d.photos&&d.photos.length?d.photos:(d.photo?[d.photo]:[]))
+        .map(src=>`<img src="${src}" style="max-width:100%;border-radius:12px;margin-top:12px">`).join('')}`}
     </div>`);
 
     // The delivery and the docket are two views of one event, so each opens the

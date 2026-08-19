@@ -20,12 +20,15 @@ window.MKR = window.MKR || {};
     availability:{label:'Availability (staff & manager)',on:true, roles:['staff','manager']},
     bookings: {label:'Bookings & queue',    on:true, roles:['manager']},
     stock:    {label:'Stock, costs & suppliers', on:true, roles:['owner','manager']},
+    // Counting is a separate switch from Stock on purpose: it is the one part of
+    // stock a venue may want its floor staff doing, and it shows no money.
+    count:    {label:'Stock count (staff can count)', on:true, roles:['owner','manager','staff']},
     deliveries:{label:'Delivery confirmation',   on:true, roles:['owner','manager','staff']},
     training: {label:'Training & SOP',      on:true, roles:['owner','manager','staff']},
     notify:   {label:'Notifications & nudges',on:true, roles:['owner','manager','staff']},
     // Owner-side pages the owner can hide from their own sidebar (core pages —
     // dashboard / alerts / audit / settings — stay on).
-    o_assistant:  {label:'Owner · AI Assistant',  on:true, roles:['owner']},
+    o_assistant:  {label:'Owner · AI Assistant button',  on:true, roles:['owner']},
     o_team:       {label:'Owner · Team',          on:true, roles:['owner']},
     o_performance:{label:'Owner · Performance',   on:true, roles:['owner']},
     o_branches:   {label:'Owner · Branches',      on:true, roles:['owner']},

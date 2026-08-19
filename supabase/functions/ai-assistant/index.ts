@@ -11,12 +11,20 @@
 //   supabase secrets set NVIDIA_API_KEY=nvapi-xxxxxxxx
 //   # optional:
 //   supabase secrets set NVIDIA_MODEL=qwen/qwen2.5-72b-instruct
+//   supabase secrets set NVIDIA_VISION_MODEL=meta/llama-3.2-90b-vision-instruct
+//
+// Two jobs, one function: POST { question, role, lang, context } → { text },
+// or POST { image (data URL), want (JSON shape) } → { fields }.
 //
 // The front-end (js/assistant.js → MKR.assistant.llm) POSTs { question, role, lang, context }.
 // Returns { text }.
 
 const NVIDIA_API_KEY = Deno.env.get('NVIDIA_API_KEY') || '';
 const MODEL = Deno.env.get('NVIDIA_MODEL') || 'qwen/qwen2.5-72b-instruct';
+// A second model, because reading a photo of a menu or a business card is a
+// different job from answering a question. Any OpenAI-compatible vision model
+// on build.nvidia.com works — set NVIDIA_VISION_MODEL to change it.
+const VISION_MODEL = Deno.env.get('NVIDIA_VISION_MODEL') || 'meta/llama-3.2-90b-vision-instruct';
 const BASE_URL = (Deno.env.get('NVIDIA_BASE_URL') || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '');
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey' };
@@ -54,6 +62,56 @@ Deno.serve(async (req) => {
   if (!NVIDIA_API_KEY) return json({ error: 'NVIDIA_API_KEY not configured' }, 500);
 
   const p = await req.json().catch(() => ({} as any));
+
+  // ---- Photo → fields. Same function, same key, different model. ----
+  // The caller sends a data: URL and the shape it wants back; we return
+  // whatever the picture actually showed and nothing else. The caller never
+  // saves this blind — it fills a form the owner then checks.
+  if (p.image) {
+    const image = String(p.image);
+    if (!/^data:image\/[a-z+]+;base64,/i.test(image)) return json({ error: 'image must be a data URL' }, 400);
+    // ponytail: inline base64 only. NVIDIA rejects large inline images (~180KB
+    // of base64), so the front-end downscales before sending. If bigger photos
+    // are ever needed, switch to their asset-upload endpoint.
+    if (image.length > 240_000) return json({ error: 'image too large' }, 413);
+    const want = String(p.want || '').slice(0, 2000);
+    const sys = `You read a photo and return data. Reply with ONE JSON object and nothing else — no prose, no code fence.
+Shape:
+${want || '{}'}
+Rules:
+- Include a key ONLY if the photo actually shows it. Never invent a name, a price or a phone number.
+- Numbers as numbers, not strings. Times as "HH:MM" 24-hour.
+- If the photo shows nothing useful, return {}.`;
+    try {
+      const r = await fetch(`${BASE_URL}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${NVIDIA_API_KEY}` },
+        body: JSON.stringify({
+          model: VISION_MODEL, max_tokens: 1200, temperature: 0, stream: false,
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: [
+              { type: 'text', text: 'Read this and return the JSON.' },
+              { type: 'image_url', image_url: { url: image } },
+            ] },
+          ],
+        }),
+      });
+      if (!r.ok) {
+        const detail = await r.text().catch(() => '');
+        return json({ error: 'upstream', status: r.status, detail: detail.slice(0, 300) }, 502);
+      }
+      const data = await r.json();
+      const raw = String(data?.choices?.[0]?.message?.content || '');
+      // Models wrap JSON in prose or a fence often enough that hunting for the
+      // outermost braces is cheaper than arguing with the prompt.
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (!m) return json({ fields: {}, raw: raw.slice(0, 300) });
+      try { return json({ fields: JSON.parse(m[0]) }); }
+      catch { return json({ fields: {}, raw: raw.slice(0, 300) }); }
+    } catch (e) { return json({ error: String(e) }, 500); }
+  }
+
   const question = String(p.question || '').slice(0, 2000).trim();
   if (!question) return json({ error: 'empty question' }, 400);
   const role = ['owner', 'manager', 'staff', 'superadmin'].includes(p.role) ? p.role : 'a user';

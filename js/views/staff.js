@@ -12,6 +12,7 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       {id:'tasks',  label:'Today\'s tasks', short:'Tasks', feature:'tasks'},
       {id:'training',label:'My training', short:'Training', feature:'training'},
       {id:'deliveries',label:'Deliveries', short:'Delivery', feature:'deliveries'},
+      {id:'count',  label:'Stock count', short:'Count', feature:'count'},
       {id:'market', label:'Swap market', short:'Swaps', feature:'market'},
       {id:'me',     label:'My profile', short:'Profile'},
     ],
@@ -32,9 +33,62 @@ window.MKR = window.MKR || {}; MKR.portals = MKR.portals || {};
       if(section==='market') return market(c);
       if(section==='training') return MKR.training.renderMine(c);
       if(section==='deliveries') return MKR.deliveries.render(c);
+      if(section==='count') return stockCount(c);
       if(section==='me' || section==='onboarding') return me(c);
     }
   };
+
+  // ---------- Stock count ----------
+  // Counting is the only place usage data comes from in this app — there is no
+  // till — and the person who can actually count the shelf is the person
+  // standing at it. So staff get the count, and only the count: no prices, no
+  // stock value, no supplier, nothing about what anything cost.
+  //
+  // It is also a BLIND count: the book figure is deliberately not shown. Put
+  // "system says 12" next to the box and 12 is what gets typed on a busy
+  // Saturday, which makes the whole exercise worthless.
+  async function stockCount(c){
+    const items = (await MKR.stock.items()).filter(r=>!r.archived);
+    const cats = [...new Set(items.map(r=>(r.category||'').trim()).filter(Boolean))];
+    const group = (name, list)=> !list.length ? '' : `
+      <div class="card pad20 mt16">
+        <div class="section-title">${U.esc(name)}</div>
+        <div class="tablewrap"><table class="dtable entry">
+          <thead><tr><th>Item</th><th class="num" style="width:130px">Counted</th></tr></thead>
+          <tbody>${list.map(r=>`<tr>
+            <td><b>${U.esc(r.name)}</b><div class="faint" style="font-size:11.5px">${U.esc(r.unit||'units')}</div></td>
+            <td class="num"><span class="cell-l">Counted</span>
+              <input class="input" type="number" min="0" step="0.01" data-count="${r.id}" placeholder="—" style="text-align:right"></td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>`;
+
+    c.innerHTML = `
+      <div class="section-head"><div><h2>Stock count</h2><p>Walk the shelves and type what is actually there</p></div>
+        <button class="btn btn-dark btn-sm" id="scSave">${MKR.ui.icon('checksq')} Save count</button></div>
+      ${items.length ? `
+        <div class="disclaimer"><span>${MKR.ui.icon('sparkle')}</span>Type only what you counted — anything left blank is skipped, so you can do the cold room now and the dry store later.</div>
+        ${cats.map(cat=> group(cat, items.filter(r=>(r.category||'').trim()===cat))).join('')}
+        ${group(cats.length?'Everything else':'Everything on the shelf', items.filter(r=>!(r.category||'').trim()))}
+        <div class="field mt16"><label>Note (optional)</label><input class="input" id="scNote" placeholder="e.g. Monday morning, cold room only"></div>`
+        : `<div class="empty"><div class="em">${MKR.ui.icon('box')}</div><p>Nothing to count yet — the venue hasn't added any stock items.</p></div>`}`;
+
+    const save = U.qs('#scSave',c);
+    if(!items.length){ save.disabled = true; return; }
+    save.onclick = async()=>{
+      const lines = U.qsa('[data-count]',c).map(i=>({itemId:i.dataset.count, counted:i.value===''?null:Number(i.value)}));
+      if(!lines.some(l=>l.counted!=null)){ U.toast('Type at least one count','amber'); return; }
+      save.disabled = true;
+      const saved = await MKR.stock.saveStocktake(lines, U.qs('#scNote',c).value.trim());
+      save.disabled = false;
+      if(!saved){ U.toast('Nothing counted','amber'); return; }
+      if(saved.error==='negative'){ U.toast(`A count can't be negative — check ${saved.lines.map(l=>l.name).join(', ')}`,'red'); return; }
+      // What the count was worth is the owner's business, not the counter's —
+      // they get "thanks, that's in", and the variance lands on the stock page.
+      U.toast(`Counted ${saved.lines.length} item${saved.lines.length===1?'':'s'} — thanks, that's saved`,'green');
+      stockCount(c);
+    };
+  }
 
   // ---------- Availability (quick presets + custom time per day; per-row update) ----------
   async function availability(c){

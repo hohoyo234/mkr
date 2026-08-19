@@ -17,6 +17,8 @@ window.MKR = window.MKR || {};
                   // Stock & supply chain
                   'inventory','suppliers','purchases','stocktakes','deliveries','takings',
                   'claims','waste','reconciliations','recipes',
+                  // The venue's own calendar: pest control, deep cleans, whoever is doing them
+                  'events',
                   // Training / SOP / certificates
                   'sops','trainings','certs'];
 
